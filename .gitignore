@@ -21,6 +21,7 @@ xcuserdata/
 *.moved-aside
 *.xccheckout
 *.xcscmblueprint
+*.xcuserstate
 
 ## Obj-C/Swift specific
 *.hmap
@@ -39,6 +40,7 @@ playground.xcworkspace
 # Package.pins
 # Package.resolved
 .build/
+Packages
 
 # CocoaPods
 #
@@ -66,3 +68,13 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Code Injection
+#
+# After new code Injection tools there's a generated folder /iOSInjectionProject
+# https://github.com/johnno1962/injectionforxcode
+
+iOSInjectionProject/
+
+# macOS
+.DS_Store
