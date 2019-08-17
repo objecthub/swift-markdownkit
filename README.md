@@ -14,8 +14,7 @@ format. The supported syntax is based on the [CommonMark Markdown specification]
 
 _Swift MarkdownKit_ defines an abstract syntax for Markdown, it provides a parser for parsing strings into
 abstract syntax trees, and comes with generators for creating HTML and
-[attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring)
-from abstract syntax trees.
+[attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring).
 
 ## Using the framework
 
@@ -84,11 +83,11 @@ which illustrates how to process an abstract syntax tree for the purpose of extr
 
 ```swift
 let markdown = MarkdownParser.standard.parse("""
-                 # First *Header*
-                 ## Sub-header
-                 And this is a **paragraph**.
-                 # Second **Header**
-                 And this is another paragraph.
+                   # First *Header*
+                   ## Sub-header
+                   And this is a **paragraph**.
+                   # Second **Header**
+                   And this is another paragraph.
                  """)
 
 func topLevelHeaders(doc: Block) -> [String] {
@@ -170,6 +169,13 @@ The tool is provided to serve as a basis for customization to specific use cases
 binary is to use the Swift Package Manager (SPM):
 
 ```sh
+> git clone https://github.com/objecthub/swift-markdownkit.git
+Cloning into 'swift-markdownkit'...
+remote: Enumerating objects: 70, done.
+remote: Counting objects: 100% (70/70), done.
+remote: Compressing objects: 100% (54/54), done.
+remote: Total 70 (delta 13), reused 65 (delta 11), pack-reused 0
+Unpacking objects: 100% (70/70), done.
 > cd swift-markdownkit
 > swift build -c release
 [1/3] Compiling Swift Module 'MarkdownKit' (25 sources)
@@ -186,7 +192,7 @@ where: <source> is either a Markdown file or a directory containing Markdown fil
 There are a number of limitations and known issues:
 
    - The Markdown parser currently does not fully support _link reference definitions_. It is possible to define a
-     a link reference, but usage of such references is currently not supported.
+     link reference, but usage of such references is currently not supported.
   - Escaping of characters is not handled correctly when generating plain text or when generating HTML or
     attributed strings.
 
