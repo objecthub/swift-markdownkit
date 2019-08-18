@@ -68,49 +68,49 @@ open class AttributedStringGenerator {
   }
 
   /// The base font size.
-  let fontSize: Float
+  public let fontSize: Float
 
   /// The base font family.
-  let fontFamily: String
+  public let fontFamily: String
 
   /// The base font color.
-  let fontColor: String
+  public let fontColor: String
 
   /// The code font size.
-  let codeFontSize: Float
+  public let codeFontSize: Float
 
   /// The code font family.
-  let codeFontFamily: String
+  public let codeFontFamily: String
 
   /// The code font color.
-  let codeFontColor: String
+  public let codeFontColor: String
 
   /// The code block font size.
-  let codeBlockFontSize: Float
+  public let codeBlockFontSize: Float
 
   /// The code block font color.
-  let codeBlockFontColor: String
+  public let codeBlockFontColor: String
 
   /// The code block background color.
-  let codeBlockBackground: String
+  public let codeBlockBackground: String
 
   /// The border color (used for code blocks and for thematic breaks).
-  let borderColor: String
+  public let borderColor: String
 
   /// The blockquote color.
-  let blockquoteColor: String
+  public let blockquoteColor: String
 
   /// The color of H1 headers.
-  let h1Color: String
+  public let h1Color: String
 
   /// The color of H2 headers.
-  let h2Color: String
+  public let h2Color: String
 
   /// The color of H3 headers.
-  let h3Color: String
+  public let h3Color: String
 
   /// The color of H4 headers.
-  let h4Color: String
+  public let h4Color: String
 
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
   public init(fontSize: Float = 14.0,
