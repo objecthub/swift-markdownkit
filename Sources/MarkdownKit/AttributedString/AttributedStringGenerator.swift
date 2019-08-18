@@ -68,7 +68,7 @@ open class AttributedStringGenerator {
   }
 
   /// The base font size.
-  let fontSize: Int
+  let fontSize: Float
 
   /// The base font family.
   let fontFamily: String
@@ -77,7 +77,7 @@ open class AttributedStringGenerator {
   let fontColor: String
 
   /// The code font size.
-  let codeFontSize: Int
+  let codeFontSize: Float
 
   /// The code font family.
   let codeFontFamily: String
@@ -86,7 +86,7 @@ open class AttributedStringGenerator {
   let codeFontColor: String
 
   /// The code block font size.
-  let codeBlockFontSize: Int
+  let codeBlockFontSize: Float
 
   /// The code block font color.
   let codeBlockFontColor: String
@@ -113,14 +113,14 @@ open class AttributedStringGenerator {
   let h4Color: String
 
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
-  public init(fontSize: Int = 14,
+  public init(fontSize: Float = 14.0,
               fontFamily: String = "\"Times New Roman\",Times,serif",
               fontColor: String = NSColor.textColor.hexString,
-              codeFontSize: Int = 13,
+              codeFontSize: Float = 13.0,
               codeFontFamily: String =
                                 "\"Consolas\",\"Andale Mono\",\"Courier New\",Courier,monospace",
               codeFontColor: String = NSColor.textColor.hexString,
-              codeBlockFontSize: Int = 13,
+              codeBlockFontSize: Float = 12.0,
               codeBlockFontColor: String = NSColor.textColor.hexString,
               codeBlockBackground: String = NSColor.textBackgroundColor.hexString,
               borderColor: String = "#bbb",
@@ -269,7 +269,7 @@ open class AttributedStringGenerator {
     return "background: \(self.codeBlockBackground);" +
            "width: 100%;" +
            "border: 1px solid \(self.borderColor);" +
-           "padding: 0.3em;"
+           "padding: 0.5em;"
   }
 
   open var thematicBreakStyle: String {
