@@ -13,6 +13,7 @@
 		CC2AF6F2227CD98100BEA420 /* MarkdownKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; };
 		CC2AF6F7227CD98100BEA420 /* MarkdownBlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2AF6F6227CD98100BEA420 /* MarkdownBlockTests.swift */; };
 		CC2AF6F9227CD98100BEA420 /* MarkdownKit.h in Headers */ = {isa = PBXBuildFile; fileRef = CC2AF6EB227CD98100BEA420 /* MarkdownKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		CC3E4F532309FE9100C8A3DD /* NSColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3E4F522309FE9100C8A3DD /* NSColor.swift */; };
 		CC6988C4227CDF810021C7E1 /* BlockquoteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6988C3227CDF810021C7E1 /* BlockquoteParser.swift */; };
 		CC6D239822C03CBA00BB1302 /* LinkTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6D239722C03CBA00BB1302 /* LinkTransformer.swift */; };
 		CC72627122F318C0001AB6D9 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC72627022F318C0001AB6D9 /* main.swift */; };
@@ -77,6 +78,7 @@
 		CC2AF6F1227CD98100BEA420 /* MarkdownKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarkdownKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC2AF6F6227CD98100BEA420 /* MarkdownBlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockTests.swift; sourceTree = "<group>"; };
 		CC2AF6F8227CD98100BEA420 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CC3E4F522309FE9100C8A3DD /* NSColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSColor.swift; sourceTree = "<group>"; };
 		CC6988C3227CDF810021C7E1 /* BlockquoteParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockquoteParser.swift; sourceTree = "<group>"; };
 		CC6988C5227CDFB10021C7E1 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CC6988C6227CDFB10021C7E1 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				CC72627522F318F3001AB6D9 /* AttributedStringGenerator.swift */,
+				CC3E4F522309FE9100C8A3DD /* NSColor.swift */,
 			);
 			path = AttributedString;
 			sourceTree = "<group>";
@@ -398,6 +401,7 @@
 				CC7B603B22AC6AB40092188C /* DelimiterTransformer.swift in Sources */,
 				CCD0746822A060CF0053B73C /* Text.swift in Sources */,
 				CC8CBC2322884F940084683B /* SetextHeadingParser.swift in Sources */,
+				CC3E4F532309FE9100C8A3DD /* NSColor.swift in Sources */,
 				CC72627622F318F3001AB6D9 /* AttributedStringGenerator.swift in Sources */,
 				CCB033D1227CDB2F00E1C4DC /* CodeBlockParser.swift in Sources */,
 				CC8CBC21228730800084683B /* LinkRefDefinitionParser.swift in Sources */,

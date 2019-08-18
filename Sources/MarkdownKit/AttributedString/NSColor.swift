@@ -1,8 +1,8 @@
 //
-//  MarkdownKitPlayground
+//  NSColor.swift
 //  MarkdownKit
 //
-//  Created by Matthias Zenger on 01/08/2019.
+//  Created by Matthias Zenger on 18/08/2019.
 //  Copyright © 2019 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,5 +18,18 @@
 //  limitations under the License.
 //
 
-markdownView(file: "Demo", width: 500, height: 640)
+import Foundation
+import Cocoa
 
+extension NSColor {
+
+  public var hexString: String {
+    guard let rgb = self.usingColorSpaceName(NSColorSpaceName.calibratedRGB) else {
+      return "#FFFFFF"
+    }
+    let red   = Int(round(rgb.redComponent * 0xff))
+    let green = Int(round(rgb.greenComponent * 0xff))
+    let blue  = Int(round(rgb.blueComponent * 0xff))
+    return String(format: "#%02X%02X%02X", red, green, blue)
+  }
+}

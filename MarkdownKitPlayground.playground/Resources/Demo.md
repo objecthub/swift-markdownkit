@@ -11,6 +11,8 @@ drawing state consisting of the following components:
    - Shadow (set via `set-shadow` and `remove-shadow`)
    - Transformation (add transformation via `enable-transformation` and remove via `disable-transformation`)
 
+***
+
 **(enum-set-indexer _enum-set_)**
 
 Returns a unary procedure that, given a symbol that is in the universe of _enum-set_,
@@ -27,7 +29,14 @@ returns its 0-origin index within the canonical ordering of the symbols
 ⇒ (0 1 2 #f)
 ```
 
-The `enum-set-indexer` procedure could be defined as follows using the `memq` procedure.
+The `enum-set-indexer` procedure could be defined as follows using the new `memq` procedure.
 
 > And this is a fancy
-> blockquote `code block`.
+> blockquote `code block`. This requires special treatment since the HTML to NSAttributedString
+> conversion is not able to render blockquote tags.
+> 
+> ***
+>
+> This is still in the blockquote.
+
+There is more text coming after the blockquote.

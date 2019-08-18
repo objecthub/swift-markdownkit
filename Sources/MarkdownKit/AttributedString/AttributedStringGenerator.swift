@@ -33,15 +33,22 @@ open class AttributedStringGenerator {
   open class InternalHtmlGenerator: HtmlGenerator {
     open override func generate(block: Block, tight: Bool = false) -> String {
       switch block {
-        case .list(_, _, _),
-             .indentedCode(_),
-             .fencedCode(_, _):
+        case .list(_, _, _):
           return super.generate(block: block, tight: tight) + "<p style=\"margin: 0;\" />\n"
+        case .indentedCode(_),
+             .fencedCode(_, _):
+          return "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
+                 "<td class=\"codebox\">" +
+                 super.generate(block: block, tight: tight) +
+                 "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
         case .blockquote(let blocks):
-          return "<table><tbody><tr><td style=\"background: #bbb; width: 0.2em;\"  />" +
-                 "<td style=\"width: 0.2em;\" /><td>\n" +
+          return "<table class=\"blockquote\"><tbody><tr>" +
+                 "<td class=\"quote\" /><td style=\"width: 0.5em;\" /><td>\n" +
                  self.generate(blocks: blocks) +
                  "</td></tr><tr style=\"height: 0;\"><td /><td /><td /></tr></tbody></table>\n"
+        case .thematicBreak:
+          return "<p><table style=\"width: 100%; margin-bottom: 3px;\"><tbody>" +
+                 "<tr><td class=\"thematic\"></td></tr></tbody></table></p>\n"
         default:
           return super.generate(block: block, tight: tight)
       }
@@ -78,8 +85,20 @@ open class AttributedStringGenerator {
   /// The code font color.
   let codeFontColor: String
 
-  /// The code background color.
-  let codeBackground: String
+  /// The code block font size.
+  let codeBlockFontSize: Int
+
+  /// The code block font color.
+  let codeBlockFontColor: String
+
+  /// The code block background color.
+  let codeBlockBackground: String
+
+  /// The border color (used for code blocks and for thematic breaks).
+  let borderColor: String
+
+  /// The blockquote color.
+  let blockquoteColor: String
 
   /// The color of H1 headers.
   let h1Color: String
@@ -96,23 +115,31 @@ open class AttributedStringGenerator {
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
   public init(fontSize: Int = 14,
               fontFamily: String = "\"Times New Roman\",Times,serif",
-              fontColor: String = "#000",
+              fontColor: String = NSColor.textColor.hexString,
               codeFontSize: Int = 13,
               codeFontFamily: String =
                                 "\"Consolas\",\"Andale Mono\",\"Courier New\",Courier,monospace",
-              codeFontColor: String = "#666",
-              codeBackground: String = "#fff",
-              h1Color: String = "#000",
-              h2Color: String = "#000",
-              h3Color: String = "#000",
-              h4Color: String = "#000") {
+              codeFontColor: String = NSColor.textColor.hexString,
+              codeBlockFontSize: Int = 13,
+              codeBlockFontColor: String = NSColor.textColor.hexString,
+              codeBlockBackground: String = NSColor.textBackgroundColor.hexString,
+              borderColor: String = "#bbb",
+              blockquoteColor: String = "#99c",
+              h1Color: String = NSColor.textColor.hexString,
+              h2Color: String = NSColor.textColor.hexString,
+              h3Color: String = NSColor.textColor.hexString,
+              h4Color: String = NSColor.textColor.hexString) {
     self.fontSize = fontSize
     self.fontFamily = fontFamily
     self.fontColor = fontColor
     self.codeFontSize = codeFontSize
     self.codeFontFamily = codeFontFamily
     self.codeFontColor = codeFontColor
-    self.codeBackground = codeBackground
+    self.codeBlockFontSize = codeBlockFontSize
+    self.codeBlockFontColor = codeBlockFontColor
+    self.codeBlockBackground = codeBlockBackground
+    self.borderColor = borderColor
+    self.blockquoteColor = blockquoteColor
     self.h1Color = h1Color
     self.h2Color = h2Color
     self.h3Color = h3Color
@@ -158,18 +185,22 @@ open class AttributedStringGenerator {
   }
 
   open var docStyle: String {
-    return "body  { \(self.bodyStyle) }\n" +
-           "h1    { \(self.h1Style) }\n" +
-           "h2    { \(self.h2Style) }\n" +
-           "h3    { \(self.h3Style) }\n" +
-           "h4    { \(self.h4Style) }\n" +
-           "p     { \(self.pStyle) }\n" +
-           "ul    { \(self.ulStyle) }\n" +
-           "ol    { \(self.olStyle) }\n" +
-           "li    { \(self.liStyle) }\n" +
-           "table { \(self.tableStyle) }\n" +
-           "code  { \(self.codeStyle) }\n" +
-           "pre   { \(self.preStyle) }\n"
+    return "body             { \(self.bodyStyle) }\n" +
+           "h1               { \(self.h1Style) }\n" +
+           "h2               { \(self.h2Style) }\n" +
+           "h3               { \(self.h3Style) }\n" +
+           "h4               { \(self.h4Style) }\n" +
+           "p                { \(self.pStyle) }\n" +
+           "ul               { \(self.ulStyle) }\n" +
+           "ol               { \(self.olStyle) }\n" +
+           "li               { \(self.liStyle) }\n" +
+           "table.blockquote { \(self.blockquoteStyle) }\n" +
+           "pre              { \(self.preStyle) }\n" +
+           "code             { \(self.codeStyle) }\n" +
+           "pre code         { \(self.preCodeStyle) }\n" +
+           "td.codebox       { \(self.codeBoxStyle) }\n" +
+           "td.thematic      { \(self.thematicBreakStyle) }\n" +
+           "td.quote         { \(self.quoteStyle) }\n"
   }
 
   open var bodyStyle: String {
@@ -219,24 +250,40 @@ open class AttributedStringGenerator {
            "margin-bottom: 0.1em;"
   }
 
-  open var tableStyle: String {
-    return "margin: 0.2em 0;" +
-           "font-size: \(self.fontSize)px;"
+  open var preStyle: String {
+    return "background: \(self.codeBlockBackground);"
   }
 
   open var codeStyle: String {
     return "font-size: \(self.codeFontSize)px;" +
-           "font-family: \(self.codeFontFamily);" +
-           "color: \(self.codeFontColor);"
+           "font-family: \(self.codeFontFamily);"
   }
 
-  open var preStyle: String {
-    return "background: \(self.codeBackground);" +
-           "margin: 0.9em 0;" +
-           "padding: 0.5em;" +
-           "word-wrap: break-word;" +
-           "border-radius: 4px;" +
-           "border: 0.6px solid #292929;" +
-           "border-color: #bbb;"
+  open var preCodeStyle: String {
+    return "font-size: \(self.codeBlockFontSize)px;" +
+           "font-family: \(self.codeFontFamily);" +
+           "color: \(self.codeBlockFontColor);"
+  }
+
+  open var codeBoxStyle: String {
+    return "background: \(self.codeBlockBackground);" +
+           "width: 100%;" +
+           "border: 1px solid \(self.borderColor);" +
+           "padding: 0.3em;"
+  }
+
+  open var thematicBreakStyle: String {
+    return "border-bottom: 1px solid \(self.borderColor);"
+  }
+
+  open var blockquoteStyle: String {
+    return "width: 100%;" +
+           "margin: 0.3em 0;" +
+           "font-size: \(self.fontSize)px;"
+  }
+
+  open var quoteStyle: String {
+    return "background: \(self.blockquoteColor);" +
+           "width: 0.4em;"
   }
 }
