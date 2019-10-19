@@ -44,7 +44,7 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                                       .text(" bar"))))
     XCTAssertEqual(parse("**foo\\* bar"),
                    document(paragraph(.delimiter("*", 2, .leftFlanking),
-                                      .text("foo\\* bar"))))
+                                      .text("foo* bar"))))
     XCTAssertEqual(parse("**foo** bar"),
                    document(paragraph(strong(.text("foo")), .text(" bar"))))
     XCTAssertEqual(parse("```foo` bar`` goo"),
@@ -375,7 +375,7 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
     XCTAssertEqual(parse("foo ***"),
                    document(paragraph(.text("foo "), .delimiter("*", 3, []))))
     XCTAssertEqual(parse("foo *\\**"),
-                   document(paragraph(.text("foo "), emph(.text("\\*")))))
+                   document(paragraph(.text("foo "), emph(.text("*")))))
     XCTAssertEqual(parse("foo *_*"),
                    document(paragraph(
                               .text("foo "),
@@ -389,7 +389,7 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
     XCTAssertEqual(parse("foo ___"),
                    document(paragraph(.text("foo "), .delimiter("_", 3, []))))
     XCTAssertEqual(parse("foo _\\__"),
-                   document(paragraph(.text("foo "), emph(.text("\\_")))))
+                   document(paragraph(.text("foo "), emph(.text("_")))))
     XCTAssertEqual(parse("foo _*_"),
                    document(paragraph(
                     .text("foo "),
@@ -474,7 +474,7 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                                       .delimiter("]", 1, []),
                                       .delimiter("(", 1, []),
                                       .delimiter("<", 1, []),
-                                      .text("foo\\>"),
+                                      .text("foo>"),
                                       .delimiter(")", 1, []))))
     XCTAssertEqual(parse("[link](\\(foo\\))"),
                    document(paragraph(link("\\(foo\\)", nil, .text("link")))))
@@ -526,7 +526,7 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                                       .text("link "),
                                       link("/uri", nil, .text("bar")))))
     XCTAssertEqual(parse("[link \\[bar](/uri)"),
-                   document(paragraph(link("/uri", nil, .text("link \\[bar")))))
+                   document(paragraph(link("/uri", nil, .text("link [bar")))))
     XCTAssertEqual(parse("[link *foo **bar** `#`*](/uri)"),
                    document(paragraph(link("/uri", nil, .text("link "),
                                                         emph(.text("foo "),
@@ -605,6 +605,59 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                                                                       .text("three "),
                                                                       .code("four"),
                                                                       .delimiter(")", 1, []))))))
+  }
+
+  func testLinkRef() {
+    XCTAssertEqual(parse("[foo]: /url \"title\"\n\n[bar][foo]"),
+                   document(referenceDef("foo", "/url", "title"),
+                            paragraph(.link(Text("bar"), "/url", "title"))))
+    XCTAssertEqual(parse("[one *two* __three__][Bar]\n\n[bar]: /url \"title\""),
+                   document(paragraph(link("/url", "title", .text("one "),
+                                                            emph(.text("two")),
+                                                            .text(" "),
+                                                            strong(.text("three")))),
+                            referenceDef("bar", "/url", "title")))
+    XCTAssertEqual(parse("[link [foo [bar]]][ref]\n\n[ref]: /uri"),
+                   document(paragraph(link("/uri", nil, .text("link "),
+                                                        .delimiter("[", 1, []),
+                                                        .text("foo "),
+                                                        .delimiter("[", 1, []),
+                                                        .text("bar"),
+                                                        .delimiter("]", 1, []),
+                                                        .delimiter("]", 1, []))),
+                            referenceDef("ref", "/uri")))
+    XCTAssertEqual(parse("[![moon](moon.jpg)][ref]\n\n[ref]: /uri"),
+                   document(paragraph(link("/uri", nil, image("moon.jpg", nil, .text("moon")))),
+                            referenceDef("ref", "/uri")))
+    XCTAssertEqual(parse("[foo]: /url \"title\"\n\n[foo]bar"),
+                   document(referenceDef("foo", "/url", "title"),
+                            paragraph(.link(Text("foo"), "/url", "title"),
+                                      .text("bar"))))
+    XCTAssertEqual(parse("[*foo* baz]: /url \"title\"\n\n[*foo* baz]bar"),
+                   document(referenceDef("*foo* baz", "/url", "title"),
+                            paragraph(link("/url", "title", emph(.text("foo")), .text(" baz")),
+                                      .text("bar"))))
+  }
+
+  func testEscaping() {
+    XCTAssertEqual(parse("foo\\bar"),
+                   document(paragraph(.text("foobar"))))
+    XCTAssertEqual(parse("foo\\\\bar"),
+                   document(paragraph(.text("foo\\bar"))))
+    XCTAssertEqual(parse("foo\\\\\\bar"),
+                   document(paragraph(.text("foo\\bar"))))
+    XCTAssertEqual(parse("foo\\\\\\\\bar"),
+                   document(paragraph(.text("foo\\\\bar"))))
+    XCTAssertEqual(parse("foo bar\\"),
+                   document(paragraph(.text("foo bar"))))
+    XCTAssertEqual(parse("foo bar\\\nbaz"),
+                   document(paragraph(.text("foo bar"),
+                                      .hardLineBreak,
+                                      .text("baz"))))
+    XCTAssertEqual(parse("foo bar\\\\\nbaz"),
+                   document(paragraph(.text("foo bar"),
+                                      .hardLineBreak,
+                                      .text("baz"))))
   }
 
   func testDebug() {

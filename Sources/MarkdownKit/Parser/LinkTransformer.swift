@@ -73,13 +73,43 @@ public final class LinkTransformer: InlineTransformer {
   private func complete(link: Bool,
                         _ text: Text,
                         with iterator: inout Text.Iterator) -> TextFragment? {
-    // Expect `(` character
-    var element = iterator.next()
-    guard case .some(.delimiter("(", _, _)) = element else {
+    let initial = iterator
+    let next = iterator.next()
+    guard let element = next else {
       return nil
     }
+    switch element {
+      case .delimiter("(", _, _):
+        if let res = self.completeInline(link: link, text, with: &iterator) {
+          return res
+        }
+      case .delimiter("[", _, _):
+        if let res = self.completeRef(link: link, text, with: &iterator) {
+          return res
+        }
+      default:
+        break
+    }
+    let components = text.description.components(separatedBy: .whitespacesAndNewlines)
+    let label = components.filter { !$0.isEmpty }.joined(separator: " ").lowercased()
+    if label.count < 1000,
+       let (uri, title) = self.owner.linkRefDef[label] {
+      let text = self.transform(text)
+      if link && self.containsLink(text) {
+        return nil
+      }
+      iterator = initial
+      return link ? .link(text, uri, title) : .image(text, uri, title)
+    } else {
+      return nil
+    }
+  }
+
+  private func completeInline(link: Bool,
+                              _ text: Text,
+                              with iterator: inout Text.Iterator) -> TextFragment? {
     // Skip whitespace
-    element = self.skipWhitespace(for: &iterator)
+    var element = self.skipWhitespace(for: &iterator)
     guard let dest = element else {
       return nil
     }
@@ -248,5 +278,40 @@ public final class LinkTransformer: InlineTransformer {
       }
     }
     return false
+  }
+
+  private func completeRef(link: Bool,
+                           _ text: Text,
+                           with iterator: inout Text.Iterator) -> TextFragment? {
+    // Skip whitespace
+    var element = self.skipWhitespace(for: &iterator)
+    // Transform link description
+    let text = self.transform(text)
+    if link && self.containsLink(text) {
+      return nil
+    }
+    // Parse label
+    var label = ""
+    while let fragment = element {
+      switch fragment {
+        case .delimiter("]", _, _):
+          label = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+          if let (uri, title) = self.owner.linkRefDef[label] {
+            return link ? .link(text, uri, title) : .image(text, uri, title)
+          } else {
+            return nil
+          }
+        case .softLineBreak, .hardLineBreak:
+          label.append(" ")
+        default:
+          let components = fragment.description.components(separatedBy: .whitespaces)
+          label.append(components.filter { !$0.isEmpty }.joined(separator: " "))
+          if label.count > 999 {
+            return nil
+          }
+      }
+      element = iterator.next()
+    }
+    return nil
   }
 }

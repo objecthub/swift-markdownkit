@@ -28,7 +28,11 @@ import Foundation
 ///
 open class InlineTransformer {
 
-  required public init() {}
+  public unowned let owner: InlineParser
+
+  required public init(owner: InlineParser) {
+    self.owner = owner
+  }
 
   open func transform(_ text: Text) -> Text {
     var res: Text = Text()
@@ -52,12 +56,12 @@ open class InlineTransformer {
         res.append(fragment: .emph(self.transform(inner)))
       case .strong(let inner):
         res.append(fragment: .strong(self.transform(inner)))
-      case .link(let inner, let label, let title):
-        res.append(fragment: .link(self.transform(inner), label, title))
+      case .link(let inner, let uri, let title):
+        res.append(fragment: .link(self.transform(inner), uri, title))
       case .autolink(_):
         res.append(fragment: fragment)
-      case .image(let inner, let label, let title):
-        res.append(fragment: .image(self.transform(inner), label, title))
+      case .image(let inner, let uri, let title):
+        res.append(fragment: .image(self.transform(inner), uri, title))
       case .html(_):
         res.append(fragment: fragment)
       case .delimiter(_, _, _):

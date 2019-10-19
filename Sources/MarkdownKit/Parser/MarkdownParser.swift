@@ -67,7 +67,8 @@ open class MarkdownParser {
     DelimiterTransformer.self,
     CodeLinkHtmlTransformer.self,
     LinkTransformer.self,
-    EmphasisTransformer.self
+    EmphasisTransformer.self,
+    EscapeTransformer.self
   ]
 
   /// Defines a default implementation
@@ -81,21 +82,22 @@ open class MarkdownParser {
   /// the `defaultInlineTransformers`.
   private let customInlineTransformers: [InlineTransformer.Type]?
 
-  /// Inline parsing is performed via a stateless `InlineParser` object which implements a
-  /// protocol for invoking the `InlineTransformer` objects. Since the inline parser is stateless,
-  /// a single object gets created lazily and reused for parsing all input.
-  private lazy var inlineParser: InlineParser = {
-    return InlineParser(inlineTransformers: self.customInlineTransformers ??
-                                            type(of: self).defaultInlineTransformers)
-  }()
-
   /// Block parsing gets delegated to a stateful `DocumentParser` object which implements a
   /// protocol for invoking the `BlockParser` objects that its initializer is creating based
   /// on the types provided in the `blockParsers` parameter.
-  private func documentParser(input: String) -> DocumentParser {
+  public func documentParser(input: String) -> DocumentParser {
     return DocumentParser(blockParsers: self.customBlockParsers ??
                                         type(of: self).defaultBlockParsers,
                           input: input)
+  }
+
+  /// Inline parsing is performed via a stateless `InlineParser` object which implements a
+  /// protocol for invoking the `InlineTransformer` objects. Since the inline parser is stateless,
+  /// a single object gets created lazily and reused for parsing all input.
+  public func inlineParser(input: Block) -> InlineParser {
+    return InlineParser(inlineTransformers: self.customInlineTransformers ??
+                                            type(of: self).defaultInlineTransformers,
+                        input: input)
   }
 
   /// Constructor of `MarkdownParser` objects; it takes a list of block parsers, a list of
@@ -110,10 +112,11 @@ open class MarkdownParser {
   /// If `blockOnly` is set to `true` (default is `false`), only the block parsers are
   /// invoked and no inline parsing gets performed.
   public func parse(_ str: String, blockOnly: Bool = false) -> Block {
-    let document = self.documentParser(input: str).parse()
-    guard !blockOnly else {
-      return document
+    let doc = self.documentParser(input: str).parse()
+    if blockOnly {
+      return doc
+    } else {
+      return self.inlineParser(input: doc).parse()
     }
-    return self.inlineParser.parse(document)
   }
 }

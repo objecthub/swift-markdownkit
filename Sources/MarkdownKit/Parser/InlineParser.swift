@@ -30,11 +30,62 @@ public class InlineParser {
   /// Sequence of inline transformers which implement the inline parsing functionality.
   private var inlineTransformers: [InlineTransformer]
 
+  /// Blocks of input document
+  private let block: Block
+
+  /// Link reference declarations
+  public private(set) var linkRefDef: [String : (String, String?)]
+
   /// Initializer
-  init(inlineTransformers: [InlineTransformer.Type]) {
+  init(inlineTransformers: [InlineTransformer.Type], input: Block) {
+    self.block = input
+    self.linkRefDef = [:]
     self.inlineTransformers = []
     for transformerType in inlineTransformers {
-      self.inlineTransformers.append(transformerType.init())
+      self.inlineTransformers.append(transformerType.init(owner: self))
+    }
+  }
+
+  /// Traverses the input block and applies all inline transformers to all text.
+  public func parse() -> Block {
+    // First, collect all link reference definitions
+    self.collectLinkRefDef(self.block)
+    // Second, apply inline transformers
+    return self.parse(self.block)
+  }
+
+  /// Traverses a Markdown block and enters link reference definitions into `linkRefDef`.
+  public func collectLinkRefDef(_ block: Block) {
+    switch block {
+      case .document(let blocks):
+        self.collectLinkRefDef(blocks)
+      case .blockquote(let blocks):
+        self.collectLinkRefDef(blocks)
+      case .list(_, _, let blocks):
+        self.collectLinkRefDef(blocks)
+      case .listItem(_, _, let blocks):
+        self.collectLinkRefDef(blocks)
+      case .referenceDef(let label, let dest, let title):
+        if title.isEmpty {
+          let canonical = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+          self.linkRefDef[canonical] = (String(dest), nil)
+        } else {
+          var str = ""
+          for line in title {
+            str += line.description
+          }
+          self.linkRefDef[label] = (String(dest), str)
+        }
+      default:
+        break
+    }
+  }
+
+  /// Traverses an array of Markdown blocks and enters link reference definitions
+  /// into `linkRefDef`.
+  public func collectLinkRefDef(_ blocks: Blocks) {
+    for block in blocks {
+      self.collectLinkRefDef(block)
     }
   }
 
@@ -85,9 +136,5 @@ public class InlineParser {
       res = transformer.transform(res)
     }
     return res
-  }
-
-  public func transform(_ line: Substring) -> Substring {
-    return line
   }
 }

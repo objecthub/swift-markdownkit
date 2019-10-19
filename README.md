@@ -3,7 +3,7 @@
 <p>
 <a href="https://developer.apple.com/osx/"><img src="https://img.shields.io/badge/Platform-macOS-blue.svg?style=flat" alt="Platform: macOS" /></a>
 <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift%205.1-green.svg?style=flat" alt="Language: Swift 5.1" /></a>
-<a href="https://developer.apple.com/xcode/"><img src="https://img.shields.io/badge/IDE-Xcode%2011.0-orange.svg?style=flat" alt="IDE: Xcode 11.0" /></a>
+<a href="https://developer.apple.com/xcode/"><img src="https://img.shields.io/badge/IDE-Xcode%2011.1-orange.svg?style=flat" alt="IDE: Xcode 11.1" /></a>
 <a href="https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/LICENSE"><img src="http://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat" alt="License: Apache" /></a>
 </p>
 
@@ -191,10 +191,9 @@ where: <source> is either a Markdown file or a directory containing Markdown fil
 
 There are a number of limitations and known issues:
 
-   - The Markdown parser currently does not fully support _link reference definitions_. It is possible to define a
-     link reference, but usage of such references is currently not supported.
-  - Escaping of characters is not handled correctly when generating plain text or when generating HTML or
-    attributed strings.
+  - The Markdown parser currently does not fully support _link reference definitions_ in a CommonMark-compliant
+    fashion. It is possible to define link reference definitions and use them, but for some corner cases, the current
+    implementation behaves differently from the spec.
 
 ## Requirements
 
@@ -203,7 +202,7 @@ The command-line tool can be compiled with the _Swift Package Manager_, so _Xcod
 for that. Similarly, just for compiling the framework and trying the command-line tool in _Xcode_, the
 _Swift Package Manager_ is not needed.
 
-- [Xcode 11.0](https://developer.apple.com/xcode/)
+- [Xcode 11.1](https://developer.apple.com/xcode/)
 - [Swift 5.1](https://developer.apple.com/swift/)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
