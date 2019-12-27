@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2019-12-28)
+
+- Simplified extension/usage of NSAttributedString generator
+- Migrated project to Xcode 11.3
+
 ## 0.2 (2019-10-19)
 
 - Implemented support for backslash escaping

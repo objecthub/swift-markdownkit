@@ -148,19 +148,19 @@ open class AttributedStringGenerator {
 
   /// Generates an attributed string from the given Markdown document
   open func generate(doc: Block) -> NSAttributedString? {
-    return self.generateAttributedString(type(of: self).htmlGenerator.generate(doc: doc))
+    return self.generateAttributedString(self.htmlGenerator.generate(doc: doc))
   }
 
   /// Generates an attributed string from the given Markdown blocks
   open func generate(block: Block) -> NSAttributedString? {
-    return self.generateAttributedString(type(of: self).htmlGenerator.generate(block: block))
+    return self.generateAttributedString(self.htmlGenerator.generate(block: block))
   }
 
   /// Generates an attributed string from the given Markdown blocks
   open func generate(blocks: Blocks) -> NSAttributedString? {
-    return self.generateAttributedString(type(of: self).htmlGenerator.generate(blocks: blocks))
+    return self.generateAttributedString(self.htmlGenerator.generate(blocks: blocks))
   }
-
+  
   private func generateAttributedString(_ htmlBody: String) -> NSAttributedString? {
     let htmlDoc = self.generateHtml(htmlBody)
     let httpData = Data(htmlDoc.utf8)
@@ -169,11 +169,15 @@ open class AttributedStringGenerator {
                                              .characterEncoding: String.Encoding.utf8.rawValue],
                                    documentAttributes: nil)
   }
-
-  private func generateHtml(_ htmlBody: String) -> String {
+  
+  public var htmlGenerator: HtmlGenerator {
+    return type(of: self).htmlGenerator
+  }
+  
+  open func generateHtml(_ htmlBody: String) -> String {
     return "<html>\n\(self.htmlHead)\n\(self.htmlBody(htmlBody))\n</html>"
   }
-
+  
   open var htmlHead: String {
     return "<head><meta charset=\"utf-8\"/><style type=\"text/css\">\n" +
            self.docStyle +
