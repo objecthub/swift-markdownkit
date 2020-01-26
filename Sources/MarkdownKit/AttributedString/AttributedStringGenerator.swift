@@ -260,7 +260,8 @@ open class AttributedStringGenerator {
 
   open var codeStyle: String {
     return "font-size: \(self.codeFontSize)px;" +
-           "font-family: \(self.codeFontFamily);"
+           "font-family: \(self.codeFontFamily);" +
+           "color: \(self.codeFontColor);"
   }
 
   open var preCodeStyle: String {
