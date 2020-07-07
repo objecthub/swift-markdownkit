@@ -56,4 +56,17 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
                    "<ul>\n<li><p>One</p>\n<p>Two</p>\n</li>\n<li><p>Three</p>\n</li>\n<li>" +
                    "<p>Four</p>\n</li>\n</ul>")
   }
+  
+  func testNestedLists() {
+    XCTAssertEqual(generateHtml("""
+        - foo
+        - bar
+            * one
+            * two
+            * three
+        - goo
+      """),
+      "<ul>\n<li><p>foo</p>\n</li>\n<li><p>bar</p>\n<ul>\n<li>one</li>\n<li>two</li>\n" +
+      "<li>three</li>\n</ul>\n</li>\n<li><p>goo</p>\n</li>\n</ul>")
+  }
 }
