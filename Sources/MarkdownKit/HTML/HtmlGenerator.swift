@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 15/07/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2020 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -89,6 +89,38 @@ open class HtmlGenerator {
         return ""
       case .thematicBreak:
         return "<hr />\n"
+      case .table(let header, let align, let rows):
+        var tagsuffix: [String] = []
+        for a in align {
+          switch a {
+            case .undefined:
+              tagsuffix.append(">")
+            case .left:
+              tagsuffix.append(" align=\"left\">")
+            case .right:
+              tagsuffix.append(" align=\"right\">")
+            case .center:
+              tagsuffix.append(" align=\"center\">")
+          }
+        }
+        var html = "<table><thead><tr>\n"
+        var i = 0
+        for head in header {
+          html += "<th\(tagsuffix[i])\(self.generate(text: head))</th>"
+          i += 1
+        }
+        html += "\n</tr></thead><tbody>\n"
+        for row in rows {
+          html += "<tr>"
+          i = 0
+          for cell in row {
+            html += "<td\(tagsuffix[i])\(self.generate(text: cell))</td>"
+            i += 1
+          }
+          html += "</tr>\n"
+        }
+        html += "</tbody></table>\n"
+        return html
     }
   }
 

@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 20/04/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2020 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import Foundation
 public class DocumentParser {
 
   /// Sequence of block parsers which implement the document parsing functionality.
-  private var blockParsers: [BlockParser]
+  internal private(set) var blockParsers: [BlockParser]
 
   /// The input string which gets parsed.
   private let input: String

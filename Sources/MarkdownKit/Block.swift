@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 25/04/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2020 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
   case htmlBlock(Lines)
   case referenceDef(String, Substring, Lines)
   case thematicBreak
+  case table(Row, Alignments, Rows)
 
   /// Returns a description of the block as a string.
   public var description: String {
@@ -107,9 +108,18 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
         }
       case .thematicBreak:
         return "thematicBreak"
+      case .table(let header, let align, let rows):
+        var res = self.string(from: header) + ", "
+        for a in align {
+          res += a.description
+        }
+        for row in rows {
+          res += ", " + self.string(from: row)
+        }
+        return "table(\(res))"
     }
   }
-
+  
   /// Returns a debug description.
   public var debugDescription: String {
     return self.description
@@ -126,7 +136,19 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
     }
     return res
   }
-
+  
+  private func string(from row: Row) -> String {
+    var res = "row("
+    for cell in row {
+      if res.isEmpty {
+        res = cell.description
+      } else {
+        res = res + " | " + cell.description
+      }
+    }
+    return res + ")"
+  }
+  
   /// Defines an equality relation for two blocks.
   public static func == (lhs: Block, rhs: Block) -> Bool {
     switch (lhs, rhs) {
@@ -152,6 +174,8 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
         return llab == rlab && ldest == rdest && lt == rt
       case (.thematicBreak, .thematicBreak):
         return true
+      case (.table(let lheader, let lalign, let lrows), .table(let rheader, let ralign, let rrows)):
+        return lheader == rheader && lalign == ralign && lrows == rrows
       default:
         return false
     }
@@ -198,3 +222,38 @@ public enum ListType: Equatable, CustomStringConvertible, CustomDebugStringConve
     return self.description
   }
 }
+
+///
+/// Rows are arrays of text.
+///
+public typealias Row = ContiguousArray<Text>
+public typealias Rows = ContiguousArray<Row>
+
+///
+/// Column alignments are represented as arrays of `Alignment` enum values
+/// 
+public enum Alignment: UInt, CustomStringConvertible, CustomDebugStringConvertible {
+  case undefined = 0
+  case left = 1
+  case right = 2
+  case center = 3
+  
+  public var description: String {
+    switch self {
+      case .undefined:
+        return "-"
+      case .left:
+        return "L"
+      case .right:
+        return "R"
+      case .center:
+        return "C"
+    }
+  }
+  
+  public var debugDescription: String {
+    return self.description
+  }
+}
+
+public typealias Alignments = ContiguousArray<Alignment>

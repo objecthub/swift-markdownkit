@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 10/06/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2020 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -52,6 +52,10 @@ public func isUnicodeWhitespace(_ ch: Character) -> Bool {
 
 public func isSpace(_ ch: Character) -> Bool {
   return ch == " "
+}
+
+public func isDash(_ ch: Character) -> Bool {
+  return ch == "-"
 }
 
 public func isAsciiPunctuation(_ ch: Character) -> Bool {

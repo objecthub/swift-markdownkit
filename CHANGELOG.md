@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0 (2020-07-18)
+- Implemented support for Markdown tables
+- Made it easier to extend class `MarkdownParser`
+- Included extended markdown parser `ExtendedMarkdownParser`
+
 ## 0.2.2 (2020-01-26)
 - Fixed bug in AttributedStringGenerator.swift
 - Migrated project to Xcode 11.3.1

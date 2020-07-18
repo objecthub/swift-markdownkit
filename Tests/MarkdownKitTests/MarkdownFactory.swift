@@ -3,7 +3,7 @@
 //  MarkdownKitTests
 //
 //  Created by Matthias Zenger on 09/05/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2020 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -149,5 +149,33 @@ extension MarkdownKitFactory {
 
   func referenceDef(_ label: String, _ dest: Substring, _ title: Substring...) -> Block {
     return .referenceDef(label, dest, ContiguousArray(title))
+  }
+  
+  func table(_ hdr: [Substring?], _ algn: [Alignment], _ rw: [Substring?]...) -> Block {
+    func toRow(_ arr: [Substring?]) -> Row {
+      var res = Row()
+      for a in arr {
+        if let str = a {
+          let components = str.components(separatedBy: "$")
+          if components.count <= 1 {
+            res.append(Text(str))
+          } else {
+            var text = Text()
+            for component in components {
+              text.append(fragment: .text(Substring(component)))
+            }
+            res.append(text)
+          }
+        } else {
+          res.append(Text())
+        }
+      }
+      return res
+    }
+    var rows = Rows()
+    for r in rw {
+      rows.append(toRow(r))
+    }
+    return .table(toRow(hdr), ContiguousArray(algn), rows)
   }
 }

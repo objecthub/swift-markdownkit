@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 03/05/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2020 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ open class MarkdownParser {
 
   /// The default list of block parsers. The order of this list matters.
   open class var defaultBlockParsers: [BlockParser.Type] {
-    return MarkdownParser.blockParsers
+    return Self.blockParsers
   }
 
   private static let blockParsers: [BlockParser.Type] = [
@@ -60,7 +60,7 @@ open class MarkdownParser {
 
   /// The default list of inline transformers. The order of this list matters.
   open class var defaultInlineTransformers: [InlineTransformer.Type] {
-    return MarkdownParser.inlineTransformers
+    return Self.inlineTransformers
   }
 
   private static let inlineTransformers: [InlineTransformer.Type] = [
@@ -72,8 +72,12 @@ open class MarkdownParser {
   ]
 
   /// Defines a default implementation
-  public static let standard: MarkdownParser = MarkdownParser()
-
+  open class var standard: MarkdownParser {
+    return self.singleton
+  }
+  
+  private static let singleton: MarkdownParser = MarkdownParser()
+  
   /// A custom list of block parsers; if this is provided via the constructor, it overrides
   /// the `defaultBlockParsers`.
   private let customBlockParsers: [BlockParser.Type]?

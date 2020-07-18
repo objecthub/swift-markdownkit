@@ -11,6 +11,7 @@
 
 _Swift MarkdownKit_ is a framework for parsing text in [Markdown](https://daringfireball.net/projects/markdown/)
 format. The supported syntax is based on the [CommonMark Markdown specification](https://commonmark.org).
+_Swift MarkdownKit_ also provides an extended version of the parser that is able to handle Markdown tables.
 
 _Swift MarkdownKit_ defines an abstract syntax for Markdown, it provides a parser for parsing strings into
 abstract syntax trees, and comes with generators for creating HTML and
@@ -59,6 +60,20 @@ is yet another recursively defined enumeration with associated values. The examp
 contains a `Text`  object, i.e. it encapsulates a sequence of `TextFragment` values which are
 "marked up strongly".
 
+Class `ExtendedMarkdownParser` has the same interface like `MarkdownParser` but supports table blocks in
+addition to the block types defined by the [CommonMark specification](https://commonmark.org).
+[Tables](https://github.github.com/gfm/#tables-extension-) are based on the
+[GitHub Flavored Markdown specification](https://github.github.com/gfm/) with one extension: within a table
+block it is possible to escape newline characters to enable cell text to be written on multiple lines. Here is an example:
+
+```markdown
+| Column 1     | Column 2       |
+| ------------ | -------------- |
+| This text \
+  is very long | More cell text |
+| Last line    | Last cell      |        
+```
+
 ### Configuring the Markdown parser
 
 The Markdown dialect supported by `MarkdownParser` is defined by two parameters: a sequence of
@@ -73,6 +88,28 @@ The initializer of class `MarkdownParser` accepts both components optionally. Th
 Since `MarkdownParser` objects are stateless (beyond the configuration of block parsers and inline
 transformers), there is a predefined default `MarkdownParser` object accessible via the static property
 `MarkdownParser.standard`. This default parsing object is used in the example above.
+
+New markdown parsers with different configurations can also be created by subclassing `MarkdownParser`
+and by overriding the class properties `defaultBlockParsers` and `defaultInlineTransformers`. Here is
+an example how class `ExtendedMarkdownParser` is derived from `MarkdownParser` simply by overriding
+`defaultBlockParsers` and by specializing `standard` in a covariant fashion.
+
+```swift
+open class ExtendedMarkdownParser: MarkdownParser {
+  override open class var defaultBlockParsers: [BlockParser.Type] {
+    return Self.blockParsers
+  }
+  private static let blockParsers: [BlockParser.Type] = {
+    var parsers = MarkdownParser.defaultBlockParsers
+    parsers.append(TableParser.self)
+    return parsers
+  }()
+  override open class var standard: ExtendedMarkdownParser {
+    return self.singleton
+  }
+  private static let singleton: ExtendedMarkdownParser = ExtendedMarkdownParser()
+}
+```
 
 ### Processing Markdown
 

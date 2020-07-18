@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 30/05/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2020 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -115,6 +115,8 @@ public class InlineParser {
         return .htmlBlock(lines)
       case .referenceDef(let label, let dest, let title):
         return .referenceDef(label, dest, title)
+      case .table(let header, let align, let rows):
+        return .table(self.transform(header), align, self.transform(rows))
     }
   }
 
@@ -134,6 +136,26 @@ public class InlineParser {
     var res = text
     for transformer in self.inlineTransformers {
       res = transformer.transform(res)
+    }
+    return res
+  }
+  
+  /// Transforms raw Markdown rows and returns a new `Row` object in which all inline markup
+  /// is represented using `TextFragment` objects.
+  public func transform(_ row: Row) -> Row {
+    var res = Row()
+    for cell in row {
+      res.append(self.transform(cell))
+    }
+    return res
+  }
+  
+  /// Transforms raw Markdown tables and returns a new `Rows` object in which all inline markup
+  /// is represented using `TextFragment` objects.
+  public func transform(_ rows: Rows) -> Rows {
+    var res = Rows()
+    for row in rows {
+      res.append(self.transform(row))
     }
     return res
   }
