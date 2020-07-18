@@ -66,7 +66,7 @@ addition to the block types defined by the [CommonMark specification](https://co
 [GitHub Flavored Markdown specification](https://github.github.com/gfm/) with one extension: within a table
 block it is possible to escape newline characters to enable cell text to be written on multiple lines. Here is an example:
 
-```markdown
+```
 | Column 1     | Column 2       |
 | ------------ | -------------- |
 | This text \
@@ -89,9 +89,12 @@ Since `MarkdownParser` objects are stateless (beyond the configuration of block 
 transformers), there is a predefined default `MarkdownParser` object accessible via the static property
 `MarkdownParser.standard`. This default parsing object is used in the example above.
 
-New markdown parsers with different configurations can also be created by subclassing `MarkdownParser`
+New markdown parsers with different configurations can also be created by subclassing
+[`MarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/MarkdownParser.swift)
 and by overriding the class properties `defaultBlockParsers` and `defaultInlineTransformers`. Here is
-an example how class `ExtendedMarkdownParser` is derived from `MarkdownParser` simply by overriding
+an example how class
+[`ExtendedMarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/ExtendedMarkdownParser.swift)
+is derived from `MarkdownParser` simply by overriding
 `defaultBlockParsers` and by specializing `standard` in a covariant fashion.
 
 ```swift
