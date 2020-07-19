@@ -100,13 +100,10 @@ is derived from `MarkdownParser` simply by overriding
 ```swift
 open class ExtendedMarkdownParser: MarkdownParser {
   override open class var defaultBlockParsers: [BlockParser.Type] {
-    return Self.blockParsers
+    return self.blockParsers
   }
-  private static let blockParsers: [BlockParser.Type] = {
-    var parsers = MarkdownParser.defaultBlockParsers
-    parsers.append(TableParser.self)
-    return parsers
-  }()
+  private static let blockParsers: [BlockParser.Type] =
+    MarkdownParser.defaultBlockParsers + [TableParser.self]
   override open class var standard: ExtendedMarkdownParser {
     return self.singleton
   }

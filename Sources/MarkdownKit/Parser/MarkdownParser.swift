@@ -43,7 +43,7 @@ open class MarkdownParser {
 
   /// The default list of block parsers. The order of this list matters.
   open class var defaultBlockParsers: [BlockParser.Type] {
-    return Self.blockParsers
+    return self.blockParsers
   }
 
   private static let blockParsers: [BlockParser.Type] = [
@@ -60,7 +60,7 @@ open class MarkdownParser {
 
   /// The default list of inline transformers. The order of this list matters.
   open class var defaultInlineTransformers: [InlineTransformer.Type] {
-    return Self.inlineTransformers
+    return self.inlineTransformers
   }
 
   private static let inlineTransformers: [InlineTransformer.Type] = [

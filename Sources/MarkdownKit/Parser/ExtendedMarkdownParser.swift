@@ -45,14 +45,11 @@ open class ExtendedMarkdownParser: MarkdownParser {
 
   /// The default list of block parsers. The order of this list matters.
   override open class var defaultBlockParsers: [BlockParser.Type] {
-    return Self.blockParsers
+    return self.blockParsers
   }
 
-  private static let blockParsers: [BlockParser.Type] = {
-    var parsers = MarkdownParser.defaultBlockParsers
-    parsers.append(TableParser.self)
-    return parsers
-  }()
+  private static let blockParsers: [BlockParser.Type] =
+    MarkdownParser.defaultBlockParsers + [TableParser.self]
   
   /// Defines a default implementation
   override open class var standard: ExtendedMarkdownParser {

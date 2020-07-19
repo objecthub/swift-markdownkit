@@ -148,20 +148,18 @@ public final class ListItemParser: BlockParser {
     }
     indent += self.lineIndent + listMarkerIndent
     self.docParser.resetLineStart(i)
+    let tight = !self.prevLineEmpty
     if let number = number {
       return .container { encl in
         OrderedListItemContainer(number: number,
                                  delimiter: marker,
-                                 tight: !self.prevLineEmpty,
+                                 tight: tight,
                                  indent: indent,
                                  outer: encl)
       }
     } else {
       return .container { encl in
-        BulletListItemContainer(bullet: marker,
-                                tight: !self.prevLineEmpty,
-                                indent: indent,
-                                outer: encl)
+        BulletListItemContainer(bullet: marker, tight: tight, indent: indent, outer: encl)
       }
     }
   }
