@@ -48,8 +48,15 @@ open class ExtendedMarkdownParser: MarkdownParser {
     return self.blockParsers
   }
 
-  private static let blockParsers: [BlockParser.Type] =
-    MarkdownParser.defaultBlockParsers + [TableParser.self]
+  private static let blockParsers: [BlockParser.Type] = MarkdownParser.headingParsers + [
+    IndentedCodeBlockParser.self,
+    FencedCodeBlockParser.self,
+    HtmlBlockParser.self,
+    LinkRefDefinitionParser.self,
+    BlockquoteParser.self,
+    ExtendedListItemParser.self,
+    TableParser.self
+  ]
   
   /// Defines a default implementation
   override open class var standard: ExtendedMarkdownParser {
@@ -57,4 +64,10 @@ open class ExtendedMarkdownParser: MarkdownParser {
   }
   
   private static let singleton: ExtendedMarkdownParser = ExtendedMarkdownParser()
+  
+  /// Factory method to customize document parsing in subclasses.
+  open override func documentParser(blockParsers: [BlockParser.Type],
+                                    input: String) -> DocumentParser {
+    return ExtendedDocumentParser(blockParsers: blockParsers, input: input)
+  }
 }

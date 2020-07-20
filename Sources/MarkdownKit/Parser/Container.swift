@@ -28,8 +28,8 @@ import Foundation
 open class Container: CustomDebugStringConvertible {
   public var content: [Block] = []
   
-  open func makeBlock() -> Block {
-    return .document(.bundle(self.content))
+  open func makeBlock(_ docParser: DocumentParser) -> Block {
+    return .document(docParser.bundle(blocks: self.content))
   }
 
   internal func parseIndent(input: String,
@@ -42,12 +42,8 @@ open class Container: CustomDebugStringConvertible {
     return nil
   }
   
-  internal func returnTo(_ container: Container? = nil) -> Container {
+  internal func `return`(to container: Container? = nil, for: DocumentParser) -> Container {
     return self
-  }
-
-  internal final func returnToTopLevel() -> Container {
-    return self.returnTo()
   }
 
   open var debugDescription: String {
@@ -75,7 +71,7 @@ open class NestedContainer: Container {
     return startIndex
   }
 
-  open override func makeBlock() -> Block {
+  open override func makeBlock(_ docParser: DocumentParser) -> Block {
     preconditionFailure("makeBlock() not defined")
   }
 
@@ -104,12 +100,13 @@ open class NestedContainer: Container {
     }
   }
 
-  internal final override func returnTo(_ container: Container? = nil) -> Container {
+  internal final override func `return`(to container: Container? = nil,
+                                        for docParser: DocumentParser) -> Container {
     if self === container {
       return self
     } else {
-      self.outer.content.append(self.makeBlock())
-      return self.outer.returnTo(container)
+      self.outer.content.append(self.makeBlock(docParser))
+      return self.outer.return(to: container, for: docParser)
     }
   }
 }

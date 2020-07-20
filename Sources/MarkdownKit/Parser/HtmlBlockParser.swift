@@ -101,11 +101,11 @@ open class HtmlBlockParserPlugin {
     }
   }
 
-  public func line(_ line: String,
-                   at: String.Index,
-                   startsWith str: String,
-                   endsWith suffix: String? = nil,
-                   htmlTagSuffix: Bool = true) -> Bool {
+  open func line(_ line: String,
+                 at: String.Index,
+                 startsWith str: String,
+                 endsWith suffix: String? = nil,
+                 htmlTagSuffix: Bool = true) -> Bool {
     var strIndex: String.Index = str.startIndex
     var index = at
     while strIndex < str.endIndex {

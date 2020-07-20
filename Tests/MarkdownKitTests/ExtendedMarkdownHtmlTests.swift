@@ -56,4 +56,29 @@ class ExtendedMarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
                    "<td align=\"center\"><strong>bold</strong></td></tr>\n" +
                    "</tbody></table>")
   }
+  
+  func testDescriptionLists() {
+    XCTAssertEqual(generateHtml("Item **name**\n" +
+                                ": Description of\n" +
+                                "  _item_"),
+                   "<dl>\n" +
+                   "<dt>Item <strong>name</strong></dt>\n" +
+                   "<dd>Description of\n<em>item</em></dd>\n" +
+                   "</dl>")
+    XCTAssertEqual(generateHtml("Item name\n" +
+                                ": Description of\n" +
+                                "item\n" +
+                                ": Another description\n\n" +
+                                "Item two\n" +
+                                ": Description two\n" +
+                                ": Description three\n"),
+                   "<dl>\n" +
+                   "<dt>Item name</dt>\n" +
+                   "<dd>Description of\nitem</dd>\n" +
+                   "<dd>Another description</dd>\n" +
+                   "<dt>Item two</dt>\n" +
+                   "<dd>Description two</dd>\n" +
+                   "<dd>Description three</dd>\n" +
+                   "</dl>")
+  }
 }

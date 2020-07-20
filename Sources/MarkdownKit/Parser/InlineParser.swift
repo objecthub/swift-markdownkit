@@ -25,7 +25,7 @@ import Foundation
 /// `InlineTransformer` classes as its configuration. `InlineParser` objects are not
 /// stateful and can be reused to parse the inline text of many Markdown blocks.
 ///
-public class InlineParser {
+open class InlineParser {
 
   /// Sequence of inline transformers which implement the inline parsing functionality.
   private var inlineTransformers: [InlineTransformer]
@@ -47,7 +47,7 @@ public class InlineParser {
   }
 
   /// Traverses the input block and applies all inline transformers to all text.
-  public func parse() -> Block {
+  open func parse() -> Block {
     // First, collect all link reference definitions
     self.collectLinkRefDef(self.block)
     // Second, apply inline transformers
@@ -91,7 +91,7 @@ public class InlineParser {
 
   /// Parses a Markdown block and returns a new block in which all inline text markup
   /// is represented using `TextFragment` objects.
-  public func parse(_ block: Block) -> Block {
+  open func parse(_ block: Block) -> Block {
     switch block {
       case .document(let blocks):
         return .document(self.parse(blocks))
@@ -117,6 +117,8 @@ public class InlineParser {
         return .referenceDef(label, dest, title)
       case .table(let header, let align, let rows):
         return .table(self.transform(header), align, self.transform(rows))
+      case .definitionList(let defs):
+        return .definitionList(self.transform(defs))
     }
   }
 
@@ -156,6 +158,15 @@ public class InlineParser {
     var res = Rows()
     for row in rows {
       res.append(self.transform(row))
+    }
+    return res
+  }
+  
+  public func transform(_ defs: Definitions) -> Definitions {
+    var res = Definitions()
+    for def in defs {
+      res.append(Definition(item: self.transform(def.item),
+                            descriptions: self.parse(def.descriptions)))
     }
     return res
   }

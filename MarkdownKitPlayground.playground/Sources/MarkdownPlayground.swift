@@ -50,7 +50,7 @@ public func loadText(file: String) -> String? {
 }
 
 public func markdownView(text: String, width: Double, height: Double) -> NSView {
-  let markdown = MarkdownParser.standard.parse(text)
+  let markdown = ExtendedMarkdownParser.standard.parse(text)
   return MarkdownView(str: AttributedStringGenerator.standard.generate(doc: markdown),
                       width: width,
                       height: height)

@@ -27,7 +27,7 @@ import Foundation
 ///
 open class CodeBlockParser: BlockParser {
   
-  internal func formatIndentedLine(_ n: Int = 4) -> Substring {
+  public func formatIndentedLine(_ n: Int = 4) -> Substring {
     var index = self.line.startIndex
     var indent = 0
     while index < self.line.endIndex && indent < n {

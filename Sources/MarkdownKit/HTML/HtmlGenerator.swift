@@ -57,7 +57,8 @@ open class HtmlGenerator {
         return "<blockquote>\n" + self.generate(blocks: blocks) + "</blockquote>\n"
       case .list(let start, let tight, let blocks):
         if let startNumber = start {
-          return "<ol start=\"\(startNumber)\">\n" + self.generate(blocks: blocks, tight: tight) +
+          return "<ol start=\"\(startNumber)\">\n" +
+                 self.generate(blocks: blocks, tight: tight) +
                  "</ol>\n"
         } else {
           return "<ul>\n" + self.generate(blocks: blocks, tight: tight) + "</ul>\n"
@@ -120,6 +121,23 @@ open class HtmlGenerator {
           html += "</tr>\n"
         }
         html += "</tbody></table>\n"
+        return html
+      case .definitionList(let defs):
+        var html = "<dl>\n"
+        for def in defs {
+          html += "<dt>" + self.generate(text: def.item) + "</dt>\n"
+          for descr in def.descriptions {
+            if case .listItem(_, _, let blocks) = descr {
+              if blocks.count == 1,
+                 case .paragraph(let text) = blocks.first! {
+                html += "<dd>" + self.generate(text: text) + "</dd>\n"
+              } else {
+                html += "<dd>" + self.generate(blocks: blocks) + "</dd>\n"
+              }
+            }
+          }
+        }
+        html += "</dl>\n"
         return html
     }
   }

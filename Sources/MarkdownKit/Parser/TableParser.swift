@@ -23,9 +23,9 @@ import Foundation
 ///
 /// A block parser which parses tables returning `table` blocks.
 ///
-public final class TableParser: RestorableBlockParser {
+open class TableParser: RestorableBlockParser {
 
-  public override func parse() -> ParseResult {
+  open override func parse() -> ParseResult {
     guard self.shortLineIndent else {
       return .none
     }
@@ -41,7 +41,7 @@ public final class TableParser: RestorableBlockParser {
     return .none
   }
   
-  public override func tryParse() -> ParseResult {
+  open override func tryParse() -> ParseResult {
     guard let header = self.parseRow() else {
       return .none
     }
@@ -93,7 +93,7 @@ public final class TableParser: RestorableBlockParser {
     return .block(.table(header, alignments, rows))
   }
   
-  public func parseRow() -> Row? {
+  open func parseRow() -> Row? {
     var i = self.contentStartIndex
     skipWhitespace(in: self.line, from: &i, to: self.contentEndIndex)
     guard i < self.contentEndIndex else {

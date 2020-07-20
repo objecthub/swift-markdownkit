@@ -39,4 +39,18 @@ The `enum-set-indexer` procedure could be defined as follows using the new `memq
 >
 > This is still in the blockquote.
 
-There is more text coming after the blockquote.
+There is more text coming after the blockquote, including a table:
+
+| Country     | Country code | Dialing code |
+| :----------- | :--------------: | :-------------: |
+| Albania | AL | +355 |
+| Argentina | AR | +54 |
+| Austria | AT | +43 |
+
+Description lists also need special treatment when converted to `NSAttributedString`:
+
+One
+: This is the description for _One_
+
+Two
+: This is the description for _Two_

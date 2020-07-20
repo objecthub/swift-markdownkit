@@ -50,8 +50,8 @@ public final class BlockquoteParser: BlockParser {
       return index
     }
 
-    public override func makeBlock() -> Block {
-      return .blockquote(.bundle(self.content))
+    public override func makeBlock(_ docParser: DocumentParser) -> Block {
+      return .blockquote(docParser.bundle(blocks: self.content))
     }
 
     public override var debugDescription: String {

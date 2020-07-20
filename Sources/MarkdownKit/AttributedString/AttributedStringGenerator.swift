@@ -31,6 +31,12 @@ open class AttributedStringGenerator {
   /// Customized html generator to work around limitations of the current HTML to
   /// `NSAttributedString` conversion logic provided by the operating system.
   open class InternalHtmlGenerator: HtmlGenerator {
+    weak var outer: AttributedStringGenerator?
+    
+    init(outer: AttributedStringGenerator) {
+      self.outer = outer
+    }
+    
     open override func generate(block: Block, tight: Bool = false) -> String {
       switch block {
         case .list(_, _, _):
@@ -49,6 +55,51 @@ open class AttributedStringGenerator {
         case .thematicBreak:
           return "<p><table style=\"width: 100%; margin-bottom: 3px;\"><tbody>" +
                  "<tr><td class=\"thematic\"></td></tr></tbody></table></p>\n"
+        case .table(let header, let align, let rows):
+          var tagsuffix: [String] = []
+          for a in align {
+            switch a {
+              case .undefined:
+                tagsuffix.append(">")
+              case .left:
+                tagsuffix.append(" align=\"left\">")
+              case .right:
+                tagsuffix.append(" align=\"right\">")
+              case .center:
+                tagsuffix.append(" align=\"center\">")
+            }
+          }
+          var html = "<table class=\"mtable\" " +
+                     "cellpadding=\"\(self.outer?.tableCellPadding ?? 2)\"><thead><tr>\n"
+          var i = 0
+          for head in header {
+            html += "<th\(tagsuffix[i])\(self.generate(text: head))&nbsp;</th>"
+            i += 1
+          }
+          html += "\n</tr></thead><tbody>\n"
+          for row in rows {
+            html += "<tr>"
+            i = 0
+            for cell in row {
+              html += "<td\(tagsuffix[i])\(self.generate(text: cell))&nbsp;</td>"
+              i += 1
+            }
+            html += "</tr>\n"
+          }
+          html += "</tbody></table><p style=\"margin: 0;\" />\n"
+          return html
+        case .definitionList(let defs):
+          var html = "<dl>\n"
+          for def in defs {
+            html += "<dt>" + self.generate(text: def.item) + "</dt>\n"
+            for descr in def.descriptions {
+              if case .listItem(_, _, let blocks) = descr {
+                html += "<dd>" + self.generate(blocks: blocks) + "</dd>\n"
+              }
+            }
+          }
+          html += "</dl>\n"
+          return html
         default:
           return super.generate(block: block, tight: tight)
       }
@@ -57,16 +108,7 @@ open class AttributedStringGenerator {
 
   /// Default `AttributedStringGenerator` implementation.
   public static let standard: AttributedStringGenerator = AttributedStringGenerator()
-
-  /// Internal HTML generator.
-  private static let internalHtmlGenerator: InternalHtmlGenerator = InternalHtmlGenerator()
-
-  /// Override this class property if `InternalHtmlGenerator` gets extended in a subclass of
-  /// `AttributedStringGenerator`.
-  open class var htmlGenerator: HtmlGenerator {
-    return AttributedStringGenerator.internalHtmlGenerator
-  }
-
+  
   /// The base font size.
   public let fontSize: Float
 
@@ -171,7 +213,7 @@ open class AttributedStringGenerator {
   }
   
   public var htmlGenerator: HtmlGenerator {
-    return type(of: self).htmlGenerator
+    return InternalHtmlGenerator(outer: self)
   }
   
   open func generateHtml(_ htmlBody: String) -> String {
@@ -199,12 +241,22 @@ open class AttributedStringGenerator {
            "ol               { \(self.olStyle) }\n" +
            "li               { \(self.liStyle) }\n" +
            "table.blockquote { \(self.blockquoteStyle) }\n" +
+           "table.mtable     { \(self.tableStyle) }\n" +
+           "table.mtable thead th { \(self.tableHeaderStyle) }\n" +
            "pre              { \(self.preStyle) }\n" +
            "code             { \(self.codeStyle) }\n" +
            "pre code         { \(self.preCodeStyle) }\n" +
            "td.codebox       { \(self.codeBoxStyle) }\n" +
            "td.thematic      { \(self.thematicBreakStyle) }\n" +
-           "td.quote         { \(self.quoteStyle) }\n"
+           "td.quote         { \(self.quoteStyle) }\n" +
+           "dt {\n" +
+           "  font-weight: bold;\n" +
+           "  margin: 0.6em 0 0.4em 0;\n" +
+           "}\n" +
+           "dd {\n" +
+           "  margin: 0.5em 0 1em 2em;\n" +
+           "  padding: 0.5em 0 1em 2em;\n" +
+           "}\n"
   }
 
   open var bodyStyle: String {
@@ -222,19 +274,19 @@ open class AttributedStringGenerator {
   open var h2Style: String {
     return "font-size: \(self.fontSize + 4)px;" +
            "color: \(self.h2Color);" +
-           "margin: 0.6em 0 0.6em 0;"
+           "margin: 0.6em 0 0.4em 0;"
   }
 
   open var h3Style: String {
     return "font-size: \(self.fontSize + 2)px;" +
            "color: \(self.h3Color);" +
-           "margin: 0.6em 0 0.6em 0;"
+           "margin: 0.5em 0 0.3em 0;"
   }
 
   open var h4Style: String {
     return "font-size: \(self.fontSize + 1)px;" +
            "color: \(self.h4Color);" +
-           "margin: 0.7em 0 0.6em 0;"
+           "margin: 0.5em 0 0.3em 0;"
   }
 
   open var pStyle: String {
@@ -286,9 +338,24 @@ open class AttributedStringGenerator {
            "margin: 0.3em 0;" +
            "font-size: \(self.fontSize)px;"
   }
-
+  
   open var quoteStyle: String {
     return "background: \(self.blockquoteColor);" +
            "width: 0.4em;"
+  }
+  
+  open var tableStyle: String {
+    return "border-collapse: collapse;" +
+           "margin: 0.3em 0;" +
+           "padding: 3px;" +
+           "font-size: \(self.fontSize)px;"
+  }
+  
+  open var tableHeaderStyle: String {
+    return "border-top: 1px solid #888;"
+  }
+  
+  open var tableCellPadding: Int {
+    return 2
   }
 }

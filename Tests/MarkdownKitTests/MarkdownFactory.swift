@@ -178,4 +178,24 @@ extension MarkdownKitFactory {
     }
     return .table(toRow(hdr), ContiguousArray(algn), rows)
   }
+  
+  func definitionList(_ decls: (Substring, [[Block]])...) -> Block {
+    var defs = Definitions()
+    for decl in decls {
+      var res = Blocks()
+      var tight = true
+      for blocks in decl.1 {
+        var content = Blocks()
+        for block in blocks {
+          content.append(block)
+        }
+        res.append(.listItem(.bullet(":"), tight, content))
+        if content.count > 1 {
+          tight = false
+        }
+      }
+      defs.append(Definition(item: Text(decl.0), descriptions: res))
+    }
+    return .definitionList(defs)
+  }
 }

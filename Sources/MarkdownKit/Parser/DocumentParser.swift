@@ -25,7 +25,7 @@ import Foundation
 /// and an input string. `DocumentParser` objects are stateful and can be used for parsing
 /// only a single document/string in Markdown format.
 ///
-public class DocumentParser {
+open class DocumentParser {
 
   /// Sequence of block parsers which implement the document parsing functionality.
   internal private(set) var blockParsers: [BlockParser]
@@ -102,7 +102,7 @@ public class DocumentParser {
     }
     if let lines = self.prevParagraphLines {
       self.container.content.append(.paragraph(lines.finalized()))
-      self.container = self.container.returnTo(self.currentContainer)
+      self.container = self.container.return(to: self.currentContainer, for: self)
       self.prevParagraphLines = nil
     }
     guard self.index! < self.input.endIndex else {
@@ -179,12 +179,12 @@ public class DocumentParser {
       if self.lineEmpty {
         if let encl = self.container.outermostIndentRequired(upto: self.currentContainer) {
           // print("container <- \(encl) | \(self.currentContainer)")
-          self.container = self.container.returnTo(encl)
+          self.container = self.container.return(to: encl, for: self)
         }
         self.readNextLine()
       } else {
         // print("container <= \(self.currentContainer)")
-        self.container = self.container.returnTo(self.currentContainer)
+        self.container = self.container.return(to: self.currentContainer, for: self)
         self.currentContainer = self.container
         for blockParser in self.blockParsers {
           switch blockParser.parse() {
@@ -216,7 +216,8 @@ public class DocumentParser {
                 case .container(let constr):
                   if let plines = self.prevParagraphLines {
                     self.container.content.append(.paragraph(plines.finalized()))
-                    self.container = constr(self.container.returnTo(self.currentContainer))
+                    self.container = constr(
+                                       self.container.return(to: self.currentContainer, for: self))
                     self.currentContainer = self.container
                   } else {
                     self.currentContainer = constr(self.container)
@@ -234,8 +235,56 @@ public class DocumentParser {
         self.container.content.append(.paragraph(lines.finalized()))
       }
     }
-    self.container = self.container.returnToTopLevel()
-    return .document(.bundle(self.container.content))
+    self.container = self.container.return(for: self)
+    return .document(self.bundle(blocks: self.container.content))
+  }
+  
+  /// Normalizes a given array of `Block` objects and returns it in a `Blocks` object.
+  open func bundle(blocks: [Block]) -> Blocks {
+    var res: Blocks = []
+    var items: Blocks = []
+    var listType: ListType? = nil
+    var tight: Bool = true
+    for block in blocks {
+      switch block {
+        case .listItem(let type, let t, let nested):
+          if let ltype = listType {
+            if type.compatible(with: ltype) {
+              items.append(block)
+              if !t || !nested.isSingleton {
+                tight = false
+              }
+            } else {
+              res.append(.list(ltype.startNumber, tight, items))
+              items.removeAll()
+              tight = nested.isSingleton
+              listType = type
+              items.append(block)
+            }
+          } else {
+            listType = type
+            items.append(block)
+            if !nested.isSingleton {
+              tight = false
+            }
+          }
+        default:
+          if let ltype = listType {
+            res.append(.list(ltype.startNumber, tight, items))
+            items.removeAll()
+            tight = true
+            listType = nil
+          }
+          res.append(block)
+      }
+    }
+    if let ltype = listType {
+      res.append(.list(ltype.startNumber, tight, items))
+      items.removeAll()
+      tight = true
+      listType = nil
+    }
+    return res
   }
 
   private func trimLine() -> Substring {

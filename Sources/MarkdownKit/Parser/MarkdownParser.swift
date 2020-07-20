@@ -46,16 +46,19 @@ open class MarkdownParser {
     return self.blockParsers
   }
 
-  private static let blockParsers: [BlockParser.Type] = [
-    AtxHeadingParser.self,
-    SetextHeadingParser.self,
-    ThematicBreakParser.self,
+  private static let blockParsers: [BlockParser.Type] = MarkdownParser.headingParsers + [
     IndentedCodeBlockParser.self,
     FencedCodeBlockParser.self,
     HtmlBlockParser.self,
     LinkRefDefinitionParser.self,
     BlockquoteParser.self,
     ListItemParser.self
+  ]
+  
+  public static let headingParsers: [BlockParser.Type] = [
+    AtxHeadingParser.self,
+    SetextHeadingParser.self,
+    ThematicBreakParser.self
   ]
 
   /// The default list of inline transformers. The order of this list matters.
@@ -90,20 +93,31 @@ open class MarkdownParser {
   /// protocol for invoking the `BlockParser` objects that its initializer is creating based
   /// on the types provided in the `blockParsers` parameter.
   public func documentParser(input: String) -> DocumentParser {
-    return DocumentParser(blockParsers: self.customBlockParsers ??
-                                        type(of: self).defaultBlockParsers,
-                          input: input)
+    return self.documentParser(blockParsers: self.customBlockParsers ??
+                                             type(of: self).defaultBlockParsers,
+                               input: input)
   }
-
+  
+  /// Factory method to customize document parsing in subclasses.
+  open func documentParser(blockParsers: [BlockParser.Type], input: String) -> DocumentParser {
+    return DocumentParser(blockParsers: blockParsers, input: input)
+  }
+  
   /// Inline parsing is performed via a stateless `InlineParser` object which implements a
   /// protocol for invoking the `InlineTransformer` objects. Since the inline parser is stateless,
   /// a single object gets created lazily and reused for parsing all input.
   public func inlineParser(input: Block) -> InlineParser {
-    return InlineParser(inlineTransformers: self.customInlineTransformers ??
-                                            type(of: self).defaultInlineTransformers,
-                        input: input)
+    return self.inlineParser(inlineTransformers: self.customInlineTransformers ??
+                                                 type(of: self).defaultInlineTransformers,
+                             input: input)
   }
-
+  
+  /// Factory method to customize inline parsing in subclasses.
+  open func inlineParser(inlineTransformers: [InlineTransformer.Type],
+                         input: Block) -> InlineParser {
+    return InlineParser(inlineTransformers: inlineTransformers, input: input)
+  }
+  
   /// Constructor of `MarkdownParser` objects; it takes a list of block parsers, a list of
   /// inline transformers as well as an input string as its parameters.
   public init(blockParsers: [BlockParser.Type]? = nil,

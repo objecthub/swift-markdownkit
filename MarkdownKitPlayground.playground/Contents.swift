@@ -18,4 +18,4 @@
 //  limitations under the License.
 //
 
-markdownView(file: "Demo", width: 500, height: 640)
+markdownView(file: "Demo", width: 500, height: 810)

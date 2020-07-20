@@ -38,22 +38,23 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
   case referenceDef(String, Substring, Lines)
   case thematicBreak
   case table(Row, Alignments, Rows)
+  case definitionList(Definitions)
 
   /// Returns a description of the block as a string.
   public var description: String {
     switch self {
       case .document(let blocks):
-        return "document(\(self.string(from: blocks))))"
+        return "document(\(Block.string(from: blocks))))"
       case .blockquote(let blocks):
-        return "blockquote(\(self.string(from: blocks))))"
+        return "blockquote(\(Block.string(from: blocks))))"
       case .list(let start, let tight, let blocks):
         if let start = start {
-          return "list(\(start), \(tight ? "tight" : "loose"), \(self.string(from: blocks)))"
+          return "list(\(start), \(tight ? "tight" : "loose"), \(Block.string(from: blocks)))"
         } else {
-          return "list(\(tight ? "tight" : "loose"), \(self.string(from: blocks)))"
+          return "list(\(tight ? "tight" : "loose"), \(Block.string(from: blocks)))"
         }
       case .listItem(let type, let tight, let blocks):
-        return "listItem(\(type), \(tight ? "tight" : "loose"), \(self.string(from: blocks)))"
+        return "listItem(\(type), \(tight ? "tight" : "loose"), \(Block.string(from: blocks)))"
       case .paragraph(let text):
         return "paragraph(\(text.debugDescription))"
       case .heading(let level, let text):
@@ -109,14 +110,22 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
       case .thematicBreak:
         return "thematicBreak"
       case .table(let header, let align, let rows):
-        var res = self.string(from: header) + ", "
+        var res = Block.string(from: header) + ", "
         for a in align {
           res += a.description
         }
         for row in rows {
-          res += ", " + self.string(from: row)
+          res += ", " + Block.string(from: row)
         }
         return "table(\(res))"
+      case .definitionList(let defs):
+        var res = "definitionList"
+        var sep = "("
+        for def in defs {
+          res += sep + def.description
+          sep = "; "
+        }
+        return res + ")"
     }
   }
   
@@ -125,7 +134,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
     return self.description
   }
 
-  private func string(from blocks: Blocks) -> String {
+  fileprivate static func string(from blocks: Blocks) -> String {
     var res = ""
     for block in blocks {
       if res.isEmpty {
@@ -137,7 +146,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
     return res
   }
   
-  private func string(from row: Row) -> String {
+  fileprivate static func string(from row: Row) -> String {
     var res = "row("
     for cell in row {
       if res.isEmpty {
@@ -176,6 +185,8 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
         return true
       case (.table(let lheader, let lalign, let lrows), .table(let rheader, let ralign, let rrows)):
         return lheader == rheader && lalign == ralign && lrows == rrows
+      case (.definitionList(let ldefs), .definitionList(let rdefs)):
+        return ldefs == rdefs
       default:
         return false
     }
@@ -257,3 +268,18 @@ public enum Alignment: UInt, CustomStringConvertible, CustomDebugStringConvertib
 }
 
 public typealias Alignments = ContiguousArray<Alignment>
+
+public struct Definition: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+  let item: Text
+  let descriptions: Blocks
+  
+  public var description: String {
+    return "\(self.item.debugDescription) : \(Block.string(from: self.descriptions))"
+  }
+  
+  public var debugDescription: String {
+    return self.description
+  }
+}
+
+public typealias Definitions = ContiguousArray<Definition>

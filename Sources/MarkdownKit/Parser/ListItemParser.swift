@@ -25,8 +25,22 @@ import Foundation
 /// _bullet list items_ and _ordered list items_. They are represented using `listItem` blocks
 /// using either the `bullet` or the `ordered list type.
 ///
-public final class ListItemParser: BlockParser {
-
+open class ListItemParser: BlockParser {
+  
+  /// Set of supported bullet characters.
+  private let bulletChars: Set<Character>
+  
+  /// Used for extending `ListItemParser`
+  public init(docParser: DocumentParser, bulletChars: Set<Character>) {
+    self.bulletChars = bulletChars
+    super.init(docParser: docParser)
+  }
+  
+  public required init(docParser: DocumentParser) {
+    self.bulletChars = ["-", "+", "*"]
+    super.init(docParser: docParser)
+  }
+  
   private class BulletListItemContainer: NestedContainer {
     let bullet: Character
     let indent: Int
@@ -61,8 +75,8 @@ public final class ListItemParser: BlockParser {
       return index
     }
 
-    public override func makeBlock() -> Block {
-      return .listItem(.bullet(self.bullet), self.tight, .bundle(self.content))
+    public override func makeBlock(_ docParser: DocumentParser) -> Block {
+      return .listItem(.bullet(self.bullet), self.tight, docParser.bundle(blocks: self.content))
     }
 
     public override var debugDescription: String {
@@ -78,8 +92,10 @@ public final class ListItemParser: BlockParser {
       super.init(bullet: delimiter, tight: tight, indent: indent, outer: outer)
     }
 
-    public override func makeBlock() -> Block {
-      return .listItem(.ordered(self.number, self.bullet), self.tight, .bundle(self.content))
+    public override func makeBlock(_ docParser: DocumentParser) -> Block {
+      return .listItem(.ordered(self.number, self.bullet),
+                       self.tight,
+                       docParser.bundle(blocks: self.content))
     }
 
     public override var debugDescription: String {
@@ -96,8 +112,6 @@ public final class ListItemParser: BlockParser {
     var marker: Character = self.line[i]
     var number: Int? = nil
     switch marker {
-      case "-", "+", "*":
-        break
       case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
         var n = self.line[i].wholeNumberValue!
         i = self.line.index(after: i)
@@ -124,6 +138,9 @@ public final class ListItemParser: BlockParser {
             return .none
         }
       default:
+        if self.bulletChars.contains(marker) {
+          break
+        }
         return .none
     }
     i = self.line.index(after: i)
