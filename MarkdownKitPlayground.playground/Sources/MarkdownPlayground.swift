@@ -20,7 +20,7 @@
 
 import Foundation
 import PlaygroundSupport
-@testable import MarkdownKit
+import MarkdownKit
 
 public class MarkdownView: NSView {
   let str: NSAttributedString

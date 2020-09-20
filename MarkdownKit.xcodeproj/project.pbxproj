@@ -99,7 +99,6 @@
 		CC72626E22F318C0001AB6D9 /* MarkdownKitProcess */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MarkdownKitProcess; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC72627022F318C0001AB6D9 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CC72627522F318F3001AB6D9 /* AttributedStringGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringGenerator.swift; sourceTree = "<group>"; };
-		CC72627922F31D59001AB6D9 /* MarkdownKitPlayground.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = MarkdownKitPlayground.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		CC7B603822AC67DC0092188C /* MarkdownInlineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownInlineTests.swift; sourceTree = "<group>"; };
 		CC7B603A22AC6AB40092188C /* DelimiterTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelimiterTransformer.swift; sourceTree = "<group>"; };
 		CC7B603C22AC6AD70092188C /* CodeLinkHtmlTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeLinkHtmlTransformer.swift; sourceTree = "<group>"; };
@@ -177,7 +176,6 @@
 				CC0DFBE222FDCCE0002ACD37 /* CONTRIBUTING.md */,
 				CC6988C6227CDFB10021C7E1 /* LICENSE */,
 				CC0DFBE022FDC617002ACD37 /* Package.swift */,
-				CC72627922F31D59001AB6D9 /* MarkdownKitPlayground.playground */,
 				CC2AF6EA227CD98100BEA420 /* MarkdownKit */,
 				CC72626F22F318C0001AB6D9 /* MarkdownKitProcess */,
 				CC2AF6F5227CD98100BEA420 /* MarkdownKitTests */,

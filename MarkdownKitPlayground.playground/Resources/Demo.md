@@ -46,6 +46,7 @@ There is more text coming after the blockquote, including a table:
 | Albania | AL | +355 |
 | Argentina | AR | +54 |
 | Austria | AT | +43 |
+| Switzerland | CH | +41 |
 
 Description lists also need special treatment when converted to `NSAttributedString`:
 
@@ -54,3 +55,4 @@ One
 
 Two
 : This is the description for _Two_
+
