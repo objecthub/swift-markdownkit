@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 (2020-10-04)
+- Ported to Swift 5.3
+- Migrated project to Xcode 12.0
+
 ## 1.0 (2020-07-18)
 - Implemented support for Markdown tables
 - Made it easier to extend class `MarkdownParser`
