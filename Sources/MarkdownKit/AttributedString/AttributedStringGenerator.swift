@@ -33,7 +33,7 @@ open class AttributedStringGenerator {
   open class InternalHtmlGenerator: HtmlGenerator {
     weak var outer: AttributedStringGenerator?
     
-    init(outer: AttributedStringGenerator) {
+    public init(outer: AttributedStringGenerator) {
       self.outer = outer
     }
     
@@ -212,7 +212,7 @@ open class AttributedStringGenerator {
                                    documentAttributes: nil)
   }
   
-  public var htmlGenerator: HtmlGenerator {
+  open var htmlGenerator: HtmlGenerator {
     return InternalHtmlGenerator(outer: self)
   }
   

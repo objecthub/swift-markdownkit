@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.2 (2020-10-04)
+- Improved extensibility of `AttributedStringGenerator` class
+
 ## 1.0.1 (2020-10-04)
 - Ported to Swift 5.3
 - Migrated project to Xcode 12.0
