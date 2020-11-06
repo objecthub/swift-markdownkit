@@ -69,4 +69,19 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
       "<ul>\n<li><p>foo</p>\n</li>\n<li><p>bar</p>\n<ul>\n<li>one</li>\n<li>two</li>\n" +
       "<li>three</li>\n</ul>\n</li>\n<li><p>goo</p>\n</li>\n</ul>")
   }
+  
+  func testImageLinks() {
+    XCTAssertEqual(generateHtml("""
+        This is an inline image: ![example *image*](folder/image.jpg "image title").
+      """),
+      "<p>This is an inline image: <img src=\"folder/image.jpg\" alt=\"example image\"" +
+      " title=\"image title\"/>.</p>")
+    XCTAssertEqual(generateHtml("""
+        This is an image block:
+
+        ![example *image*](folder/image.jpg)
+      """),
+      "<p>This is an image block:</p>\n" +
+      "<p><img src=\"folder/image.jpg\" alt=\"example image\"/></p>")
+  }
 }
