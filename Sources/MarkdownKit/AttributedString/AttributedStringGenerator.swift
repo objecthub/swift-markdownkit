@@ -18,6 +18,7 @@
 //  limitations under the License.
 //
 
+#if canImport(Cocoa)
 import Cocoa
 
 ///
@@ -359,3 +360,4 @@ open class AttributedStringGenerator {
     return 2
   }
 }
+#endif

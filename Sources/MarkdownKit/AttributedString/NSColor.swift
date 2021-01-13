@@ -18,6 +18,7 @@
 //  limitations under the License.
 //
 
+#if canImport(Cocoa)
 import Foundation
 import Cocoa
 
@@ -33,3 +34,4 @@ extension NSColor {
     return String(format: "#%02X%02X%02X", red, green, blue)
   }
 }
+#endif
