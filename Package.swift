@@ -10,7 +10,7 @@
 //  swift build -c release
 //
 //  Created by Matthias Zenger on 09/08/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2021 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -30,7 +30,8 @@ import PackageDescription
 let package = Package(
   name: "MarkdownKit",
   platforms: [
-    .macOS(.v10_12)
+    .macOS(.v10_12),
+    .iOS(.v12)
   ],
   products: [
     .library(name: "MarkdownKit", targets: ["MarkdownKit"]),

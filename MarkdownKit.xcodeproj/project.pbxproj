@@ -16,7 +16,7 @@
 		CC2AF6F2227CD98100BEA420 /* MarkdownKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; };
 		CC2AF6F7227CD98100BEA420 /* MarkdownBlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2AF6F6227CD98100BEA420 /* MarkdownBlockTests.swift */; };
 		CC2AF6F9227CD98100BEA420 /* MarkdownKit.h in Headers */ = {isa = PBXBuildFile; fileRef = CC2AF6EB227CD98100BEA420 /* MarkdownKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		CC3E4F532309FE9100C8A3DD /* NSColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3E4F522309FE9100C8A3DD /* NSColor.swift */; };
+		CC3E4F532309FE9100C8A3DD /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3E4F522309FE9100C8A3DD /* Color.swift */; };
 		CC5E530C2359FF3A00C72CE2 /* EscapeTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC5E530B2359FF3A00C72CE2 /* EscapeTransformer.swift */; };
 		CC6988C4227CDF810021C7E1 /* BlockquoteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6988C3227CDF810021C7E1 /* BlockquoteParser.swift */; };
 		CC6D239822C03CBA00BB1302 /* LinkTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6D239722C03CBA00BB1302 /* LinkTransformer.swift */; };
@@ -45,6 +45,37 @@
 		CCB033D4227CDB2F00E1C4DC /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CC227CDB2F00E1C4DC /* Block.swift */; };
 		CCB033D5227CDB2F00E1C4DC /* Container.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CD227CDB2F00E1C4DC /* Container.swift */; };
 		CCB033D6227CDB2F00E1C4DC /* DocumentParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CE227CDB2F00E1C4DC /* DocumentParser.swift */; };
+		CCC48B9125CA156600D082AD /* Blocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC1E2286CED60084683B /* Blocks.swift */; };
+		CCC48B9625CA156900D082AD /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CC227CDB2F00E1C4DC /* Block.swift */; };
+		CCC48B9B25CA156C00D082AD /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746722A060CF0053B73C /* Text.swift */; };
+		CCC48BA025CA156F00D082AD /* TextFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC088C0A22DB74090059460E /* TextFragment.swift */; };
+		CCC48BA525CA157600D082AD /* InlineTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746922A324400053B73C /* InlineTransformer.swift */; };
+		CCC48BA625CA157600D082AD /* EscapeTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC5E530B2359FF3A00C72CE2 /* EscapeTransformer.swift */; };
+		CCC48BA725CA157600D082AD /* SetextHeadingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC2222884F940084683B /* SetextHeadingParser.swift */; };
+		CCC48BA825CA157600D082AD /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */; };
+		CCC48BA925CA157600D082AD /* LinkRefDefinitionParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC20228730800084683B /* LinkRefDefinitionParser.swift */; };
+		CCC48BAA25CA157600D082AD /* DelimiterTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B603A22AC6AB40092188C /* DelimiterTransformer.swift */; };
+		CCC48BAB25CA157600D082AD /* HtmlBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC24228898B00084683B /* HtmlBlockParser.swift */; };
+		CCC48BAC25CA157600D082AD /* Container.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CD227CDB2F00E1C4DC /* Container.swift */; };
+		CCC48BAD25CA157600D082AD /* DocumentParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CE227CDB2F00E1C4DC /* DocumentParser.swift */; };
+		CCC48BAE25CA157600D082AD /* ExtendedMarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC24757624C1ED7E00678C59 /* ExtendedMarkdownParser.swift */; };
+		CCC48BAF25CA157600D082AD /* ExtendedDocumentParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6DE38D24C4865E004F8D44 /* ExtendedDocumentParser.swift */; };
+		CCC48BB025CA157600D082AD /* CodeLinkHtmlTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B603C22AC6AD70092188C /* CodeLinkHtmlTransformer.swift */; };
+		CCC48BB125CA157600D082AD /* BlockquoteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6988C3227CDF810021C7E1 /* BlockquoteParser.swift */; };
+		CCC48BB225CA157600D082AD /* ThematicBreakParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CB227CDB2F00E1C4DC /* ThematicBreakParser.swift */; };
+		CCC48BB325CA157600D082AD /* CodeBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C9227CDB2F00E1C4DC /* CodeBlockParser.swift */; };
+		CCC48BB425CA157600D082AD /* ListItemParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC16227F39C00084683B /* ListItemParser.swift */; };
+		CCC48BB525CA157600D082AD /* ExtendedListItemParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6DE38B24C48483004F8D44 /* ExtendedListItemParser.swift */; };
+		CCC48BB625CA157600D082AD /* InlineParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD07465229FDFB90053B73C /* InlineParser.swift */; };
+		CCC48BB725CA157600D082AD /* LinkTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC6D239722C03CBA00BB1302 /* LinkTransformer.swift */; };
+		CCC48BB825CA157600D082AD /* TableParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC24757424C1EC3600678C59 /* TableParser.swift */; };
+		CCC48BB925CA157600D082AD /* EmphasisTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B604022B67F0C0092188C /* EmphasisTransformer.swift */; };
+		CCC48BBA25CA157600D082AD /* BlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033CA227CDB2F00E1C4DC /* BlockParser.swift */; };
+		CCC48BBB25CA157600D082AD /* ParserUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B603E22AEFDFF0092188C /* ParserUtil.swift */; };
+		CCC48BBC25CA157600D082AD /* AtxHeadingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C8227CDB2F00E1C4DC /* AtxHeadingParser.swift */; };
+		CCC48BC125CA157D00D082AD /* HtmlGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC088C0E22DD2BCD0059460E /* HtmlGenerator.swift */; };
+		CCC48BC725CA158100D082AD /* AttributedStringGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC72627522F318F3001AB6D9 /* AttributedStringGenerator.swift */; };
+		CCC48BEB25CA1E8000D082AD /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3E4F522309FE9100C8A3DD /* Color.swift */; };
 		CCD07466229FDFB90053B73C /* InlineParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD07465229FDFB90053B73C /* InlineParser.swift */; };
 		CCD0746822A060CF0053B73C /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746722A060CF0053B73C /* Text.swift */; };
 		CCD0746A22A324400053B73C /* InlineTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746922A324400053B73C /* InlineTransformer.swift */; };
@@ -70,6 +101,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		CCC48B8025CA14F400D082AD /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -88,7 +128,7 @@
 		CC2AF6F1227CD98100BEA420 /* MarkdownKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarkdownKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC2AF6F6227CD98100BEA420 /* MarkdownBlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockTests.swift; sourceTree = "<group>"; };
 		CC2AF6F8227CD98100BEA420 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		CC3E4F522309FE9100C8A3DD /* NSColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSColor.swift; sourceTree = "<group>"; };
+		CC3E4F522309FE9100C8A3DD /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
 		CC5E530B2359FF3A00C72CE2 /* EscapeTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapeTransformer.swift; sourceTree = "<group>"; };
 		CC6988C3227CDF810021C7E1 /* BlockquoteParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockquoteParser.swift; sourceTree = "<group>"; };
 		CC6988C5227CDFB10021C7E1 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -119,6 +159,7 @@
 		CCB033CC227CDB2F00E1C4DC /* Block.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Block.swift; sourceTree = "<group>"; };
 		CCB033CD227CDB2F00E1C4DC /* Container.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Container.swift; sourceTree = "<group>"; };
 		CCB033CE227CDB2F00E1C4DC /* DocumentParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentParser.swift; sourceTree = "<group>"; };
+		CCC48B8225CA14F400D082AD /* libMarkdownKit iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libMarkdownKit iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCD07465229FDFB90053B73C /* InlineParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineParser.swift; sourceTree = "<group>"; };
 		CCD0746722A060CF0053B73C /* Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Text.swift; sourceTree = "<group>"; };
 		CCD0746922A324400053B73C /* InlineTransformer.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = InlineTransformer.swift; sourceTree = "<group>"; };
@@ -148,6 +189,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CCC48B7F25CA14F400D082AD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -163,7 +211,7 @@
 			isa = PBXGroup;
 			children = (
 				CC72627522F318F3001AB6D9 /* AttributedStringGenerator.swift */,
-				CC3E4F522309FE9100C8A3DD /* NSColor.swift */,
+				CC3E4F522309FE9100C8A3DD /* Color.swift */,
 			);
 			path = AttributedString;
 			sourceTree = "<group>";
@@ -190,6 +238,7 @@
 				CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */,
 				CC2AF6F1227CD98100BEA420 /* MarkdownKitTests.xctest */,
 				CC72626E22F318C0001AB6D9 /* MarkdownKitProcess */,
+				CCC48B8225CA14F400D082AD /* libMarkdownKit iOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -340,13 +389,30 @@
 			productReference = CC72626E22F318C0001AB6D9 /* MarkdownKitProcess */;
 			productType = "com.apple.product-type.tool";
 		};
+		CCC48B8125CA14F400D082AD /* MarkdownKit iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CCC48B8825CA14F400D082AD /* Build configuration list for PBXNativeTarget "MarkdownKit iOS" */;
+			buildPhases = (
+				CCC48B7E25CA14F400D082AD /* Sources */,
+				CCC48B7F25CA14F400D082AD /* Frameworks */,
+				CCC48B8025CA14F400D082AD /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "MarkdownKit iOS";
+			productName = "MarkdownKit iOS";
+			productReference = CCC48B8225CA14F400D082AD /* libMarkdownKit iOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		CC2AF6DF227CD98100BEA420 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1030;
+				LastSwiftUpdateCheck = 1240;
 				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = "Matthias Zenger";
 				TargetAttributes = {
@@ -359,6 +425,9 @@
 					};
 					CC72626D22F318C0001AB6D9 = {
 						CreatedOnToolsVersion = 10.3;
+					};
+					CCC48B8125CA14F400D082AD = {
+						CreatedOnToolsVersion = 12.4;
 					};
 				};
 			};
@@ -376,6 +445,7 @@
 			projectRoot = "";
 			targets = (
 				CC2AF6E7227CD98100BEA420 /* MarkdownKit */,
+				CCC48B8125CA14F400D082AD /* MarkdownKit iOS */,
 				CC2AF6F0227CD98100BEA420 /* MarkdownKitTests */,
 				CC72626D22F318C0001AB6D9 /* MarkdownKitProcess */,
 			);
@@ -424,7 +494,7 @@
 				CC7B603B22AC6AB40092188C /* DelimiterTransformer.swift in Sources */,
 				CCD0746822A060CF0053B73C /* Text.swift in Sources */,
 				CC8CBC2322884F940084683B /* SetextHeadingParser.swift in Sources */,
-				CC3E4F532309FE9100C8A3DD /* NSColor.swift in Sources */,
+				CC3E4F532309FE9100C8A3DD /* Color.swift in Sources */,
 				CC72627622F318F3001AB6D9 /* AttributedStringGenerator.swift in Sources */,
 				CCB033D1227CDB2F00E1C4DC /* CodeBlockParser.swift in Sources */,
 				CC8CBC21228730800084683B /* LinkRefDefinitionParser.swift in Sources */,
@@ -456,6 +526,44 @@
 			buildActionMask = 2147483647;
 			files = (
 				CC72627122F318C0001AB6D9 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CCC48B7E25CA14F400D082AD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CCC48BB025CA157600D082AD /* CodeLinkHtmlTransformer.swift in Sources */,
+				CCC48B9625CA156900D082AD /* Block.swift in Sources */,
+				CCC48BB325CA157600D082AD /* CodeBlockParser.swift in Sources */,
+				CCC48BA525CA157600D082AD /* InlineTransformer.swift in Sources */,
+				CCC48BBC25CA157600D082AD /* AtxHeadingParser.swift in Sources */,
+				CCC48BA925CA157600D082AD /* LinkRefDefinitionParser.swift in Sources */,
+				CCC48BBB25CA157600D082AD /* ParserUtil.swift in Sources */,
+				CCC48BAF25CA157600D082AD /* ExtendedDocumentParser.swift in Sources */,
+				CCC48B9B25CA156C00D082AD /* Text.swift in Sources */,
+				CCC48BAB25CA157600D082AD /* HtmlBlockParser.swift in Sources */,
+				CCC48BB725CA157600D082AD /* LinkTransformer.swift in Sources */,
+				CCC48BB825CA157600D082AD /* TableParser.swift in Sources */,
+				CCC48BB425CA157600D082AD /* ListItemParser.swift in Sources */,
+				CCC48B9125CA156600D082AD /* Blocks.swift in Sources */,
+				CCC48BB125CA157600D082AD /* BlockquoteParser.swift in Sources */,
+				CCC48BC725CA158100D082AD /* AttributedStringGenerator.swift in Sources */,
+				CCC48BC125CA157D00D082AD /* HtmlGenerator.swift in Sources */,
+				CCC48BAE25CA157600D082AD /* ExtendedMarkdownParser.swift in Sources */,
+				CCC48BA825CA157600D082AD /* MarkdownParser.swift in Sources */,
+				CCC48BEB25CA1E8000D082AD /* Color.swift in Sources */,
+				CCC48BAA25CA157600D082AD /* DelimiterTransformer.swift in Sources */,
+				CCC48BB625CA157600D082AD /* InlineParser.swift in Sources */,
+				CCC48BA025CA156F00D082AD /* TextFragment.swift in Sources */,
+				CCC48BAC25CA157600D082AD /* Container.swift in Sources */,
+				CCC48BAD25CA157600D082AD /* DocumentParser.swift in Sources */,
+				CCC48BA725CA157600D082AD /* SetextHeadingParser.swift in Sources */,
+				CCC48BA625CA157600D082AD /* EscapeTransformer.swift in Sources */,
+				CCC48BB925CA157600D082AD /* EmphasisTransformer.swift in Sources */,
+				CCC48BBA25CA157600D082AD /* BlockParser.swift in Sources */,
+				CCC48BB525CA157600D082AD /* ExtendedListItemParser.swift in Sources */,
+				CCC48BB225CA157600D082AD /* ThematicBreakParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -714,6 +822,37 @@
 			};
 			name = Release;
 		};
+		CCC48B8625CA14F400D082AD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = C72Z63N8M5;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CCC48B8725CA14F400D082AD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = C72Z63N8M5;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -749,6 +888,15 @@
 			buildConfigurations = (
 				CC72627222F318C0001AB6D9 /* Debug */,
 				CC72627322F318C0001AB6D9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CCC48B8825CA14F400D082AD /* Build configuration list for PBXNativeTarget "MarkdownKit iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CCC48B8625CA14F400D082AD /* Debug */,
+				CCC48B8725CA14F400D082AD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

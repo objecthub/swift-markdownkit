@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.3 (2021-02-03)
+- Make framework available to iOS
+
 ## 1.0.2 (2020-10-04)
 - Improved extensibility of `AttributedStringGenerator` class
 
