@@ -37,6 +37,10 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
                    "<h1>Top</h1>\n<h2>Below</h2>\n<p>And this is the text.</p>")
     XCTAssertEqual(generateHtml("### Sub *and* heading ###\nAnd this is the text."),
                    "<h3>Sub <em>and</em> heading</h3>\n<p>And this is the text.</p>")
+    XCTAssertEqual(generateHtml("expressive & simple &amp; elegant"),
+                   "<p>expressive &amp; simple &amp; elegant</p>")
+    XCTAssertEqual(generateHtml("This is `a &amp; b`"),
+                   "<p>This is <code>a &amp;amp; b</code></p>")
   }
 
   func testLists() {
@@ -83,5 +87,12 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
       """),
       "<p>This is an image block:</p>\n" +
       "<p><img src=\"folder/image.jpg\" alt=\"example image\"/></p>")
+  }
+  
+  func testAutolinks() {
+    XCTAssertEqual(generateHtml("Test <www.example.com> test"),
+                   "<p>Test &lt;www.example.com&gt; test</p>")
+    XCTAssertEqual(generateHtml("Test <http://www.example.com> test"),
+                   "<p>Test <a href=\"http://www.example.com\">http://www.example.com</a> test</p>")
   }
 }

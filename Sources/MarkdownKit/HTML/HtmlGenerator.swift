@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 15/07/2019.
-//  Copyright © 2019-2020 Google LLC.
+//  Copyright © 2019-2021 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -153,9 +153,9 @@ open class HtmlGenerator {
   open func generate(textFragment fragment: TextFragment) -> String {
     switch fragment {
       case .text(let str):
-        return String(str)
+        return String(str).decodingNamedCharacters().encodingPredefinedXmlEntities()
       case .code(let str):
-        return "<code>" + str + "</code>"
+        return "<code>" + String(str).encodingPredefinedXmlEntities() + "</code>"
       case .emph(let text):
         return "<em>" + self.generate(text: text) + "</em>"
       case .strong(let text):
@@ -179,8 +179,21 @@ open class HtmlGenerator {
         }
       case .html(let tag):
         return "<\(tag.description)>"
-      case .delimiter(_, _, _):
-        return fragment.rawDescription
+      case .delimiter(let ch, let n, _):
+        let char: String
+        switch ch {
+          case "<":
+            char = "&lt;"
+          case ">":
+            char = "&gt;"
+          default:
+            char = String(ch)
+        }
+        var res = char
+        for _ in 1..<n {
+          res.append(char)
+        }
+        return res
       case .softLineBreak:
         return "\n"
       case .hardLineBreak:

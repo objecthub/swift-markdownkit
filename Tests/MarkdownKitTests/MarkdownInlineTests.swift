@@ -104,6 +104,12 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                                       .text(" bar"))))
     XCTAssertEqual(parse("<foo+special@Bar.baz-bar0.com>"),
                    document(paragraph(.autolink(.email, "foo+special@Bar.baz-bar0.com"))))
+    XCTAssertEqual(parse("foo <www.objecthub.net> bar"),
+                   document(paragraph(.text("foo "),
+                                      .delimiter("<", 1, []),
+                                      .text("www.objecthub.net"),
+                                      .delimiter(">", 1,[]),
+                                      .text(" bar"))))
   }
 
   func testXmlTags() {
