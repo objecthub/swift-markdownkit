@@ -36,7 +36,7 @@ print(markdown)
 
 Executing this code will result in the follwing data structure of type `Block` getting printed:
 
-```
+```swift
 document(heading(1, text("Header")),
          heading(2, text("Sub-header")),
          paragraph(text("And this is a "),
@@ -146,7 +146,7 @@ print(headers)
 
 This will print an array with the following two entries:
 
-```
+```swift
 ["First Header", "Second Header"]
 ```
 

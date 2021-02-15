@@ -22,7 +22,7 @@ import Foundation
 
 extension String {
   
-  func encodingPredefinedXmlEntities() -> String {
+  public func encodingPredefinedXmlEntities() -> String {
     var res = ""
     var pos = self.startIndex
     // find the first character that requires encoding
@@ -56,7 +56,7 @@ extension String {
     }
   }
   
-  func encodingNamedCharacters() -> String {
+  public func encodingNamedCharacters() -> String {
     var res = ""
     for ch in self {
       if let charRef = NamedCharacters.characterNameMap[ch] {
@@ -68,7 +68,7 @@ extension String {
     return res
   }
   
-  func decodingNamedCharacters() -> String {
+  public func decodingNamedCharacters() -> String {
     var res = ""
     var pos = self.startIndex
     // find the next `&`
@@ -103,7 +103,7 @@ extension String {
     }
   }
   
-  static let predefinedEntities: CharacterSet = {
+  private static let predefinedEntities: CharacterSet = {
     var set = CharacterSet()
     set.insert(charactersIn: "\"&'<>")
     return set
