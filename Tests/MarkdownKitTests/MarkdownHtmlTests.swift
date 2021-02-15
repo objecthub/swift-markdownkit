@@ -95,4 +95,12 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
     XCTAssertEqual(generateHtml("Test <http://www.example.com> test"),
                    "<p>Test <a href=\"http://www.example.com\">http://www.example.com</a> test</p>")
   }
+  
+  static let allTests = [
+    ("testBasics", testBasics),
+    ("testLists", testLists),
+    ("testNestedLists", testNestedLists),
+    ("testImageLinks", testImageLinks),
+    ("testAutolinks", testAutolinks),
+  ]
 }

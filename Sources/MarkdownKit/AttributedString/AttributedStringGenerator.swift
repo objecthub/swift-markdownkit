@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 01/08/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2021 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@
 //  limitations under the License.
 //
 
-#if os(iOS)
+#if os(iOS) || os(watchOS) || os(tvOS)
   import UIKit
-#elseif os(OSX)
+#elseif os(macOS)
   import Cocoa
 #endif
+
+#if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
 
 ///
 /// `AttributedStringGenerator` provides functionality for converting Markdown blocks into
@@ -363,3 +365,5 @@ open class AttributedStringGenerator {
     return 2
   }
 }
+
+#endif

@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 18/08/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2021 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@
 //  limitations under the License.
 //
 
-#if os(iOS)
+#if os(iOS) || os(watchOS) || os(tvOS)
+
   import UIKit
 
   extension UIColor {
@@ -37,7 +38,8 @@
   public let mdDefaultColor = UIColor.darkText.hexString
   public let mdDefaultBackgroundColor = UIColor.systemBackground.hexString
 
-#elseif os(OSX)
+#elseif os(macOS)
+
   import Cocoa
 
   extension NSColor {

@@ -1,7 +1,7 @@
 # Swift MarkdownKit
 
 <p>
-<a href="https://developer.apple.com/osx/"><img src="https://img.shields.io/badge/Platform-macOS%20%7C%20iOS-blue.svg?style=flat" alt="Platform: macOS | iOS" /></a>
+<a href="https://developer.apple.com/osx/"><img src="https://img.shields.io/badge/Platform-macOS%20%7C%20iOS%20%7C%20Linux-blue.svg?style=flat" alt="Platform: macOS | iOS | Linux" /></a>
 <a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift%205.3-green.svg?style=flat" alt="Language: Swift 5.3" /></a>
 <a href="https://developer.apple.com/xcode/"><img src="https://img.shields.io/badge/IDE-Xcode%2012.4-orange.svg?style=flat" alt="IDE: Xcode 12.4" /></a>
 <a href="https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/LICENSE"><img src="http://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat" alt="License: Apache" /></a>

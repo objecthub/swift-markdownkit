@@ -493,4 +493,25 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                       "</code></pre>\n"),
                             paragraph("okay")))
   }
+  
+  static let allTests = [
+    ("testBlockParserCounts", testBlockParserCounts),
+    ("testMinimalTable", testMinimalTable),
+    ("testComplexTable", testComplexTable),
+    ("testComplexWrappedTable", testComplexWrappedTable),
+    ("testTableTermination", testTableTermination),
+    ("testNestedTable", testNestedTable),
+    ("testDefinitionList", testDefinitionList),
+    ("testEmptyDocuments", testEmptyDocuments),
+    ("testThematicBreaks", testThematicBreaks),
+    ("testATXHeadings", testATXHeadings),
+    ("testSetextHeadings", testSetextHeadings),
+    ("testBlockquotes", testBlockquotes),
+    ("testIndentedCode", testIndentedCode),
+    ("testListItem", testListItem),
+    ("testNestedList", testNestedList),
+    ("testBlockquoteList", testBlockquoteList),
+    ("testReferenceDefinition", testReferenceDefinition),
+    ("testHtmlBlock", testHtmlBlock),
+  ]
 }

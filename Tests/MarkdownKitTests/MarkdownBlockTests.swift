@@ -325,4 +325,19 @@ class MarkdownBlockTests: XCTestCase, MarkdownKitFactory {
   func testDebug() {
 
   }
+  
+  static let allTests = [
+    ("testEmptyDocuments", testEmptyDocuments),
+    ("testParagraphs", testParagraphs),
+    ("testThematicBreaks", testThematicBreaks),
+    ("testATXHeadings", testATXHeadings),
+    ("testSetextHeadings", testSetextHeadings),
+    ("testBlockquotes", testBlockquotes),
+    ("testIndentedCode", testIndentedCode),
+    ("testListItem", testListItem),
+    ("testNestedList", testNestedList),
+    ("testBlockquoteList", testBlockquoteList),
+    ("testReferenceDefinition", testReferenceDefinition),
+    ("testHtmlBlock", testHtmlBlock),
+  ]
 }
