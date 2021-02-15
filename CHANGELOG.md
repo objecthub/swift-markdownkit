@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4 (2021-02-15)
+- Support Linux
+- Fix handling of XML/HTML entities/named character references
+- Escape angle brackets in HTML output
+- Migrate project to Xcode 12.4
+
 ## 1.0.3 (2021-02-03)
 - Make framework available to iOS
 

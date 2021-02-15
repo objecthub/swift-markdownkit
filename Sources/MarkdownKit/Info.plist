@@ -19,6 +19,6 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2019-2020 Google LLC.</string>
+	<string>Copyright © 2019-2021 Google LLC.</string>
 </dict>
 </plist>
