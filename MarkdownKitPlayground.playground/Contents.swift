@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 01/08/2019.
-//  Copyright © 2019-2020 Google LLC.
+//  Copyright © 2019-2021 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 //  License.
 //
 
-import AppKit
 import PlaygroundSupport
 
 PlaygroundPage.current.liveView =

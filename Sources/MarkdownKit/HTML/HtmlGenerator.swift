@@ -139,6 +139,8 @@ open class HtmlGenerator {
         }
         html += "</dl>\n"
         return html
+      case .custom(let customBlock):
+        return customBlock.generateHtml(via: self, tight: tight)
     }
   }
 
@@ -198,6 +200,8 @@ open class HtmlGenerator {
         return "\n"
       case .hardLineBreak:
         return "<br/>"
+      case .custom(let customTextFragment):
+        return customTextFragment.generateHtml(via: self)
     }
   }
 

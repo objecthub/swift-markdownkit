@@ -119,6 +119,8 @@ open class InlineParser {
         return .table(self.transform(header), align, self.transform(rows))
       case .definitionList(let defs):
         return .definitionList(self.transform(defs))
+      case .custom(let customBlock):
+        return customBlock.parse(via: self)
     }
   }
 

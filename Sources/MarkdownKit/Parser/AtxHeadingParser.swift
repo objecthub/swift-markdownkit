@@ -23,7 +23,7 @@ import Foundation
 ///
 /// A block parser which parses ATX headings (of the form `## Header`) returning `heading` blocks.
 ///
-public final class AtxHeadingParser: BlockParser {
+open class AtxHeadingParser: BlockParser {
   
   public override func parse() -> ParseResult {
     guard self.shortLineIndent else {

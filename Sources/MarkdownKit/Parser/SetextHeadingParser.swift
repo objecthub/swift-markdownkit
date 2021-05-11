@@ -24,7 +24,7 @@ import Foundation
 /// A block parser which parses setext headings (headers with text underlining) returning
 /// `heading` blocks.
 ///
-public final class SetextHeadingParser: BlockParser {
+open class SetextHeadingParser: BlockParser {
 
   public override func parse() -> ParseResult {
     guard self.shortLineIndent,

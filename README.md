@@ -2,8 +2,8 @@
 
 <p>
 <a href="https://developer.apple.com/osx/"><img src="https://img.shields.io/badge/Platform-macOS%20%7C%20iOS%20%7C%20Linux-blue.svg?style=flat" alt="Platform: macOS | iOS | Linux" /></a>
-<a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift%205.3-green.svg?style=flat" alt="Language: Swift 5.3" /></a>
-<a href="https://developer.apple.com/xcode/"><img src="https://img.shields.io/badge/IDE-Xcode%2012.4-orange.svg?style=flat" alt="IDE: Xcode 12.4" /></a>
+<a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift%205.4-green.svg?style=flat" alt="Language: Swift 5.4" /></a>
+<a href="https://developer.apple.com/xcode/"><img src="https://img.shields.io/badge/IDE-Xcode%2012.5-orange.svg?style=flat" alt="IDE: Xcode 12.5" /></a>
 <a href="https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/LICENSE"><img src="http://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat" alt="License: Apache" /></a>
 </p>
 
@@ -60,11 +60,13 @@ is yet another recursively defined enumeration with associated values. The examp
 contains a `Text`  object, i.e. it encapsulates a sequence of `TextFragment` values which are
 "marked up strongly".
 
-Class `ExtendedMarkdownParser` has the same interface like `MarkdownParser` but supports table blocks in
-addition to the block types defined by the [CommonMark specification](https://commonmark.org).
+### Parsing "extended" Markdown
+
+Class `ExtendedMarkdownParser` has the same interface like `MarkdownParser` but supports tables and
+definition lists in addition to the block types defined by the [CommonMark specification](https://commonmark.org).
 [Tables](https://github.github.com/gfm/#tables-extension-) are based on the
 [GitHub Flavored Markdown specification](https://github.github.com/gfm/) with one extension: within a table
-block it is possible to escape newline characters to enable cell text to be written on multiple lines. Here is an example:
+block, it is possible to escape newline characters to enable cell text to be written on multiple lines. Here is an example:
 
 ```
 | Column 1     | Column 2       |
@@ -72,6 +74,19 @@ block it is possible to escape newline characters to enable cell text to be writ
 | This text \
   is very long | More cell text |
 | Last line    | Last cell      |        
+```
+
+[Definition lists](https://www.markdownguide.org/extended-syntax/#definition-lists) are implemented in an
+ad hoc fashion. A definition consists of terms and their corresponding definitions. Here is an example of two
+definitions:
+
+```
+Apple
+: Pomaceous fruit of plants of the genus Malus in the family Rosaceae.
+
+Orange
+: The fruit of an evergreen tree of the genus Citrus.
+: A large round juicy citrus fruit with a tough bright reddish-yellow rind.
 ```
 
 ### Configuring the Markdown parser
@@ -92,7 +107,7 @@ transformers), there is a predefined default `MarkdownParser` object accessible 
 New markdown parsers with different configurations can also be created by subclassing
 [`MarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/MarkdownParser.swift)
 and by overriding the class properties `defaultBlockParsers` and `defaultInlineTransformers`. Here is
-an example how class
+an example of how class
 [`ExtendedMarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/ExtendedMarkdownParser.swift)
 is derived from `MarkdownParser` simply by overriding
 `defaultBlockParsers` and by specializing `standard` in a covariant fashion.
@@ -108,6 +123,121 @@ open class ExtendedMarkdownParser: MarkdownParser {
     return self.singleton
   }
   private static let singleton: ExtendedMarkdownParser = ExtendedMarkdownParser()
+}
+```
+
+### Extending the Markdown parser
+
+With version 1.1 of the MarkdownKit framework, it is now also possible to extend the abstract
+syntax supported by MarkdownKit. Both `Block` and `TextFragment` enumerations now include
+a `custom` case which refers to objects representing the extended syntax. These objects have to
+implement protocol [`CustomBlock`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/CustomBlock.swift) for blocks and [`CustomTextFragment`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/CustomTextFragment.swift) for text fragments.
+
+Here is a simple example how one can add support for "underline" (e.g. `this is ~underlined~ text`)
+and "strikethrough" (e.g. `this is using ~~strike-through~~`) by subclassing existing inline transformers.
+
+First, a new custom text fragment type has to be implemented for representing underlined and
+strike-through text. This is done with an enumeration which implements the `CustomTextFragment` protocol:
+
+```swift
+enum LineEmphasis: CustomTextFragment {
+  case underline(Text)
+  case strikethrough(Text)
+
+  func equals(to other: CustomTextFragment) -> Bool {
+    guard let that = other as? LineEmphasis else {
+      return false
+    }
+    switch (self, that) {
+      case (.underline(let lhs), .underline(let rhs)):
+        return lhs == rhs
+      case (.strikethrough(let lhs), .strikethrough(let rhs)):
+        return lhs == rhs
+      default:
+        return false
+    }
+  }
+  func transform(via transformer: InlineTransformer) -> TextFragment {
+    switch self {
+      case .underline(let text):
+        return .custom(LineEmphasis.underline(transformer.transform(text)))
+      case .strikethrough(let text):
+        return .custom(LineEmphasis.strikethrough(transformer.transform(text)))
+    }
+  }
+  func generateHtml(via htmlGen: HtmlGenerator) -> String {
+    switch self {
+      case .underline(let text):
+        return "<u>" + htmlGen.generate(text: text) + "</u>"
+      case .strikethrough(let text):
+        return "<s>" + htmlGen.generate(text: text) + "</s>"
+    }
+  }
+  func generateHtml(via htmlGen: HtmlGenerator,
+                    and attrGen: AttributedStringGenerator?) -> String {
+    return self.generateHtml(via: htmlGen)
+  }
+  var rawDescription: String {
+    switch self {
+      case .underline(let text):
+        return text.rawDescription
+      case .strikethrough(let text):
+        return text.rawDescription
+    }
+  }
+  var description: String {
+    switch self {
+      case .underline(let text):
+        return "~\(text.description)~"
+      case .strikethrough(let text):
+        return "~~\(text.description)~~"
+    }
+  }
+  var debugDescription: String {
+    switch self {
+      case .underline(let text):
+        return "underline(\(text.debugDescription))"
+      case .strikethrough(let text):
+        return "strikethrough(\(text.debugDescription))"
+    }
+  }
+}
+```
+
+Next, two inline transformers need to be extended to recognize the new emphasis delimiter `~`:
+
+```
+final class EmphasisTestTransformer: EmphasisTransformer {
+  override public class var supportedEmphasis: [Emphasis] {
+    return super.supportedEmphasis + [
+             Emphasis(ch: "~", special: false, factory: { double, text in
+               return .custom(double ? LineEmphasis.strikethrough(text)
+                                     : LineEmphasis.underline(text))
+             })]
+  }
+}
+final class DelimiterTestTransformer: DelimiterTransformer {
+  override public class var emphasisChars: [Character] {
+    return super.emphasisChars + ["~"]
+  }
+}
+```
+
+Finally, a new extended markdown parser can be created:
+
+```
+final class EmphasisTestMarkdownParser: MarkdownParser {
+  override public class var defaultInlineTransformers: [InlineTransformer.Type] {
+    return [DelimiterTestTransformer.self,
+            CodeLinkHtmlTransformer.self,
+            LinkTransformer.self,
+            EmphasisTestTransformer.self,
+            EscapeTransformer.self]
+  }
+  override public class var standard: EmphasisTestMarkdownParser {
+    return self.singleton
+  }
+  private static let singleton: EmphasisTestMarkdownParser = EmphasisTestMarkdownParser()
 }
 ```
 
@@ -239,8 +369,8 @@ The command-line tool can be compiled with the _Swift Package Manager_, so _Xcod
 for that. Similarly, just for compiling the framework and trying the command-line tool in _Xcode_, the
 _Swift Package Manager_ is not needed.
 
-- [Xcode 12.4](https://developer.apple.com/xcode/)
-- [Swift 5.3](https://developer.apple.com/swift/)
+- [Xcode 12.5](https://developer.apple.com/xcode/)
+- [Swift 5.4](https://developer.apple.com/swift/)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
 ## Copyright

@@ -42,7 +42,16 @@ open class AttributedStringGenerator {
     public init(outer: AttributedStringGenerator) {
       self.outer = outer
     }
-    
+
+    open override func generate(textFragment fragment: TextFragment) -> String {
+      switch fragment {
+        case .custom(let customTextFragment):
+          return customTextFragment.generateHtml(via: self, and: self.outer)
+        default:
+          return super.generate(textFragment: fragment)
+      }
+    }
+
     open override func generate(block: Block, tight: Bool = false) -> String {
       switch block {
         case .list(_, _, _):
@@ -106,6 +115,8 @@ open class AttributedStringGenerator {
           }
           html += "</dl>\n"
           return html
+        case .custom(let customBlock):
+          return customBlock.generateHtml(via: self, and: self.outer, tight: tight)
         default:
           return super.generate(block: block, tight: tight)
       }

@@ -24,31 +24,65 @@ import Foundation
 /// An inline transformer which extracts emphasis markup and transforms it into `emph` and
 /// `strong` text fragments.
 ///
-public final class EmphasisTransformer: InlineTransformer {
+open class EmphasisTransformer: InlineTransformer {
+
+  /// Plugin specifying the type of emphasis. `ch` refers to the emphasis character,
+  /// `special` to whether the charater is used for other use cases (e.g. "*" and "-" should
+  /// be marked as "special"), and `factory` to a closure constructing the text fragment
+  /// from two parameters: the first denoting whether it's double usage, and the second
+  /// referring to the emphasized text.
+  public struct Emphasis {
+    let ch: Character
+    let special: Bool
+    let factory: (Bool, Text) -> TextFragment
+  }
+  
+  /// Emphasis supported by default. Override this property to change the what gets
+  /// supported.
+  open class var supportedEmphasis: [Emphasis] {
+    let factory = { (double: Bool, text: Text) -> TextFragment in
+      double ? .strong(text) : .emph(text)
+    }
+    return [Emphasis(ch: "*", special: true, factory: factory),
+            Emphasis(ch: "_", special: false, factory: factory)]
+  }
+
+  /// The emphasis map, used internally to determine how characters are used for emphasis
+  /// markup.
+  private var emphasis: [Character : Emphasis] = [:]
+
+  required public init(owner: InlineParser) {
+    super.init(owner: owner)
+    for emph in type(of: self).supportedEmphasis {
+      self.emphasis[emph.ch] = emph
+    }
+  }
 
   private struct Delimiter: CustomStringConvertible {
     let ch: Character
+    let special: Bool
     let runType: DelimiterRunType
     var count: Int
     var index: Int
 
-    init(_ ch: Character, _ runType: DelimiterRunType, _ count: Int, _ index: Int) {
+    init(_ ch: Character, _ special: Bool, _ rtype: DelimiterRunType, _ count: Int, _ index: Int) {
       self.ch = ch
-      self.runType = runType
+      self.special = special
+      self.runType = rtype
       self.count = count
       self.index = index
     }
 
     var isOpener: Bool {
       return self.runType.contains(.leftFlanking) &&
-             (self.ch == "*" ||
+             (self.special ||
               !self.runType.contains(.rightFlanking) ||
               self.runType.contains(.leftPunctuation))
     }
 
     var isCloser: Bool {
       return self.runType.contains(.rightFlanking) &&
-             (self.ch == "*" ||
+             (self.special ||
               !self.runType.contains(.leftFlanking) ||
               self.runType.contains(.rightPunctuation))
     }
@@ -66,7 +100,7 @@ public final class EmphasisTransformer: InlineTransformer {
     }
 
     var description: String {
-      return "Delimiter(\(self.ch), \(self.runType), \(self.count), \(self.index))"
+      return "Delimiter(\(self.ch), \(self.special), \(self.runType), \(self.count), \(self.index))"
     }
   }
 
@@ -81,7 +115,7 @@ public final class EmphasisTransformer: InlineTransformer {
     while let fragment = element {
       switch fragment {
         case .delimiter(let ch, let n, let type):
-          delimiters.append(Delimiter(ch, type, n, res.count))
+          delimiters.append(Delimiter(ch, self.emphasis[ch]?.special ?? false, type, n, res.count))
           res.append(fragment: fragment)
           element = iterator.next()
         default:
@@ -92,13 +126,20 @@ public final class EmphasisTransformer: InlineTransformer {
     return res
   }
 
+  private func isSupportedEmphasisCloser(_ delimiter: Delimiter) -> Bool {
+    for ch in self.emphasis.keys {
+      if delimiter.isCloser(for: ch) {
+        return true
+      }
+    }
+    return false
+  }
+
   private func processEmphasis(_ res: inout Text, _ delimiters: inout DelimiterStack) {
     var currentPos = 0
     loop: while currentPos < delimiters.count {
       var potentialCloser = delimiters[currentPos]
-      // print("DELIMITER at \(currentPos) of \(delimiters.count): \(potentialCloser)")
-      if potentialCloser.isCloser(for: "*") || potentialCloser.isCloser(for: "_") {
-        // print("potential closer: \(potentialCloser)")
+      if self.isSupportedEmphasisCloser(potentialCloser) {
         var i = currentPos - 1
         while i >= 0 {
           var potentialOpener = delimiters[i]
@@ -106,7 +147,6 @@ public final class EmphasisTransformer: InlineTransformer {
              ((!potentialCloser.isOpener && !potentialOpener.isCloser) ||
               (potentialCloser.countMultipleOf3 && potentialOpener.countMultipleOf3) ||
               ((potentialOpener.count + potentialCloser.count) % 3 != 0)) {
-            // print("  potential opener: \(potentialOpener)")
             // Deduct counts
             let delta = potentialOpener.count > 1 && potentialCloser.count > 1 ? 2 : 1
             delimiters[i].count -= delta
@@ -125,7 +165,13 @@ public final class EmphasisTransformer: InlineTransformer {
                                       potentialOpener.count,
                                       potentialOpener.runType))
             }
-            range.append(delta > 1 ? .strong(nestedText) : .emph(nestedText))
+            if let factory = self.emphasis[potentialOpener.ch]?.factory {
+              range.append(factory(delta > 1, nestedText))
+            } else {
+              for fragment in nestedText {
+                range.append(fragment)
+              }
+            }
             if potentialCloser.count > 0 {
               range.append(.delimiter(potentialCloser.ch,
                                       potentialCloser.count,
@@ -134,7 +180,6 @@ public final class EmphasisTransformer: InlineTransformer {
             let shift = range.count - potentialCloser.index + potentialOpener.index - 1
             res.replace(from: potentialOpener.index, to: potentialCloser.index, with: range)
             // Update delimiter stack
-            // print("  update delimiter stack: \(currentPos) of \(delimiters.count)")
             if potentialCloser.count == 0 {
               delimiters.remove(at: currentPos)
             }
@@ -144,7 +189,6 @@ public final class EmphasisTransformer: InlineTransformer {
             } else {
               i += 1
             }
-            // print("  openers and closers removed: \(currentPos) of \(delimiters.count); \(i)")
             var j = i
             while j < currentPos {
               delimiters.remove(at: i)
@@ -155,7 +199,6 @@ public final class EmphasisTransformer: InlineTransformer {
               delimiters[i].index += shift
               i += 1
             }
-            // print("  finished delimiter stack: \(currentPos) of \(delimiters.count)")
             continue loop
           }
           i -= 1

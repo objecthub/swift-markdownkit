@@ -23,7 +23,21 @@ import Foundation
 ///
 /// An inline transformer which extracts delimiters into `delimiter` text fragments.
 ///
-public final class DelimiterTransformer: InlineTransformer {
+open class DelimiterTransformer: InlineTransformer {
+
+  /// Default emphasis characters
+  open class var emphasisChars: [Character] {
+    return ["*", "_"]
+  }
+
+  var emphasisCharSet: Set<Character> = []
+
+  required public init(owner: InlineParser) {
+    super.init(owner: owner)
+    for ch in type(of: self).emphasisChars {
+      self.emphasisCharSet.insert(ch)
+    }
+  }
 
   public override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
@@ -37,60 +51,6 @@ public final class DelimiterTransformer: InlineTransformer {
     var split = false
     while i < str.endIndex {
       switch str[i] {
-        case "*", "_":
-          if !escape {
-            var n = 1
-            var j = str.index(after: i)
-            while j < str.endIndex && str[j] == str[i] {
-              j = str.index(after: j)
-              n += 1
-            }
-            var delimiterRunType: DelimiterRunType = []
-            // h: index of character preceding the delimiter run
-            // i: index of character starting the delimiter run
-            // j: index of character succeeding the delimiter run
-            if start < i || (start == i && i > str.startIndex) {
-              if start < i {
-                res.append(fragment: .text(str[start..<i]))
-              }
-              let h = str.index(before: i)
-              if j < str.endIndex &&
-                 !isUnicodeWhitespace(str[j]) &&
-                 (!isUnicodePunctuation(str[j]) ||
-                  isUnicodeWhitespace(str[h]) ||
-                  isUnicodePunctuation(str[h])) {
-                delimiterRunType.formUnion(.leftFlanking)
-                if isUnicodePunctuation(str[h]) {
-                  delimiterRunType.formUnion(.leftPunctuation)
-                }
-                if isUnicodePunctuation(str[j]) {
-                  delimiterRunType.formUnion(.rightPunctuation)
-                }
-              }
-              if !isUnicodeWhitespace(str[h]) &&
-                 (!isUnicodePunctuation(str[h]) ||
-                  j >= str.endIndex ||
-                  isUnicodeWhitespace(str[j]) ||
-                  isUnicodePunctuation(str[j])) {
-                delimiterRunType.formUnion(.rightFlanking)
-                if isUnicodePunctuation(str[h]) {
-                  delimiterRunType.formUnion(.leftPunctuation)
-                }
-                if j < str.endIndex && isUnicodePunctuation(str[j]) {
-                  delimiterRunType.formUnion(.rightPunctuation)
-                }
-              }
-            } else if j < str.endIndex && !isUnicodeWhitespace(str[j]) {
-              delimiterRunType.formUnion(.leftFlanking)
-            }
-            res.append(fragment: .delimiter(str[i], n,delimiterRunType))
-            split = true
-            start = j
-            i = j
-          } else {
-            i = str.index(after: i)
-            escape = false
-          }
         case "`":
           var n = 1
           var j = str.index(after: i)
@@ -137,8 +97,64 @@ public final class DelimiterTransformer: InlineTransformer {
           i = str.index(after: i)
           escape = !escape
         default:
-          i = str.index(after: i)
-          escape = false
+          if self.emphasisCharSet.contains(str[i]) {
+            if !escape {
+              var n = 1
+              var j = str.index(after: i)
+              while j < str.endIndex && str[j] == str[i] {
+                j = str.index(after: j)
+                n += 1
+              }
+              var delimiterRunType: DelimiterRunType = []
+              // h: index of character preceding the delimiter run
+              // i: index of character starting the delimiter run
+              // j: index of character succeeding the delimiter run
+              if start < i || (start == i && i > str.startIndex) {
+                if start < i {
+                  res.append(fragment: .text(str[start..<i]))
+                }
+                let h = str.index(before: i)
+                if j < str.endIndex &&
+                   !isUnicodeWhitespace(str[j]) &&
+                   (!isUnicodePunctuation(str[j]) ||
+                    isUnicodeWhitespace(str[h]) ||
+                    isUnicodePunctuation(str[h])) {
+                  delimiterRunType.formUnion(.leftFlanking)
+                  if isUnicodePunctuation(str[h]) {
+                    delimiterRunType.formUnion(.leftPunctuation)
+                  }
+                  if isUnicodePunctuation(str[j]) {
+                    delimiterRunType.formUnion(.rightPunctuation)
+                  }
+                }
+                if !isUnicodeWhitespace(str[h]) &&
+                   (!isUnicodePunctuation(str[h]) ||
+                    j >= str.endIndex ||
+                    isUnicodeWhitespace(str[j]) ||
+                    isUnicodePunctuation(str[j])) {
+                  delimiterRunType.formUnion(.rightFlanking)
+                  if isUnicodePunctuation(str[h]) {
+                    delimiterRunType.formUnion(.leftPunctuation)
+                  }
+                  if j < str.endIndex && isUnicodePunctuation(str[j]) {
+                    delimiterRunType.formUnion(.rightPunctuation)
+                  }
+                }
+              } else if j < str.endIndex && !isUnicodeWhitespace(str[j]) {
+                delimiterRunType.formUnion(.leftFlanking)
+              }
+              res.append(fragment: .delimiter(str[i], n,delimiterRunType))
+              split = true
+              start = j
+              i = j
+            } else {
+              i = str.index(after: i)
+              escape = false
+            }
+          } else {
+            i = str.index(after: i)
+            escape = false
+          }
       }
     }
     if split {

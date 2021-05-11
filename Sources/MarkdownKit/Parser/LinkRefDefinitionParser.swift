@@ -23,7 +23,7 @@ import Foundation
 ///
 /// A block parser which parses link reference definitions returning `referenceDef` blocks.
 ///
-public final class LinkRefDefinitionParser: RestorableBlockParser {
+open class LinkRefDefinitionParser: RestorableBlockParser {
 
   public override var mayInterruptParagraph: Bool {
     return false

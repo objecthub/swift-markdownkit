@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0 (2021-05-12)
+- Make abstract syntax trees extensible
+- Provide a simple means to define new types of emphasis
+- Document support for definition lists via `ExtendedMarkdownParser`
+- Migrate framework to Xcode 12.5
+
 ## 1.0.4 (2021-02-15)
 - Support Linux
 - Fix handling of XML/HTML entities/named character references

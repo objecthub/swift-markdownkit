@@ -24,7 +24,7 @@ import Foundation
 /// An inline transformer which extracts link and image link markup and transforms it into
 /// `link` and `image` text fragments.
 ///
-public final class LinkTransformer: InlineTransformer {
+open class LinkTransformer: InlineTransformer {
 
   public override func transform(_ text: Text) -> Text {
     var res = Text()

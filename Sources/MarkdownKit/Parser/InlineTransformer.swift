@@ -68,6 +68,8 @@ open class InlineTransformer {
         res.append(fragment: fragment)
       case .softLineBreak, .hardLineBreak:
         res.append(fragment: fragment)
+      case .custom(let customTextFragment):
+        res.append(fragment: customTextFragment.transform(via: self))
     }
     return iterator.next()
   }

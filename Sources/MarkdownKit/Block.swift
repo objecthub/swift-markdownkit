@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 25/04/2019.
-//  Copyright © 2019-2020 Google LLC.
+//  Copyright © 2019-2021 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
   case thematicBreak
   case table(Row, Alignments, Rows)
   case definitionList(Definitions)
+  case custom(CustomBlock)
 
   /// Returns a description of the block as a string.
   public var description: String {
@@ -126,12 +127,19 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
           sep = "; "
         }
         return res + ")"
+      case .custom(let customBlock):
+        return customBlock.description
     }
   }
   
   /// Returns a debug description.
   public var debugDescription: String {
-    return self.description
+    switch self {
+      case .custom(let customBlock):
+        return customBlock.debugDescription
+      default:
+        return self.description
+    }
   }
 
   fileprivate static func string(from blocks: Blocks) -> String {
@@ -187,6 +195,8 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
         return lheader == rheader && lalign == ralign && lrows == rrows
       case (.definitionList(let ldefs), .definitionList(let rdefs)):
         return ldefs == rdefs
+      case (.custom(let lblock), .custom(let rblock)):
+        return lblock.equals(to: rblock)
       default:
         return false
     }

@@ -91,6 +91,15 @@ extension MarkdownKitFactory {
     return .image(res, dest, title)
   }
 
+  func custom(_ factory: (Text) -> CustomTextFragment,
+              _ fragments: TextFragment...) -> TextFragment {
+    var res = Text()
+    for fragment in fragments {
+      res.append(fragment: fragment)
+    }
+    return .custom(factory(res))
+  }
+
   func atxHeading(_ level: Int, _ title: String) -> Block {
     return .heading(level, Text(Substring(title)))
   }

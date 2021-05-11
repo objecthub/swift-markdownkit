@@ -3,7 +3,7 @@
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 14/07/2019.
-//  Copyright © 2019 Google LLC.
+//  Copyright © 2019-2021 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
   case delimiter(Character, Int, DelimiterRunType)
   case softLineBreak
   case hardLineBreak
+  case custom(CustomTextFragment)
 
   /// Returns a description of this `TextFragment` object as a string as if the text would be
   /// represented in Markdown.
@@ -68,6 +69,8 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
         return "\n"
       case .hardLineBreak:
         return "\n"
+      case .custom(let customTextFragment):
+        return customTextFragment.description
     }
   }
 
@@ -101,6 +104,8 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
         return " "
       case .hardLineBreak:
         return " "
+      case .custom(let customTextFragment):
+        return customTextFragment.rawDescription
     }
   }
 
@@ -131,6 +136,40 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
         return "softLineBreak"
       case .hardLineBreak:
         return "hardLineBreak"
+      case .custom(let customTextFragment):
+        return customTextFragment.debugDescription
+    }
+  }
+
+  /// Compares two given text fragments for equality.
+  public static func == (lhs: TextFragment, rhs: TextFragment) -> Bool {
+    switch (lhs, rhs) {
+      case (.text(let llstr), .text(let rstr)):
+        return llstr == rstr
+      case (.code(let lstr), .code(let rstr)):
+        return lstr == rstr
+      case (.emph(let ltext), .emph(let rtext)):
+        return ltext == rtext
+      case (.strong(let ltext), .strong(let rtext)):
+        return ltext == rtext
+      case (.link(let ltext, let ls1, let ls2), .link(let rtext, let rs1, let rs2)):
+        return ltext == rtext && ls1 == rs1 && ls2 == rs2
+      case (.autolink(let ltype, let lstr), .autolink(let rtype, let rstr)):
+        return ltype == rtype && lstr == rstr
+      case (.image(let ltext, let ls1, let ls2), .image(let rtext, let rs1, let rs2)):
+        return ltext == rtext && ls1 == rs1 && ls2 == rs2
+      case (.html(let lstr), .html(let rstr)):
+        return lstr == rstr
+      case (.delimiter(let lch, let ln, let ld), .delimiter(let rch, let rn, let rd)):
+        return lch == rch && ln == rn && ld == rd
+      case (.softLineBreak, .softLineBreak):
+        return true
+      case (.hardLineBreak, .hardLineBreak):
+        return true
+      case (.custom(let lctf), .custom(let rctf)):
+        return lctf.equals(to: rctf)
+      default:
+        return false
     }
   }
 }

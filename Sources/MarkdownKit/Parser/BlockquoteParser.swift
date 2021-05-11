@@ -23,7 +23,7 @@ import Foundation
 ///
 /// A block parser which parses block quotes eturning `blockquote` blocks.
 ///
-public final class BlockquoteParser: BlockParser {
+open class BlockquoteParser: BlockParser {
 
   private final class BlockquoteContainer: NestedContainer {
 

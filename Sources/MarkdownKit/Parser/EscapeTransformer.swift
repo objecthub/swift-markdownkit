@@ -23,7 +23,7 @@ import Foundation
 ///
 /// An inline transformer which removes backslash escapes.
 ///
-public final class EscapeTransformer: InlineTransformer {
+open class EscapeTransformer: InlineTransformer {
 
   public override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,

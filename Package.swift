@@ -1,13 +1,16 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.3
 //
 //  Package.swift
 //  MarkdownKit
 //
 //  Build targets by calling the Swift Package Manager in the following way for debug purposes:
-//  swift build
+//  `swift build`
 //
 //  A release can be built with these options:
-//  swift build -c release
+//  `swift build -c release`
+//
+//  The tests can be executed via:
+//  `swift test`
 //
 //  Created by Matthias Zenger on 09/08/2019.
 //  Copyright © 2019-2021 Google LLC.
@@ -41,12 +44,14 @@ let package = Package(
   ],
   targets: [
     .target(name: "MarkdownKit",
-            dependencies: []),
+            dependencies: [],
+            exclude: ["Info.plist"]),
     .target(name: "MarkdownKitProcess",
             dependencies: ["MarkdownKit"],
             exclude: []),
     .testTarget(name: "MarkdownKitTests",
-                dependencies: ["MarkdownKit"])
+                dependencies: ["MarkdownKit"],
+                exclude: ["Info.plist"])
   ],
   swiftLanguageVersions: [.v5]
 )

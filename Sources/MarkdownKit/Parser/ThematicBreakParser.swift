@@ -23,7 +23,7 @@ import Foundation
 ///
 /// A block parser which parses thematic breaks returning `thematicBreak` blocks.
 ///
-public final class ThematicBreakParser: BlockParser {
+open class ThematicBreakParser: BlockParser {
   
   public override func parse() -> ParseResult {
     guard self.shortLineIndent else {

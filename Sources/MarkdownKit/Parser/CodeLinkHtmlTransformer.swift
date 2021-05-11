@@ -24,7 +24,7 @@ import Foundation
 /// An inline transformer which extracts code spans, auto-links and html tags and transforms
 /// them into `code`, `autolinks`, and `html` text fragments.
 ///
-public final class CodeLinkHtmlTransformer: InlineTransformer {
+open class CodeLinkHtmlTransformer: InlineTransformer {
   
   public override func transform(_ text: Text) -> Text {
     var res: Text = Text()
