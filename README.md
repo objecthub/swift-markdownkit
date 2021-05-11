@@ -206,7 +206,7 @@ enum LineEmphasis: CustomTextFragment {
 
 Next, two inline transformers need to be extended to recognize the new emphasis delimiter `~`:
 
-```
+```swift
 final class EmphasisTestTransformer: EmphasisTransformer {
   override public class var supportedEmphasis: [Emphasis] {
     return super.supportedEmphasis + [
@@ -225,7 +225,7 @@ final class DelimiterTestTransformer: DelimiterTransformer {
 
 Finally, a new extended markdown parser can be created:
 
-```
+```swift
 final class EmphasisTestMarkdownParser: MarkdownParser {
   override public class var defaultInlineTransformers: [InlineTransformer.Type] {
     return [DelimiterTestTransformer.self,
