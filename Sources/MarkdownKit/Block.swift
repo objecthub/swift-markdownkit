@@ -280,8 +280,8 @@ public enum Alignment: UInt, CustomStringConvertible, CustomDebugStringConvertib
 public typealias Alignments = ContiguousArray<Alignment>
 
 public struct Definition: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
-  let item: Text
-  let descriptions: Blocks
+  public let item: Text
+  public let descriptions: Blocks
   
   public var description: String {
     return "\(self.item.debugDescription) : \(Block.string(from: self.descriptions))"
