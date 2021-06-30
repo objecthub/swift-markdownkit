@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2 (2021-06-30)
+- Allow creation of definition lists outside of MarkdownKit
+
 ## 1.1.0 (2021-05-12)
 - Make abstract syntax trees extensible
 - Provide a simple means to define new types of emphasis

@@ -283,6 +283,11 @@ public struct Definition: Equatable, CustomStringConvertible, CustomDebugStringC
   public let item: Text
   public let descriptions: Blocks
   
+  public init(item: Text, descriptions: Blocks) {
+    self.item = item
+    self.descriptions = descriptions
+  }
+  
   public var description: String {
     return "\(self.item.debugDescription) : \(Block.string(from: self.descriptions))"
   }
