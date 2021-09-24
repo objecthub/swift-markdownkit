@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.4
 //
 //  Package.swift
 //  MarkdownKit
@@ -46,9 +46,9 @@ let package = Package(
     .target(name: "MarkdownKit",
             dependencies: [],
             exclude: ["Info.plist"]),
-    .target(name: "MarkdownKitProcess",
-            dependencies: ["MarkdownKit"],
-            exclude: []),
+    .executableTarget(name: "MarkdownKitProcess",
+                      dependencies: ["MarkdownKit"],
+                      exclude: []),
     .testTarget(name: "MarkdownKitTests",
                 dependencies: ["MarkdownKit"],
                 exclude: ["Info.plist"])
