@@ -1,0 +1,33 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug MarkdownKitProcess",
+            "program": "${workspaceFolder:swift-markdownkit}/.build/debug/MarkdownKitProcess",
+            "args": [],
+            "cwd": "${workspaceFolder:swift-markdownkit}",
+            "preLaunchTask": "swift: Build Debug MarkdownKitProcess"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Release MarkdownKitProcess",
+            "program": "${workspaceFolder:swift-markdownkit}/.build/release/MarkdownKitProcess",
+            "args": [],
+            "cwd": "${workspaceFolder:swift-markdownkit}",
+            "preLaunchTask": "swift: Build Release MarkdownKitProcess"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Test MarkdownKit",
+            "program": "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest",
+            "args": [
+                ".build/debug/MarkdownKitPackageTests.xctest"
+            ],
+            "cwd": "${workspaceFolder:swift-markdownkit}",
+            "preLaunchTask": "swift: Build All"
+        }
+    ]
+}

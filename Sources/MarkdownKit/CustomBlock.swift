@@ -28,7 +28,9 @@ public protocol CustomBlock: CustomStringConvertible, CustomDebugStringConvertib
   func equals(to other: CustomBlock) -> Bool
   func parse(via parser: InlineParser) -> Block
   func generateHtml(via htmlGen: HtmlGenerator, tight: Bool) -> String
+  #if !os(Linux)
   func generateHtml(via htmlGen: HtmlGenerator,
                     and attGen: AttributedStringGenerator?,
                     tight: Bool) -> String
+  #endif
 }
