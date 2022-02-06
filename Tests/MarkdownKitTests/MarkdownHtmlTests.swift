@@ -96,6 +96,12 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
                    "<p>Test <a href=\"http://www.example.com\">http://www.example.com</a> test</p>")
   }
   
+  func testCodeBlocks() {
+    XCTAssertEqual(generateHtml("Test\n\n```\nThis should <b>not be bold</b>.\n```\n"),
+                   "<p>Test</p>\n<pre><code>This should &lt;b&gt;not be bold&lt;/b&gt;.\n" +
+                   "</code></pre>")
+  }
+  
   static let allTests = [
     ("testBasics", testBasics),
     ("testLists", testLists),

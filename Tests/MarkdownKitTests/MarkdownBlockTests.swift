@@ -141,6 +141,10 @@ class MarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                             indentedCode("  foo\n", "bar\n"),
                             paragraph("goo"),
                             paragraph("two")))
+    XCTAssertEqual(parseBlocks("one\n\n     \n    <b>foo</b>\n    <i>bar</i>\n    \n\n\ntwo"),
+                   document(paragraph("one"),
+                            indentedCode("<b>foo</b>\n", "<i>bar</i>\n"),
+                            paragraph("two")))
   }
 
   func testListItem() {

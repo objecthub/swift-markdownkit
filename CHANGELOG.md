@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3 (2022-02-07)
+- Fix build breakage for Linux
+- Encode predefined XML entities also for code blocks
+- Migrate framework to Xcode 13
+
 ## 1.1.2 (2021-06-30)
 - Allow creation of definition lists outside of MarkdownKit
 

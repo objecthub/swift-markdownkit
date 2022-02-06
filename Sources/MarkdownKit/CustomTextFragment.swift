@@ -28,7 +28,7 @@ public protocol CustomTextFragment: CustomStringConvertible, CustomDebugStringCo
   func equals(to other: CustomTextFragment) -> Bool
   func transform(via transformer: InlineTransformer) -> TextFragment
   func generateHtml(via htmlGen: HtmlGenerator) -> String
-  #if !os(Linux)
+  #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
   func generateHtml(via htmlGen: HtmlGenerator, and attrGen: AttributedStringGenerator?) -> String
   #endif
   var rawDescription: String { get }

@@ -75,14 +75,18 @@ open class HtmlGenerator {
         let tag = "h\(n > 0 && n < 7 ? n : 1)>"
         return "<\(tag)\(self.generate(text: text))</\(tag)\n"
       case .indentedCode(let lines):
-        return "<pre><code>" + self.generate(lines: lines) + "</code></pre>\n"
+        return "<pre><code>" +
+               self.generate(lines: lines).encodingPredefinedXmlEntities() +
+               "</code></pre>\n"
       case .fencedCode(let lang, let lines):
         if let language = lang {
           return "<pre><code class=\"\(language)\">" +
-                 self.generate(lines: lines, separator: "") +
+                 self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
                  "</code></pre>\n"
         } else {
-          return "<pre><code>" + self.generate(lines: lines, separator: "") + "</code></pre>\n"
+          return "<pre><code>" +
+                 self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
+                 "</code></pre>\n"
         }
       case .htmlBlock(let lines):
         return self.generate(lines: lines)

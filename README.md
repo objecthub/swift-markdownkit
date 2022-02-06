@@ -376,5 +376,5 @@ _Swift Package Manager_ is not needed.
 ## Copyright
 
 Author: Matthias Zenger (<matthias@objecthub.net>)  
-Copyright © 2019-2021 Google LLC.  
+Copyright © 2019-2022 Google LLC.  
 _Please note: This is not an official Google product._
