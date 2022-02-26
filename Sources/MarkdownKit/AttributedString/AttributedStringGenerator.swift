@@ -37,19 +37,10 @@ open class AttributedStringGenerator {
   /// Customized html generator to work around limitations of the current HTML to
   /// `NSAttributedString` conversion logic provided by the operating system.
   open class InternalHtmlGenerator: HtmlGenerator {
-    weak var outer: AttributedStringGenerator?
+    var outer: AttributedStringGenerator?
     
     public init(outer: AttributedStringGenerator) {
       self.outer = outer
-    }
-
-    open override func generate(textFragment fragment: TextFragment) -> String {
-      switch fragment {
-        case .custom(let customTextFragment):
-          return customTextFragment.generateHtml(via: self, and: self.outer)
-        default:
-          return super.generate(textFragment: fragment)
-      }
     }
 
     open override func generate(block: Block, tight: Bool = false) -> String {
@@ -121,6 +112,33 @@ open class AttributedStringGenerator {
           return super.generate(block: block, tight: tight)
       }
     }
+    
+    open override func generate(textFragment fragment: TextFragment) -> String {
+      switch fragment {
+        case .image(let text, let uri, let title):
+          let titleAttr = title == nil ? "" : " title=\"\(title!)\""
+          if let uriStr = uri {
+            let url = URL(string: uriStr)
+            Swift.print("=== URL0 = \(url?.absoluteString ?? "none"), \(url?.scheme == nil), \(self.outer == nil)")
+            if (url?.scheme == nil) || (url?.isFileURL ?? false),
+               let baseUrl = self.outer?.imageBaseUrl {
+              let url = URL(fileURLWithPath: uriStr, relativeTo: baseUrl)
+              Swift.print("    URL2 = \(url.absoluteString)")
+              if url.isFileURL {
+                return "<img src=\"\(url.absoluteURL.path)\"" +
+                       " alt=\"\(text.rawDescription)\"\(titleAttr)/>"
+              }
+            }
+            return "<img src=\"\(uriStr)\" alt=\"\(text.rawDescription)\"\(titleAttr)/>"
+          } else {
+            return self.generate(text: text)
+          }
+        case .custom(let customTextFragment):
+          return customTextFragment.generateHtml(via: self, and: self.outer)
+        default:
+          return super.generate(textFragment: fragment)
+      }
+    }
   }
 
   /// Default `AttributedStringGenerator` implementation.
@@ -171,6 +189,19 @@ open class AttributedStringGenerator {
   /// The color of H4 headers.
   public let h4Color: String
 
+  /// The maximum width of an image
+  public let maxImageWidth: String?
+  
+  /// The maximum height of an image
+  public let maxImageHeight: String?
+  
+  /// Custom CSS style
+  public let customStyle: String
+  
+  /// If provided, this URL is used as a base URL for relative image links
+  public let imageBaseUrl: URL?
+  
+  
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
   public init(fontSize: Float = 14.0,
               fontFamily: String = "\"Times New Roman\",Times,serif",
@@ -187,7 +218,11 @@ open class AttributedStringGenerator {
               h1Color: String = mdDefaultColor,
               h2Color: String = mdDefaultColor,
               h3Color: String = mdDefaultColor,
-              h4Color: String = mdDefaultColor) {
+              h4Color: String = mdDefaultColor,
+              maxImageWidth: String? = nil,
+              maxImageHeight: String? = nil,
+              customStyle: String = "",
+              imageBaseUrl: URL? = nil) {
     self.fontSize = fontSize
     self.fontFamily = fontFamily
     self.fontColor = fontColor
@@ -203,6 +238,10 @@ open class AttributedStringGenerator {
     self.h2Color = h2Color
     self.h3Color = h3Color
     self.h4Color = h4Color
+    self.maxImageWidth = maxImageWidth
+    self.maxImageHeight = maxImageHeight
+    self.customStyle = customStyle
+    self.imageBaseUrl = imageBaseUrl
   }
 
   /// Generates an attributed string from the given Markdown document
@@ -266,6 +305,7 @@ open class AttributedStringGenerator {
            "td.codebox       { \(self.codeBoxStyle) }\n" +
            "td.thematic      { \(self.thematicBreakStyle) }\n" +
            "td.quote         { \(self.quoteStyle) }\n" +
+           "img              { \(self.imgStyle) }\n" +
            "dt {\n" +
            "  font-weight: bold;\n" +
            "  margin: 0.6em 0 0.4em 0;\n" +
@@ -273,7 +313,8 @@ open class AttributedStringGenerator {
            "dd {\n" +
            "  margin: 0.5em 0 1em 2em;\n" +
            "  padding: 0.5em 0 1em 2em;\n" +
-           "}\n"
+           "}\n" +
+           "\(self.customStyle)\n"
   }
 
   open var bodyStyle: String {
@@ -359,6 +400,23 @@ open class AttributedStringGenerator {
   open var quoteStyle: String {
     return "background: \(self.blockquoteColor);" +
            "width: 0.4em;"
+  }
+  
+  open var imgStyle: String {
+    if let maxWidth = self.maxImageWidth {
+      if let maxHeight = self.maxImageHeight {
+        return "max-width: \(maxWidth);max-height: \(maxHeight); " +
+               "!important;width: auto;height: auto;"
+      } else {
+        return "max-width: \(maxWidth);max-height: 100%; " +
+               "!important;width: auto;height: auto;"
+      }
+    } else if let maxHeight = self.maxImageHeight {
+      return "max-width: 100%;max-height: \(maxHeight); " +
+             "!important;width: auto;height: auto;"
+    } else {
+      return ""
+    }
   }
   
   open var tableStyle: String {
