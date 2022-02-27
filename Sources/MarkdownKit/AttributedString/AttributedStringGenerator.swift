@@ -405,15 +405,13 @@ open class AttributedStringGenerator {
   open var imgStyle: String {
     if let maxWidth = self.maxImageWidth {
       if let maxHeight = self.maxImageHeight {
-        return "max-width: \(maxWidth);max-height: \(maxHeight); " +
-               "!important;width: auto;height: auto;"
+        return "max-width: \(maxWidth) !important;max-height: \(maxHeight) !important;" +
+               "width: auto;height: auto;"
       } else {
-        return "max-width: \(maxWidth);max-height: 100%; " +
-               "!important;width: auto;height: auto;"
+        return "max-height: 100%;max-width: \(maxWidth) !important;width: auto;height: auto;"
       }
     } else if let maxHeight = self.maxImageHeight {
-      return "max-width: 100%;max-height: \(maxHeight); " +
-             "!important;width: auto;height: auto;"
+      return "max-width: 100%;max-height: \(maxHeight) !important;width: auto;height: auto;"
     } else {
       return ""
     }
