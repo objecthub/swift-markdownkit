@@ -119,13 +119,11 @@ open class AttributedStringGenerator {
           let titleAttr = title == nil ? "" : " title=\"\(title!)\""
           if let uriStr = uri {
             let url = URL(string: uriStr)
-            Swift.print("=== URL0 = \(url?.absoluteString ?? "none"), \(url?.scheme == nil), \(self.outer == nil)")
             if (url?.scheme == nil) || (url?.isFileURL ?? false),
                let baseUrl = self.outer?.imageBaseUrl {
               let url = URL(fileURLWithPath: uriStr, relativeTo: baseUrl)
-              Swift.print("    URL2 = \(url.absoluteString)")
               if url.isFileURL {
-                return "<img src=\"\(url.absoluteURL.path)\"" +
+                return "<img src=\"\(url.absoluteString)\"" +
                        " alt=\"\(text.rawDescription)\"\(titleAttr)/>"
               }
             }
