@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.5 (2022-02-27)
+- Bug fixes to make `AttributedStringGenerator` work with images.
+
+## 1.1.4 (2022-02-27)
+- Allow customization of image sizes in the `AttributedStringGenerator`
+- Support relative image links in the `AttributedStringGenerator`
+
 ## 1.1.3 (2022-02-07)
 - Fix build breakage for Linux
 - Encode predefined XML entities also for code blocks

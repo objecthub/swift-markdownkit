@@ -25,19 +25,18 @@ class MarkdownASTests: XCTestCase {
                    "<p><img src=\"imagefile.png\" alt=\"Test image\"/></p>")
     XCTAssertEqual(generateHtml(imageBaseUrl: URL(fileURLWithPath: "/global/root/path/"),
                                 "![Test image](imagefile.png)"),
-                   "<p><img src=\"/global/root/path/imagefile.png\" alt=\"Test image\"/></p>")
+                   "<p><img src=\"file:///global/root/path/imagefile.png\" alt=\"Test image\"/></p>")
     XCTAssertEqual(generateHtml(imageBaseUrl: URL(fileURLWithPath: "/global/root/path/"),
                                 "![Test image](/imagefile.png)"),
-                   "<p><img src=\"/imagefile.png\" alt=\"Test image\"/></p>")
+                   "<p><img src=\"file:///imagefile.png\" alt=\"Test image\"/></p>")
     XCTAssertEqual(generateHtml("![Test image](one/imagefile.png)"),
                    "<p><img src=\"one/imagefile.png\" alt=\"Test image\"/></p>")
     XCTAssertEqual(generateHtml(imageBaseUrl: URL(fileURLWithPath: "/global/root/path/"),
                                 "![Test image](one/imagefile.png)"),
-                   "<p><img src=\"/global/root/path/one/imagefile.png\" alt=\"Test image\"/></p>")
+                   "<p><img src=\"file:///global/root/path/one/imagefile.png\" alt=\"Test image\"/></p>")
     XCTAssertEqual(generateHtml(imageBaseUrl: URL(fileURLWithPath: "/global/root/path/"),
                                 "![Test image](/one/imagefile.png)"),
-                   "<p><img src=\"/one/imagefile.png\" alt=\"Test image\"/></p>")
-    
+                   "<p><img src=\"file:///one/imagefile.png\" alt=\"Test image\"/></p>")
   }
 }
 
