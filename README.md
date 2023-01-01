@@ -2,8 +2,8 @@
 
 <p>
 <a href="https://developer.apple.com/osx/"><img src="https://img.shields.io/badge/Platform-macOS%20%7C%20iOS%20%7C%20Linux-blue.svg?style=flat" alt="Platform: macOS | iOS | Linux" /></a>
-<a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift%205.5-green.svg?style=flat" alt="Language: Swift 5.5" /></a>
-<a href="https://developer.apple.com/xcode/"><img src="https://img.shields.io/badge/IDE-Xcode%2013-orange.svg?style=flat" alt="IDE: Xcode 13" /></a>
+<a href="https://developer.apple.com/swift/"><img src="https://img.shields.io/badge/Language-Swift%205.7-green.svg?style=flat" alt="Language: Swift 5.7" /></a>
+<a href="https://developer.apple.com/xcode/"><img src="https://img.shields.io/badge/IDE-Xcode%2014-orange.svg?style=flat" alt="IDE: Xcode 14" /></a>
 <a href="https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/LICENSE"><img src="http://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat" alt="License: Apache" /></a>
 </p>
 
@@ -369,12 +369,12 @@ The command-line tool can be compiled with the _Swift Package Manager_, so _Xcod
 for that. Similarly, just for compiling the framework and trying the command-line tool in _Xcode_, the
 _Swift Package Manager_ is not needed.
 
-- [Xcode 13](https://developer.apple.com/xcode/)
-- [Swift 5.5](https://developer.apple.com/swift/)
+- [Xcode 14](https://developer.apple.com/xcode/)
+- [Swift 5.7](https://developer.apple.com/swift/)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
 ## Copyright
 
 Author: Matthias Zenger (<matthias@objecthub.net>)  
-Copyright © 2019-2022 Google LLC.  
+Copyright © 2019-2023 Google LLC.  
 _Please note: This is not an official Google product._
