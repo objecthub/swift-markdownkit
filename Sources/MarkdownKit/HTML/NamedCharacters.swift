@@ -337,7 +337,6 @@ public struct NamedCharacters {
     "&coprod;"              : "\u{02210}",
     "&Coproduct;"           : "\u{02210}",
     "&copy;"                : "\u{000A9}",
-    "&COPY;"                : "\u{000A9}",
     "&copysr;"              : "\u{02117}",
     "&CounterClockwiseContourIntegral;": "\u{02233}",
     "&crarr;"               : "\u{021B5}",
@@ -2171,6 +2170,7 @@ public struct NamedCharacters {
   ]
   
   public static let characterNameMap: [Character : String] = {
+    print("COUNT = \(NamedCharacters.namedCharacterMap.count)")
     var map = [Character : String](minimumCapacity: NamedCharacters.namedCharacterMap.count)
     for (k, v) in NamedCharacters.namedCharacterMap {
       map[v] = k
