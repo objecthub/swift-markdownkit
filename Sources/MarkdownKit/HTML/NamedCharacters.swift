@@ -2170,7 +2170,6 @@ public struct NamedCharacters {
   ]
   
   public static let characterNameMap: [Character : String] = {
-    print("COUNT = \(NamedCharacters.namedCharacterMap.count)")
     var map = [Character : String](minimumCapacity: NamedCharacters.namedCharacterMap.count)
     for (k, v) in NamedCharacters.namedCharacterMap {
       map[v] = k
