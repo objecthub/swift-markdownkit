@@ -25,12 +25,22 @@
   extension UIColor {
     
     public var hexString: String {
-      guard let components = self.cgColor.components, components.count >= 3 else {
+      guard let components = self.cgColor.components else {
         return "#FFFFFF"
       }
-      let red   = Int(round(components[0] * 0xff))
-      let green = Int(round(components[1] * 0xff))
-      let blue  = Int(round(components[2] * 0xff))
+      var red = 0
+      var green = 0
+      var blue = 0
+
+      if components.count >= 3 {
+        red = Int(round(components[0] * 0xff))
+        green = Int(round(components[1] * 0xff))
+        blue = Int(round(components[2] * 0xff))
+      } else if components.count == 2 {
+        red = Int(round(components[0] * 0xff))
+        green = Int(round(components[0] * 0xff))
+        blue = Int(round(components[0] * 0xff))
+      }
       return String(format: "#%02X%02X%02X", red, green, blue)
     }
   }
