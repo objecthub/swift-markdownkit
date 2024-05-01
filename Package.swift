@@ -34,7 +34,9 @@ let package = Package(
   name: "MarkdownKit",
   platforms: [
     .macOS(.v10_12),
-    .iOS(.v13)
+    .iOS(.v13),
+    .tvOS(.v13),
+    .watchOS(.v6)
   ],
   products: [
     .library(name: "MarkdownKit", targets: ["MarkdownKit"]),

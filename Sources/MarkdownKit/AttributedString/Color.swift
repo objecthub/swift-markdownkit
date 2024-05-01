@@ -31,12 +31,11 @@
       var red = 0
       var green = 0
       var blue = 0
-
       if components.count >= 3 {
         red = Int(round(components[0] * 0xff))
         green = Int(round(components[1] * 0xff))
         blue = Int(round(components[2] * 0xff))
-      } else if components.count == 2 {
+      } else if components.count >= 1 {
         red = Int(round(components[0] * 0xff))
         green = Int(round(components[0] * 0xff))
         blue = Int(round(components[0] * 0xff))

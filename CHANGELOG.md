@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.8 (2024-05-01)
+- Fix `Color.hexString` on iOS to handle black correctly
+- Clean up `Package.swift`
+- Updated `CHANGELOG`
+
+## 1.1.7 (2023-04-10)
+- Fix handling of copyright sign when escaped as XML named character
+
+## 1.1.6 (2023-04-10)
+- Migrate framework to Xcode 14
+- Fix tests related to images in attributed strings
+
 ## 1.1.5 (2022-02-27)
 - Bug fixes to make `AttributedStringGenerator` work with images.
 
