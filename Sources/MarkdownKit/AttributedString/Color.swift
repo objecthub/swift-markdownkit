@@ -44,9 +44,6 @@
     }
   }
 
-  public let mdDefaultColor = UIColor.darkText.hexString
-  public let mdDefaultBackgroundColor = UIColor.systemBackground.hexString
-
 #elseif os(macOS)
 
   import Cocoa
@@ -66,5 +63,22 @@
 
   public let mdDefaultColor = NSColor.textColor.hexString
   public let mdDefaultBackgroundColor = NSColor.textBackgroundColor.hexString
+
+#endif
+
+#if os(iOS)
+
+  public let mdDefaultColor = UIColor.label.hexString
+  public let mdDefaultBackgroundColor = UIColor.systemBackground.hexString
+
+#elseif os(tvOS)
+
+  public let mdDefaultColor = UIColor.label.hexString
+  public let mdDefaultBackgroundColor = UIColor.white.hexString
+
+#elseif os(watchOS)
+
+  public let mdDefaultColor = UIColor.black.hexString
+  public let mdDefaultBackgroundColor = UIColor.white.hexString
 
 #endif
