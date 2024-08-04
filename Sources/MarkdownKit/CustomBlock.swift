@@ -25,6 +25,7 @@ import Foundation
 /// externally (i.e. not by the MarkdownKit framework).
 ///
 public protocol CustomBlock: CustomStringConvertible, CustomDebugStringConvertible {
+  var string: String { get }
   func equals(to other: CustomBlock) -> Bool
   func parse(via parser: InlineParser) -> Block
   func generateHtml(via htmlGen: HtmlGenerator, tight: Bool) -> String
@@ -33,4 +34,11 @@ public protocol CustomBlock: CustomStringConvertible, CustomDebugStringConvertib
                     and attGen: AttributedStringGenerator?,
                     tight: Bool) -> String
   #endif
+}
+
+extension CustomBlock {
+  /// By default, the custom block does not have any raw string content.
+  public var string: String {
+    return ""
+  }
 }

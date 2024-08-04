@@ -141,6 +141,42 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
         return self.description
     }
   }
+  
+  /// Returns raw text for this block, i.e. ignoring all markup.
+  public var string: String {
+    switch self {
+      case .document(let blocks):
+        return blocks.string
+      case .blockquote(let blocks):
+        return blocks.string
+      case .list(_, _, let blocks):
+        return blocks.string
+      case .listItem(_, _, let blocks):
+        return blocks.string
+      case .paragraph(let text):
+        return text.string
+      case .heading(_, let text):
+        return text.string
+      case .indentedCode(let lines):
+        return lines.map { String($0) }.joined()
+      case .fencedCode(_, let lines):
+        return lines.map { String($0) }.joined(separator: "\n")
+      case .htmlBlock(_):
+        return ""
+      case .referenceDef(_, _, let lines):
+        return lines.map { String($0) }.joined(separator: " ")
+      case .thematicBreak:
+        return "\n\n"
+      case .table(let headers, _, let rows):
+        return headers.map { $0.string }.joined(separator: " | ") + "\n" +
+               rows.map { $0.map { $0.string }.joined(separator: " | ") }
+                   .joined(separator: "\n")
+      case .definitionList(let defs):
+        return defs.map { $0.string }.joined(separator: "\n\n")
+      case .custom(let obj):
+        return obj.string
+    }
+  }
 
   fileprivate static func string(from blocks: Blocks) -> String {
     var res = ""
@@ -294,6 +330,10 @@ public struct Definition: Equatable, CustomStringConvertible, CustomDebugStringC
   
   public var debugDescription: String {
     return self.description
+  }
+  
+  public var string: String {
+    return "\(self.item.rawDescription): \(self.descriptions.string)"
   }
 }
 

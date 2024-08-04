@@ -43,4 +43,9 @@ extension Blocks {
   public var isSingleton: Bool {
     return self.count == 1
   }
+  
+  /// Returns raw text for this sequence of blocks.
+  public var string: String {
+    return self.map { $0.string }.joined(separator: "\n")
+  }
 }

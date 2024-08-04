@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.9 (2024-08-04)
+
+- Support converting Markdown into a string without any markup
+
 ## 1.1.8 (2024-05-01)
 - Fix `Color.hexString` on iOS to handle black correctly
 - Clean up `Package.swift`

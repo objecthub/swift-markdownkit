@@ -325,6 +325,14 @@ class MarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                       "</code></pre>\n"),
                             paragraph("okay")))
   }
+  
+  func testToString() {
+    XCTAssertEqual(parseBlocks(" # First\n ## Second  \n### Third").string, "First\nSecond\nThird")
+    XCTAssertEqual(parseBlocks(">  # Hello\n>  Next line\n And last line").string, "Hello\nNext line And last line")
+    XCTAssertEqual(parseBlocks("one\n\n      foo\n    bar\n\ntwo").string, "one\n  foo\nbar\n\ntwo")
+    XCTAssertEqual(parseBlocks("- foo\n - bar\n  - baz\n   - boo").string, "foo\nbar\nbaz\nboo")
+    XCTAssertEqual(parseBlocks("- foo\n  - one\n  - two\n \n  three").string, "foo\none\ntwo\nthree")
+  }
 
   func testDebug() {
 

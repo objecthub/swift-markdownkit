@@ -126,13 +126,15 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
   /// Returns a raw description of this `Text` object as a string, i.e. as if the text
   /// would be represented in Markdown but ignoring all markup.
   public var rawDescription: String {
-    var res = ""
-    for fragment in self.fragments {
-      res = res + fragment.rawDescription
-    }
-    return res
+    return self.fragments.map { $0.rawDescription }.joined()
   }
-
+  
+  /// Returns a raw description of this `Text` object as a string for which all markup
+  /// gets ignored.
+  public var string: String {
+    return self.fragments.map { $0.string }.joined()
+  }
+  
   /// Returns a debug description of this `Text` object.
   public var debugDescription: String {
     var res = ""

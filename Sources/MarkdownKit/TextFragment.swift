@@ -108,7 +108,24 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
         return customTextFragment.rawDescription
     }
   }
-
+  
+  /// Returns a raw description of this `TextFragment` object as a string in which all
+  /// markup gets ignored.
+  public var string: String {
+    switch self {
+      case .html(_):
+        return ""
+      case .delimiter(let ch, let n, _):
+        var res = String(ch)
+        for _ in 1..<n {
+          res.append(ch)
+        }
+        return res
+      default:
+        return self.rawDescription
+    }
+  }
+  
   /// Returns a debug description of this `TextFragment` object.
   public var debugDescription: String {
     switch self {
