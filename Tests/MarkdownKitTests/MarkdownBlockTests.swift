@@ -221,6 +221,14 @@ class MarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                             list(listItem("-", tight: true, paragraph("bar")))))
   }
   
+  func testSimpleNestedList() {
+    XCTAssertEqual(parseBlocks("- Apple\n\t- Banana"),
+                   document(list(tight: false,
+                                 listItem("-", paragraph("Apple"),
+                                          list(tight: true,
+                                               listItem("-", tight: true, paragraph("Banana")))))))
+  }
+
   func testNestedList() {
     XCTAssertEqual(parseBlocks("- foo\n- bar\n    - one\n    - two\n    - three\n- goo"),
                    document(list(tight: false,
@@ -232,7 +240,7 @@ class MarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                                listItem("-", tight: true, paragraph("three")))),
                                  listItem("-", tight: true, paragraph("goo")))))
   }
-
+  
   func testBlockquoteList() {
     XCTAssertEqual(parseBlocks(">>- one\n>>\n  >  > two"),
                    document(blockquote(blockquote(list(listItem("-", paragraph("one"))),

@@ -26,7 +26,12 @@ import Foundation
 /// individual Markdown structures are converted into HTML.
 ///
 open class HtmlGenerator {
-
+  
+  public enum Parent {
+    case none
+    indirect case block(Block, Parent)
+  }
+  
   /// Default `HtmlGenerator` implementation
   public static let standard = HtmlGenerator()
 
@@ -38,36 +43,42 @@ open class HtmlGenerator {
     guard case .document(let blocks) = doc else {
       preconditionFailure("cannot generate HTML from \(doc)")
     }
-    return self.generate(blocks: blocks)
+    return self.generate(blocks: blocks, parent: .none)
   }
 
-  open func generate(blocks: Blocks, tight: Bool = false) -> String {
+  open func generate(blocks: Blocks, parent: Parent, tight: Bool = false) -> String {
     var res = ""
     for block in blocks {
-      res += self.generate(block: block, tight: tight)
+      res += self.generate(block: block, parent: parent, tight: tight)
     }
     return res
   }
 
-  open func generate(block: Block, tight: Bool = false) -> String {
+  open func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
     switch block {
       case .document(_):
         preconditionFailure("broken block \(block)")
       case .blockquote(let blocks):
-        return "<blockquote>\n" + self.generate(blocks: blocks) + "</blockquote>\n"
+        return "<blockquote>\n" +
+               self.generate(blocks: blocks, parent: .block(block, parent)) +
+               "</blockquote>\n"
       case .list(let start, let tight, let blocks):
         if let startNumber = start {
           return "<ol start=\"\(startNumber)\">\n" +
-                 self.generate(blocks: blocks, tight: tight) +
+                 self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
                  "</ol>\n"
         } else {
-          return "<ul>\n" + self.generate(blocks: blocks, tight: tight) + "</ul>\n"
+          return "<ul>\n" +
+                 self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
+                 "</ul>\n"
         }
       case .listItem(_, _, let blocks):
         if tight, let text = blocks.text {
           return "<li>" + self.generate(text: text) + "</li>\n"
         } else {
-          return "<li>" + self.generate(blocks: blocks) + "</li>\n"
+          return "<li>" +
+                 self.generate(blocks: blocks, parent: .block(block, parent)) +
+                 "</li>\n"
         }
       case .paragraph(let text):
         return "<p>" + self.generate(text: text) + "</p>\n"
@@ -136,7 +147,9 @@ open class HtmlGenerator {
                  case .paragraph(let text) = blocks.first! {
                 html += "<dd>" + self.generate(text: text) + "</dd>\n"
               } else {
-                html += "<dd>" + self.generate(blocks: blocks) + "</dd>\n"
+                html += "<dd>" +
+                        self.generate(blocks: blocks, parent: .block(block, parent)) +
+                        "</dd>\n"
               }
             }
           }

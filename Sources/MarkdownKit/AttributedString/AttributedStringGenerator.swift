@@ -33,30 +33,53 @@
 /// override how individual Markdown structures are converted into attributed strings.
 ///
 open class AttributedStringGenerator {
-
+  
+  /// Options for the attributed string generator
+  public struct Options: OptionSet {
+    public let rawValue: UInt
+    
+    public init(rawValue: UInt) {
+      self.rawValue = rawValue
+    }
+    
+    public static let tightLists = Options(rawValue: 1 << 0)
+  }
+  
   /// Customized html generator to work around limitations of the current HTML to
   /// `NSAttributedString` conversion logic provided by the operating system.
   open class InternalHtmlGenerator: HtmlGenerator {
-    var outer: AttributedStringGenerator?
+    var outer: AttributedStringGenerator
     
     public init(outer: AttributedStringGenerator) {
       self.outer = outer
     }
 
-    open override func generate(block: Block, tight: Bool = false) -> String {
+    open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
       switch block {
         case .list(_, _, _):
-          return super.generate(block: block, tight: tight) + "<p style=\"margin: 0;\" />\n"
+          let res = super.generate(block: block, parent: .block(block, parent), tight: tight)
+          if case .block(.listItem(_, _, _), _) = parent {
+            return res
+          } else {
+            return res + "<p style=\"margin: 0;\" />\n"
+          }
+        case .paragraph(let text):
+          if case .block(.listItem(_, _, _), .block(.list(_, let tight, _), _)) = parent,
+             tight || self.outer.options.contains(.tightLists) {
+            return self.generate(text: text) + "\n"
+          } else {
+            return "<p>" + self.generate(text: text) + "</p>\n"
+          }
         case .indentedCode(_),
              .fencedCode(_, _):
           return "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
                  "<td class=\"codebox\">" +
-                 super.generate(block: block, tight: tight) +
+                 super.generate(block: block, parent: .block(block, parent), tight: tight) +
                  "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
         case .blockquote(let blocks):
           return "<table class=\"blockquote\"><tbody><tr>" +
                  "<td class=\"quote\" /><td style=\"width: 0.5em;\" /><td>\n" +
-                 self.generate(blocks: blocks) +
+                 self.generate(blocks: blocks, parent: .block(block, parent)) +
                  "</td></tr><tr style=\"height: 0;\"><td /><td /><td /></tr></tbody></table>\n"
         case .thematicBreak:
           return "<p><table style=\"width: 100%; margin-bottom: 3px;\"><tbody>" +
@@ -76,7 +99,7 @@ open class AttributedStringGenerator {
             }
           }
           var html = "<table class=\"mtable\" " +
-                     "cellpadding=\"\(self.outer?.tableCellPadding ?? 2)\"><thead><tr>\n"
+                     "cellpadding=\"\(self.outer.tableCellPadding)\"><thead><tr>\n"
           var i = 0
           for head in header {
             html += "<th\(tagsuffix[i])\(self.generate(text: head))&nbsp;</th>"
@@ -100,7 +123,9 @@ open class AttributedStringGenerator {
             html += "<dt>" + self.generate(text: def.item) + "</dt>\n"
             for descr in def.descriptions {
               if case .listItem(_, _, let blocks) = descr {
-                html += "<dd>" + self.generate(blocks: blocks) + "</dd>\n"
+                html += "<dd>" +
+                        self.generate(blocks: blocks, parent: .block(block, parent)) +
+                        "</dd>\n"
               }
             }
           }
@@ -109,7 +134,7 @@ open class AttributedStringGenerator {
         case .custom(let customBlock):
           return customBlock.generateHtml(via: self, and: self.outer, tight: tight)
         default:
-          return super.generate(block: block, tight: tight)
+          return super.generate(block: block, parent: parent, tight: tight)
       }
     }
     
@@ -120,7 +145,7 @@ open class AttributedStringGenerator {
           if let uriStr = uri {
             let url = URL(string: uriStr)
             if (url?.scheme == nil) || (url?.isFileURL ?? false),
-               let baseUrl = self.outer?.imageBaseUrl {
+               let baseUrl = self.outer.imageBaseUrl {
               let url = URL(fileURLWithPath: uriStr, relativeTo: baseUrl)
               if url.isFileURL {
                 return "<img src=\"\(url.absoluteString)\"" +
@@ -141,6 +166,9 @@ open class AttributedStringGenerator {
 
   /// Default `AttributedStringGenerator` implementation.
   public static let standard: AttributedStringGenerator = AttributedStringGenerator()
+  
+  /// The generator options.
+  public let options: Options
   
   /// The base font size.
   public let fontSize: Float
@@ -201,7 +229,8 @@ open class AttributedStringGenerator {
   
   
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
-  public init(fontSize: Float = 14.0,
+  public init(options: Options = [],
+              fontSize: Float = 14.0,
               fontFamily: String = "\"Times New Roman\",Times,serif",
               fontColor: String = mdDefaultColor,
               codeFontSize: Float = 13.0,
@@ -221,6 +250,7 @@ open class AttributedStringGenerator {
               maxImageHeight: String? = nil,
               customStyle: String = "",
               imageBaseUrl: URL? = nil) {
+    self.options = options
     self.fontSize = fontSize
     self.fontFamily = fontFamily
     self.fontColor = fontColor
@@ -249,21 +279,23 @@ open class AttributedStringGenerator {
 
   /// Generates an attributed string from the given Markdown blocks
   open func generate(block: Block) -> NSAttributedString? {
-    return self.generateAttributedString(self.htmlGenerator.generate(block: block))
+    return self.generateAttributedString(self.htmlGenerator.generate(block: block, parent: .none))
   }
 
   /// Generates an attributed string from the given Markdown blocks
   open func generate(blocks: Blocks) -> NSAttributedString? {
-    return self.generateAttributedString(self.htmlGenerator.generate(blocks: blocks))
+    return self.generateAttributedString(self.htmlGenerator.generate(blocks: blocks, parent: .none))
   }
   
   private func generateAttributedString(_ htmlBody: String) -> NSAttributedString? {
-    let htmlDoc = self.generateHtml(htmlBody)
-    let httpData = Data(htmlDoc.utf8)
-    return try? NSAttributedString(data: httpData,
-                                   options: [.documentType: NSAttributedString.DocumentType.html,
-                                             .characterEncoding: String.Encoding.utf8.rawValue],
-                                   documentAttributes: nil)
+    if let httpData = self.generateHtml(htmlBody).data(using: .utf8) {
+      return try? NSAttributedString(data: httpData,
+                                     options: [.documentType: NSAttributedString.DocumentType.html,
+                                               .characterEncoding: String.Encoding.utf8.rawValue],
+                                     documentAttributes: nil)
+    } else {
+      return nil
+    }
   }
   
   open var htmlGenerator: HtmlGenerator {

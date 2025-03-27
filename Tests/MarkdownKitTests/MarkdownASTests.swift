@@ -32,6 +32,18 @@ class MarkdownASTests: XCTestCase {
              .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
   }
   
+  func testSimpleNestedLists() {
+    XCTAssertEqual(
+      generateHtml("- Apple\n\t- Banana"),
+      "<ul>\n<li><p>Apple</p>\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>\n<p style=\"margin: 0;\" />")
+    XCTAssertEqual(
+      AttributedStringGenerator(options: [.tightLists])
+               .htmlGenerator
+               .generate(doc: MarkdownParser.standard.parse("- Apple\n\t- Banana"))
+               .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
+      "<ul>\n<li>Apple\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>\n<p style=\"margin: 0;\" />")
+  }
+  
   func testRelativeImageUrls() {
     XCTAssertEqual(generateHtml("![Test image](imagefile.png)"),
                    "<p><img src=\"imagefile.png\" alt=\"Test image\"/></p>")

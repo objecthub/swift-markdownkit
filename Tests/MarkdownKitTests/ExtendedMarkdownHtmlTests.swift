@@ -27,7 +27,13 @@ class ExtendedMarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
     return HtmlGenerator().generate(doc: ExtendedMarkdownParser.standard.parse(str))
                           .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
   }
-
+  
+  func testSimpleNestedLists() {
+    XCTAssertEqual(
+      generateHtml("- Apple\n\t- Banana"),
+      "<ul>\n<li><p>Apple</p>\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>")
+  }
+  
   func testTables() {
     XCTAssertEqual(generateHtml(" Column A | Column B\n" +
                                 " -------- | --------\n"),
@@ -83,6 +89,7 @@ class ExtendedMarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
   }
   
   static let allTests = [
+    ("testSimpleNestedLists", testSimpleNestedLists),
     ("testTables", testTables),
     ("testDescriptionLists", testDescriptionLists),
   ]
