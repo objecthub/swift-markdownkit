@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2 (2025-03-28)
+
+- Improve the generation of nested lists for `AttributedStringGenerator`
+- Introduce a new option `tightLists` for `AttributedStringGenerator` which renders lists more compactly
+- The API of `AttributedStringGenerator` changes with this release
+
 ## 1.1.9 (2024-08-04)
 
 - Support converting Markdown into a string without any markup
