@@ -32,13 +32,18 @@ open class EmphasisTransformer: InlineTransformer {
   /// from two parameters: the first denoting whether it's double usage, and the second
   /// referring to the emphasized text.
   public struct Emphasis {
-    let ch: Character
-    let special: Bool
-    let factory: (Bool, Text) -> TextFragment
+    public let ch: Character
+    public let special: Bool
+    public let factory: (Bool, Text) -> TextFragment
+    
+    public init(ch: Character, special: Bool, factory: @escaping (Bool, Text) -> TextFragment) {
+      self.ch = ch
+      self.special = special
+      self.factory = factory
+    }
   }
   
-  /// Emphasis supported by default. Override this property to change the what gets
-  /// supported.
+  /// Emphasis supported by default. Override this property to change what is supported.
   open class var supportedEmphasis: [Emphasis] {
     let factory = { (double: Bool, text: Text) -> TextFragment in
       double ? .strong(text) : .emph(text)
@@ -46,7 +51,7 @@ open class EmphasisTransformer: InlineTransformer {
     return [Emphasis(ch: "*", special: true, factory: factory),
             Emphasis(ch: "_", special: false, factory: factory)]
   }
-
+  
   /// The emphasis map, used internally to determine how characters are used for emphasis
   /// markup.
   private var emphasis: [Character : Emphasis] = [:]
