@@ -143,8 +143,8 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                "  | 1     | 2     |\n" +
                                "  End table\n" +
                                "- Three"),
-                   document(list(tight: false,
-                                 listItem("-", paragraph("One")),
+                   document(list(tight: true,
+                                 listItem("-", initial: true, paragraph("One")),
                                  listItem("-", tight: true,
                                           paragraph("Two:"),
                                           table(["col A", "col B"],
@@ -157,13 +157,14 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
   func testDefinitionList() {
     XCTAssertEqual(parseBlocks("Software\n: programs used by a computer"),
                    document(definitionList(("Software",
-                                            [[paragraph("programs used by a computer")]]))))
+                                            [(.tight, [paragraph("programs used by a computer")])]))))
     XCTAssertEqual(parseBlocks("Software\n" +
                                ": programs used by a computer\n" +
                                ": operating instructions"),
-                   document(definitionList(("Software",
-                             [[paragraph("programs used by a computer")],
-                              [paragraph("operating instructions")]]))))
+                   document(definitionList(
+                             ("Software", [
+                                (ListDensity.tight, [paragraph("programs used by a computer")]),
+                                (ListDensity.tight, [paragraph("operating instructions")])]))))
     XCTAssertEqual(parseBlocks("Software\n" +
                                ": programs used by a\n" +
                                "  computer\n" +
@@ -171,11 +172,13 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                "Hardware\n" +
                                ": physical components of a computer\n"),
                    document(definitionList(
-                             ("Software", [[paragraph(.text("programs used by a"),
-                                                      .softLineBreak,
-                                                      .text("computer"))],
-                                           [paragraph("operating instructions")]]),
-                             ("Hardware", [[paragraph("physical components of a computer")]]))))
+                             ("Software", [
+                               (.tight, [paragraph(.text("programs used by a"),
+                                                   .softLineBreak,
+                                                   .text("computer"))]),
+                               (.tight, [paragraph("operating instructions")])]),
+                             ("Hardware", [
+                               (.tight , [paragraph("physical components of a computer")])]))))
     XCTAssertEqual(parseBlocks("# Header\n\n" +
                                "Software\n" +
                                " : programs used by a\n" +
@@ -188,15 +191,17 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                "     > Two\n"),
                    document(atxHeading(1, "Header"),
                             definitionList(
-                             ("Software", [[paragraph("programs used by a"),
+                             ("Software", [
+                               (.loose, [paragraph("programs used by a"),
                                             list(tight: true,
                                                  listItem("-", tight: true, paragraph("device")),
                                                  listItem("-", tight: true, paragraph("computer"))),
-                                            paragraph("and other systems")],
-                                           [paragraph("operating instructions")]]),
-                             ("Hardware", [[blockquote(paragraph(.text("One"),
-                                                                 .softLineBreak,
-                                                                 .text("Two")))]]))))
+                                            paragraph("and other systems")]),
+                               (.initial, [paragraph("operating instructions")])]),
+                             ("Hardware", [
+                              (.tight, [blockquote(paragraph(.text("One"),
+                                                             .softLineBreak,
+                                                             .text("Two")))])]))))
   }
   
   func testEmptyDocuments() {
@@ -257,7 +262,7 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
     XCTAssertEqual(parseBlocks("> Foo\n---"),
                    document(blockquote(paragraph("Foo")), .thematicBreak))
     XCTAssertEqual(parseBlocks("- Foo\n---"),
-                   document(list(listItem("-", paragraph("Foo"))), .thematicBreak))
+                   document(list(tight: true, listItem("-", initial: true, paragraph("Foo"))), .thematicBreak))
     XCTAssertEqual(parseBlocks("---\nFoo\n---\nBar\n---\nBaz"),
                    document(.thematicBreak,
                             setextHeading(2, "Foo"),
@@ -316,48 +321,52 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
   }
 
   func testListItem() {
-    XCTAssertEqual(parseBlocks("- One"), document(list(listItem("-", paragraph("One")))))
+    XCTAssertEqual(parseBlocks("- One"), document(list(listItem("-", initial: true, paragraph("One")))))
     XCTAssertEqual(parseBlocks("- One\nTwo"),
-                   document(list(listItem("-", paragraph("One", "Two")))))
+                   document(list(listItem("-", initial: true, paragraph("One", "Two")))))
     XCTAssertEqual(parseBlocks(" - One\n\n   Two"),
-                   document(list(tight: false, listItem("-", paragraph("One"), paragraph("Two")))))
+                   document(list(tight: false, listItem("-", tight: false, paragraph("One"), paragraph("Two")))))
     XCTAssertEqual(parseBlocks("  - > One\n    > Two\n\n      Three"),
-                   document(list(tight: false, listItem("-", blockquote(paragraph("One", "Two")),
-                                                             paragraph("Three")))))
+                   document(list(tight: false, listItem("-", tight: false, blockquote(paragraph("One", "Two")),
+                                                              paragraph("Three")))))
     XCTAssertEqual(parseBlocks("- foo\n\n-\n\n- bar"),
                    document(list(tight: false,
-                                 listItem("-", paragraph("foo")),
-                                 listItem("-"),
-                                 listItem("-", paragraph("bar")))))
+                                 listItem("-", initial: true, paragraph("foo")),
+                                 listItem("-", initial: true),
+                                 listItem("-", initial: true, paragraph("bar")))))
     XCTAssertEqual(parseBlocks("1.  One\nTwo"),
-                   document(list(1, listItem(1, ".", paragraph("One", "Two")))))
+                   document(list(1, listItem(1, ".", initial: true, paragraph("One", "Two")))))
     XCTAssertEqual(parseBlocks("1.  O\nT\n\n2.  Three\n\n4)  Four"),
                    document(list(1, tight: false,
-                                    listItem(1, ".", paragraph("O", "T")),
-                                    listItem(2, ".", paragraph("Three"))),
-                            list(4, listItem(4, ")", paragraph("Four")))))
+                                    listItem(1, ".", initial: true, paragraph("O", "T")),
+                                    listItem(2, ".", initial: true, paragraph("Three"))),
+                            list(4, listItem(4, ")", initial: true, paragraph("Four")))))
     XCTAssertEqual(parseBlocks("- foo\n  - bar\n    - baz\n      - boo"),
-                   document(list(tight: false, listItem("-", paragraph("foo"),
-                              list(tight: false, listItem("-", tight: true, paragraph("bar"),
-                                list(tight: false, listItem("-", tight: true, paragraph("baz"),
+                   document(list(listItem("-", initial: true, paragraph("foo"),
+                              list(listItem("-", tight: true, paragraph("bar"),
+                                list(listItem("-", tight: true, paragraph("baz"),
                                   list(listItem("-", tight: true, paragraph("boo")))))))))))
     XCTAssertEqual(parseBlocks("- foo\n - bar\n  - baz\n   - boo"),
-                   document(list(listItem("-", paragraph("foo")),
+                   document(list(listItem("-", initial: true, paragraph("foo")),
                                  listItem("-", tight: true, paragraph("bar")),
                                  listItem("-", tight: true, paragraph("baz")),
                                  listItem("-", tight: true, paragraph("boo")))))
     XCTAssertEqual(parseBlocks("- foo\n - bar\n  + baz\n   - boo"),
-                   document(list(listItem("-", paragraph("foo")),
+                   document(list(listItem("-", initial: true, paragraph("foo")),
                                  listItem("-", tight: true, paragraph("bar"))),
                             list(listItem("+", tight: true, paragraph("baz"))),
                             list(listItem("-", tight: true, paragraph("boo")))))
     XCTAssertEqual(parseBlocks("1. - 2. foo"),
-                   document(list(1, listItem(1, ".",
-                              list(listItem("-", list(2,
-                                listItem(2, ".", paragraph("foo")))))))))
+                   document(list(1,
+                                 listItem(1, ".",
+                                          initial: true,
+                                          list(listItem("-",
+                                                        initial: true,
+                                                        list(2, listItem(2, ".", initial: true, paragraph("foo")))))))))
     XCTAssertEqual(parseBlocks("- foo\n  - one\n  - two\n  three"),
-                   document(list(tight: false, listItem("-", paragraph("foo"),
-                              list(listItem("-", tight: true, paragraph("one")),
+                   document(list(tight: true, listItem("-", initial: true, paragraph("foo"),
+                              list(tight: true,
+                                   listItem("-", tight: true, paragraph("one")),
                                    listItem("-", tight: true, paragraph("two", "three")))))))
     XCTAssertEqual(parseBlocks("- foo\n  - one\n  - two\n \n  three"),
                    document(list(tight: false,
@@ -367,10 +376,12 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                           paragraph("three")))))
     XCTAssertEqual(parseBlocks("- foo\n\n  - one\n  - two\n \n  three"),
                    document(list(tight: false,
-                                 listItem("-", paragraph("foo"),
-                                               list(listItem("-", paragraph("one")),
-                                                    listItem("-", tight: true, paragraph("two"))),
-                                               paragraph("three")))))
+                                 listItem("-",
+                                          tight: false,
+                                          paragraph("foo"),
+                                          list(listItem("-", initial: true, paragraph("one")),
+                                               listItem("-", tight: true, paragraph("two"))),
+                                          paragraph("three")))))
     XCTAssertEqual(parseBlocks("- foo\n  * * *\n  - one\n  - two\n \n  three"),
                    document(list(tight: false,
                       listItem("-", paragraph("foo"),
@@ -379,23 +390,25 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                          listItem("-", tight: true, paragraph("two"))),
                                     paragraph("three")))))
     XCTAssertEqual(parseBlocks("- foo\n***\n  - one\n  - two\n \n  three"),
-                   document(list(listItem("-", paragraph("foo"))),
+                   document(list(tight: true, listItem("-", initial: true, paragraph("foo"))),
                             .thematicBreak,
-                            list(listItem("-", tight: true, paragraph("one")),
+                            list(tight: true,
+                                 listItem("-", tight: true, paragraph("one")),
                                  listItem("-", tight: true, paragraph("two"))),
                             paragraph("three")))
     XCTAssertEqual(parseBlocks("10) foo\n   - bar"),
-                   document(list(10, listItem(10, ")", paragraph("foo"))),
-                            list(listItem("-", tight: true, paragraph("bar")))))
+                   document(list(10, tight: true, listItem(10, ")", initial: true, paragraph("foo"))),
+                            list(tight: true, listItem("-", tight: true, paragraph("bar")))))
   }
   
   func testNestedList() {
     XCTAssertEqual(parseBlocks("- foo\n- bar\n    - one\n    - two\n    - three\n- goo"),
-                   document(list(tight: false,
-                                 listItem("-", paragraph("foo")),
+                   document(list(tight: true,
+                                 listItem("-", initial: true, paragraph("foo")),
                                  listItem("-", tight: true,
                                           paragraph("bar"),
-                                          list(listItem("-", tight: true, paragraph("one")),
+                                          list(tight: true,
+                                               listItem("-", tight: true, paragraph("one")),
                                                listItem("-", tight: true, paragraph("two")),
                                                listItem("-", tight: true, paragraph("three")))),
                                  listItem("-", tight: true, paragraph("goo")))))
@@ -403,10 +416,10 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
 
   func testBlockquoteList() {
     XCTAssertEqual(parseBlocks(">>- one\n>>\n  >  > two"),
-                   document(blockquote(blockquote(list(listItem("-", paragraph("one"))),
+                   document(blockquote(blockquote(list(tight: true, listItem("-", initial: true, paragraph("one"))),
                                                   paragraph("two")))))
     XCTAssertEqual(parseBlocks("> 1234. > blockquote\n> continued here."),
-                   document(blockquote(list(1234, listItem(1234, ".",
+                   document(blockquote(list(1234, tight: true, listItem(1234, ".", initial: true,
                                          blockquote(paragraph("blockquote", "continued here.")))))))
     XCTAssertEqual(
       parseBlocks("  1.  A paragraph\nwith two lines.\n\n          code\n\n      > quote."),

@@ -144,12 +144,20 @@ extension MarkdownKitFactory {
     return .list(nil, tight, ContiguousArray(bs))
   }
 
-  func listItem(_ num: Int, _ sep: Character, tight: Bool = false, _ bs: Block...) -> Block {
-    return .listItem(.ordered(num, sep), tight, ContiguousArray(bs))
+  func listItem(_ num: Int,
+                _ sep: Character,
+                tight: Bool = false,
+                initial: Bool = false,
+                _ bs: Block...) -> Block {
+    return .listItem(.ordered(num, sep),
+                     tight ? .tight : (initial ? .initial : .loose),
+                     ContiguousArray(bs))
   }
 
-  func listItem(_ bullet: Character, tight: Bool = false, _ bs: Block...) -> Block {
-    return .listItem(.bullet(bullet), tight, ContiguousArray(bs))
+  func listItem(_ bullet: Character, tight: Bool = false, initial: Bool = false, _ bs: Block...) -> Block {
+    return .listItem(.bullet(bullet),
+                     tight ? .tight : (initial ? .initial : .loose),
+                     ContiguousArray(bs))
   }
 
   func htmlBlock(_ lines: Substring...) -> Block {
@@ -188,20 +196,16 @@ extension MarkdownKitFactory {
     return .table(toRow(hdr), ContiguousArray(algn), rows)
   }
   
-  func definitionList(_ decls: (Substring, [[Block]])...) -> Block {
+  func definitionList(_ decls: (Substring, [(ListDensity, [Block])])...) -> Block {
     var defs = Definitions()
     for decl in decls {
       var res = Blocks()
-      var tight = true
-      for blocks in decl.1 {
+      for (density, blocks) in decl.1 {
         var content = Blocks()
         for block in blocks {
           content.append(block)
         }
-        res.append(.listItem(.bullet(":"), tight, content))
-        if content.count > 1 {
-          tight = false
-        }
+        res.append(.listItem(.bullet(":"), density, content))
       }
       defs.append(Definition(item: Text(decl.0), descriptions: res))
     }

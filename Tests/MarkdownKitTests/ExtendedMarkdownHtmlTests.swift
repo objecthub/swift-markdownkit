@@ -31,7 +31,7 @@ class ExtendedMarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
   func testSimpleNestedLists() {
     XCTAssertEqual(
       generateHtml("- Apple\n\t- Banana"),
-      "<ul>\n<li><p>Apple</p>\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>")
+      "<ul>\n<li>Apple\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>")
   }
   
   func testTables() {

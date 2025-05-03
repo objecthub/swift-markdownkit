@@ -35,7 +35,7 @@ class MarkdownASTests: XCTestCase {
   func testSimpleNestedLists() {
     XCTAssertEqual(
       generateHtml("- Apple\n\t- Banana"),
-      "<ul>\n<li><p>Apple</p>\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>\n<p style=\"margin: 0;\" />")
+      "<ul>\n<li>Apple\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>\n<p style=\"margin: 0;\" />")
     XCTAssertEqual(
       AttributedStringGenerator(options: [.tightLists])
                .htmlGenerator

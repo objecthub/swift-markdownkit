@@ -50,6 +50,7 @@ open class BlockParser {
 
   public func consumeParagraphLines() {
     self.docParser.prevParagraphLines = nil
+    self.docParser.prevParagraphLinesTight = false
   }
   
   public var line: Substring {

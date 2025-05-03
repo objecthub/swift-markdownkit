@@ -64,7 +64,7 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
   func testSimpleNestedLists() {
     XCTAssertEqual(
       generateHtml("- Apple\n\t- Banana"),
-      "<ul>\n<li><p>Apple</p>\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>")
+      "<ul>\n<li>Apple\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>")
   }
   
   func testNestedLists() {
@@ -76,8 +76,8 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
             * three
         - goo
       """),
-      "<ul>\n<li><p>foo</p>\n</li>\n<li><p>bar</p>\n<ul>\n<li>one</li>\n<li>two</li>\n" +
-      "<li>three</li>\n</ul>\n</li>\n<li><p>goo</p>\n</li>\n</ul>")
+      "<ul>\n<li>foo</li>\n<li>bar\n<ul>\n<li>one</li>\n<li>two</li>\n" +
+      "<li>three</li>\n</ul>\n</li>\n<li>goo</li>\n</ul>")
   }
   
   func testImageLinks() {

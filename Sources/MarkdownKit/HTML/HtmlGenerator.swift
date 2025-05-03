@@ -53,7 +53,7 @@ open class HtmlGenerator {
     }
     return res
   }
-
+  
   open func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
     switch block {
       case .document(_):
@@ -77,11 +77,15 @@ open class HtmlGenerator {
           return "<li>" + self.generate(text: text) + "</li>\n"
         } else {
           return "<li>" +
-                 self.generate(blocks: blocks, parent: .block(block, parent)) +
+                 self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
                  "</li>\n"
         }
       case .paragraph(let text):
-        return "<p>" + self.generate(text: text) + "</p>\n"
+        if tight {
+          return self.generate(text: text) + "\n"
+        } else {
+          return "<p>" + self.generate(text: text) + "</p>\n"
+        }
       case .heading(let n, let text):
         let tag = "h\(n > 0 && n < 7 ? n : 1)>"
         return "<\(tag)\(self.generate(text: text))</\(tag)\n"

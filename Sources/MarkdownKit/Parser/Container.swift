@@ -26,7 +26,15 @@ import Foundation
 /// i.e. a container that has an enclosing container.
 ///
 open class Container: CustomDebugStringConvertible {
-  public var content: [Block] = []
+  public private(set) var content: [Block] = []
+  public var density: ListDensity? = nil
+  
+  open func append(block: Block, tight: Bool) {
+    if !content.isEmpty || self.density == nil {
+      self.density = self.density?.merge(tight: tight) ?? .tight
+    }
+    self.content.append(block)
+  }
   
   open func makeBlock(_ docParser: DocumentParser) -> Block {
     return .document(docParser.bundle(blocks: self.content))
@@ -64,7 +72,7 @@ open class NestedContainer: Container {
   open var indentRequired: Bool {
     return false
   }
-
+  
   open func skipIndent(input: String,
                        startIndex: String.Index,
                        endIndex: String.Index) -> String.Index? {
@@ -105,7 +113,7 @@ open class NestedContainer: Container {
     if self === container {
       return self
     } else {
-      self.outer.content.append(self.makeBlock(docParser))
+      self.outer.append(block: self.makeBlock(docParser), tight: self.density?.isTight ?? true)
       return self.outer.return(to: container, for: docParser)
     }
   }

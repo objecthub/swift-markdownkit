@@ -44,13 +44,12 @@ open class ListItemParser: BlockParser {
   private class BulletListItemContainer: NestedContainer {
     let bullet: Character
     let indent: Int
-    let tight: Bool
 
     init(bullet: Character, tight: Bool, indent: Int, outer: Container) {
       self.bullet = bullet
       self.indent = indent
-      self.tight = tight
       super.init(outer: outer)
+      self.density = .init(tight: tight)
     }
 
     public override func skipIndent(input: String,
@@ -76,7 +75,7 @@ open class ListItemParser: BlockParser {
     }
 
     public override func makeBlock(_ docParser: DocumentParser) -> Block {
-      return .listItem(.bullet(self.bullet), self.tight, docParser.bundle(blocks: self.content))
+      return .listItem(.bullet(self.bullet), self.density ?? .tight, docParser.bundle(blocks: self.content))
     }
 
     public override var debugDescription: String {
@@ -94,7 +93,7 @@ open class ListItemParser: BlockParser {
 
     public override func makeBlock(_ docParser: DocumentParser) -> Block {
       return .listItem(.ordered(self.number, self.bullet),
-                       self.tight,
+                       self.density ?? .tight,
                        docParser.bundle(blocks: self.content))
     }
 

@@ -38,12 +38,25 @@ open class DocumentParser {
   fileprivate var currentContainer: Container
 
   internal var prevParagraphLines: Text?
-  internal var line: Substring
-  internal var contentStartIndex: Substring.Index
-  internal var contentEndIndex: Substring.Index
-  internal var lineIndent: Int
-  internal var lineEmpty: Bool
-  internal var prevLineEmpty: Bool
+  internal var prevParagraphLinesTight: Bool
+  
+  /// Current line being parsed
+  internal fileprivate(set) var line: Substring
+  
+  /// Start index on `line` where the content is (indentation was skipped)
+  internal fileprivate(set) var contentStartIndex: Substring.Index
+  
+  /// End index on `line` where the content is
+  internal fileprivate(set) var contentEndIndex: Substring.Index
+  
+  /// Number of identation characters at beginning of line
+  internal fileprivate(set) var lineIndent: Int
+  
+  /// Is the line empty?
+  internal fileprivate(set) var lineEmpty: Bool
+  
+  /// Was the previous line empty?
+  internal fileprivate(set) var prevLineEmpty: Bool
 
   /// Initializer
   public init(blockParsers: [BlockParser.Type], input: String) {
@@ -54,6 +67,7 @@ open class DocumentParser {
     self.container = docContainer
     self.currentContainer = docContainer
     self.prevParagraphLines = nil
+    self.prevParagraphLinesTight = false
     self.line = input[input.startIndex..<input.startIndex]
     self.contentStartIndex = self.line.startIndex
     self.contentEndIndex = self.line.endIndex
@@ -71,6 +85,7 @@ open class DocumentParser {
     state.container = self.container
     state.currentContainer = self.currentContainer
     state.prevParagraphLines = self.prevParagraphLines
+    state.prevParagraphLinesTight = self.prevParagraphLinesTight
     state.line = self.line
     state.contentStartIndex = self.contentStartIndex
     state.contentEndIndex = self.contentEndIndex
@@ -84,6 +99,7 @@ open class DocumentParser {
     self.container = state.container
     self.currentContainer = state.currentContainer
     self.prevParagraphLines = state.prevParagraphLines
+    self.prevParagraphLinesTight = state.prevParagraphLinesTight
     self.line = state.line
     self.contentStartIndex = state.contentStartIndex
     self.contentEndIndex = state.contentEndIndex
@@ -101,9 +117,10 @@ open class DocumentParser {
       return
     }
     if let lines = self.prevParagraphLines {
-      self.container.content.append(.paragraph(lines.finalized()))
+      self.container.append(block: .paragraph(lines.finalized()), tight: self.prevParagraphLinesTight)
       self.container = self.container.return(to: self.currentContainer, for: self)
       self.prevParagraphLines = nil
+      self.prevParagraphLinesTight = false
     }
     guard self.index! < self.input.endIndex else {
       self.index = nil
@@ -187,11 +204,12 @@ open class DocumentParser {
         self.container = self.container.return(to: self.currentContainer, for: self)
         self.currentContainer = self.container
         for blockParser in self.blockParsers {
+          let tight = !self.prevLineEmpty
           switch blockParser.parse() {
             case .none:
               break
             case .block(let block):
-              self.container.content.append(block)
+              self.container.append(block: block, tight: tight)
               continue loop
             case .container(let constr):
               self.currentContainer = constr(self.container)
@@ -200,22 +218,27 @@ open class DocumentParser {
           }
         }
         var lines = Text()
+        let linesTight = !self.prevLineEmpty
         lines.append(line: self.trimLine(), withHardLineBreak: self.hasHardLineBreak())
         self.readNextLine()
         while !self.finished && !self.lineEmpty {
           self.prevParagraphLines = lines
+          self.prevParagraphLinesTight = linesTight
+          let tight = !self.prevLineEmpty
           for blockParser in self.blockParsers {
             if blockParser.mayInterruptParagraph {
               switch blockParser.parse() {
                 case .none:
                   break
                 case .block(let block):
-                  self.container.content.append(block)
+                  self.container.append(block: block, tight: tight)
                   self.prevParagraphLines = nil
+                  self.prevParagraphLinesTight = false
                   continue loop
                 case .container(let constr):
                   if let plines = self.prevParagraphLines {
-                    self.container.content.append(.paragraph(plines.finalized()))
+                    self.container.append(block: .paragraph(plines.finalized()),
+                                          tight: self.prevParagraphLinesTight)
                     self.container = constr(
                                        self.container.return(to: self.currentContainer, for: self))
                     self.currentContainer = self.container
@@ -224,15 +247,17 @@ open class DocumentParser {
                     self.container = self.currentContainer
                   }
                   self.prevParagraphLines = nil
+                  self.prevParagraphLinesTight = false
                   continue loop
               }
             }
           }
           self.prevParagraphLines = nil
+          self.prevParagraphLinesTight = false
           lines.append(line: self.trimLine(), withHardLineBreak: self.hasHardLineBreak())
           self.readNextLine()
         }
-        self.container.content.append(.paragraph(lines.finalized()))
+        self.container.append(block: .paragraph(lines.finalized()), tight: linesTight)
       }
     }
     self.container = self.container.return(for: self)
@@ -251,7 +276,7 @@ open class DocumentParser {
           if let ltype = listType {
             if type.compatible(with: ltype) {
               items.append(block)
-              if !t || !nested.isSingleton {
+              if !t.isTight {
                 tight = false
               }
             } else {
@@ -264,7 +289,7 @@ open class DocumentParser {
           } else {
             listType = type
             items.append(block)
-            if !nested.isSingleton {
+            if !t.isTightInitially {
               tight = false
             }
           }
@@ -314,6 +339,7 @@ internal struct DocumentParserState {
   fileprivate var container: Container
   fileprivate var currentContainer: Container
   fileprivate var prevParagraphLines: Text?
+  fileprivate var prevParagraphLinesTight: Bool
   fileprivate var line: Substring
   fileprivate var contentStartIndex: Substring.Index
   fileprivate var contentEndIndex: Substring.Index
@@ -326,6 +352,7 @@ internal struct DocumentParserState {
     self.container = docParser.container
     self.currentContainer = docParser.currentContainer
     self.prevParagraphLines = docParser.prevParagraphLines
+    self.prevParagraphLinesTight = docParser.prevParagraphLinesTight
     self.line = docParser.line
     self.contentStartIndex = docParser.contentStartIndex
     self.contentEndIndex = docParser.contentEndIndex

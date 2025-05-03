@@ -29,7 +29,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
   case document(Blocks)
   case blockquote(Blocks)
   case list(Int?, Bool, Blocks)
-  case listItem(ListType, Bool, Blocks)
+  case listItem(ListType, ListDensity, Blocks)
   case paragraph(Text)
   case heading(Int, Text)
   case indentedCode(Lines)
@@ -54,8 +54,8 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
         } else {
           return "list(\(tight ? "tight" : "loose"), \(Block.string(from: blocks)))"
         }
-      case .listItem(let type, let tight, let blocks):
-        return "listItem(\(type), \(tight ? "tight" : "loose"), \(Block.string(from: blocks)))"
+      case .listItem(let type, let density, let blocks):
+        return "listItem(\(type), \(density), \(Block.string(from: blocks)))"
       case .paragraph(let text):
         return "paragraph(\(text.debugDescription))"
       case .heading(let level, let text):
@@ -236,6 +236,60 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
       default:
         return false
     }
+  }
+}
+
+public enum ListDensity: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+  case initial
+  case loose
+  case tight
+  
+  public init(tight: Bool) {
+    self = tight ? .tight : .initial
+  }
+  
+  public var isTight: Bool {
+    switch self {
+      case .initial, .loose:
+        return false
+      case .tight:
+        return true
+    }
+  }
+  
+  public var isTightInitially: Bool {
+    switch self {
+      case .loose:
+        return false
+      case .initial, .tight:
+        return true
+    }
+  }
+  
+  public func merge(tight: Bool) -> ListDensity {
+    switch self {
+      case .initial:
+        return tight ? .initial : .loose
+      case .loose:
+        return .loose
+      case .tight:
+        return tight ? .tight : .loose
+    }
+  }
+  
+  public var description: String {
+    switch self {
+      case .initial:
+        return "initial"
+      case .loose:
+        return "loose"
+      case .tight:
+        return "tight"
+    }
+  }
+  
+  public var debugDescription: String {
+    return self.description
   }
 }
 
