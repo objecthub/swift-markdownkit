@@ -45,9 +45,9 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
   public var description: String {
     switch self {
       case .document(let blocks):
-        return "document(\(Block.string(from: blocks))))"
+        return "document(\(Block.string(from: blocks)))"
       case .blockquote(let blocks):
-        return "blockquote(\(Block.string(from: blocks))))"
+        return "blockquote(\(Block.string(from: blocks)))"
       case .list(let start, let tight, let blocks):
         if let start = start {
           return "list(\(start), \(tight ? "tight" : "loose"), \(Block.string(from: blocks)))"
