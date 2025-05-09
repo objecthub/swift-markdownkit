@@ -41,7 +41,7 @@ document(heading(1, text("Header")),
          heading(2, text("Sub-header")),
          paragraph(text("And this is a "),
                    strong(text("paragraph")),
-                   text("."))))
+                   text(".")))
 ```
 
 [`Block`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Block.swift)
