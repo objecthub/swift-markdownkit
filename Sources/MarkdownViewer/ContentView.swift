@@ -32,7 +32,8 @@ struct ContentView: View {
     ligula. Mauris et orci ut lectus convallis euismod. _Mauris_
     vitae purus congue, finibus tellus nec, lacinia felis.
     Etiam eget lectus quis leo tincidunt venenatis. Duis iaculis
-    tristique tempor. _Maecenas vestibulum_ vehicula dui.
+    tristique tempor. _Maecenas vestibulum_ vehicula dui:
+    [objecthub.com](https://objecthub.com).
     
     ## Considering More Options
     
