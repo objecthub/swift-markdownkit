@@ -1,9 +1,9 @@
 //
-//  MarkdownKit.h
-//  MarkdownKit
+//  MarkdownViewerApp.swift
+//  MarkdownViewer
 //
-//  Created by Matthias Zenger on 03/05/2019.
-//  Copyright © 2019 Google LLC.
+//  Created by Matthias Zenger on 01/03/2026.
+//  Copyright © 2026 Matthias Zenger. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,14 +18,13 @@
 //  limitations under the License.
 //
 
-#import <Cocoa/Cocoa.h>
+import SwiftUI
 
-//! Project version number for MarkdownKit.
-FOUNDATION_EXPORT double MarkdownKitVersionNumber;
-
-//! Project version string for MarkdownKit.
-FOUNDATION_EXPORT const unsigned char MarkdownKitVersionString[];
-
-// In this header, you should import all the public headers of your framework using statements like #import <MarkdownKit/PublicHeader.h>
-
-
+@main
+struct MarkdownViewerApp: App {
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
+    }
+  }
+}
