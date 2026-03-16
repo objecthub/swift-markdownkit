@@ -45,8 +45,24 @@ open class AttributedStringGenerator {
     public static let tightLists = Options(rawValue: 1 << 0)
   }
   
+  /// Version of the attributed string generator
+  public enum Version {
+    case preOS26
+    case OS26
+    
+    public func makeHtmlGenerator(for generator: AttributedStringGenerator) -> HtmlGenerator {
+      switch self {
+        case .preOS26:
+          return InternalHtmlGenerator(outer: generator)
+        case .OS26:
+          return OS26HtmlGenerator(outer: generator)
+      }
+    }
+  }
+  
   /// Customized html generator to work around limitations of the current HTML to
-  /// `NSAttributedString` conversion logic provided by the operating system.
+  /// `NSAttributedString` conversion logic provided by the operating system. This
+  /// should be used prior to macOS 26 and iOS 26
   open class InternalHtmlGenerator: HtmlGenerator {
     var outer: AttributedStringGenerator
     
@@ -163,9 +179,60 @@ open class AttributedStringGenerator {
       }
     }
   }
+  
+  /// Customized html generator to work around limitations of the current HTML to
+  /// `NSAttributedString` conversion logic provided by the operating system. This
+  /// should be used starting macOS 26 and iOS 26.
+  open class OS26HtmlGenerator: InternalHtmlGenerator {
+    open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
+      switch block {
+        case .list(let start, let tight, let blocks):
+          if case .block(.listItem(_, _, _), _) = parent {
+            let clazz = start == nil ? "uln" : "oln"
+            return "<table class=\"\(clazz)\"><tbody>\n" +
+                   self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
+                   "</tbody></table>\n"
+          } else {
+            let clazz = start == nil ? "ult" : "olt"
+            return "<table class=\"\(clazz)\"><tbody>\n" +
+                   self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
+                   "</tbody></table><p class=\"spc\"></p>\n"
+          }
+        case .listItem(.ordered(let n, let ch), _, let blocks):
+          if tight, let text = blocks.text {
+            return "<tr class=\"srow\">" +
+                   "<td class=\"lnumber\">\(n)\(ch)</td>" +
+                   "<td class=\"sitem\">\(self.generate(text: text))</td></tr>\n"
+          } else {
+            return "<tr class=\"crow\">" +
+                   "<td class=\"lnumber\">\(n)\(ch)</td>" +
+                   "<td class=\"citem\">" +
+                   self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
+                   "</td></tr>\n"
+          }
+        case .listItem(_, _, let blocks):
+          if tight, let text = blocks.text {
+            return "<tr class=\"srow\">" +
+                   "<td class=\"lbullet\"><b>•</b></td>" +
+                   "<td class=\"sitem\">\(self.generate(text: text))</td></tr>\n"
+          } else {
+            return "<tr class=\"crow\">" +
+                   "<td class=\"lbullet\"><b>•</b></td>" +
+                   "<td class=\"citem\">" +
+                   self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
+                   "</td></tr>\n"
+          }
+        default:
+          return super.generate(block: block, parent: parent, tight: tight)
+      }
+    }
+  }
 
   /// Default `AttributedStringGenerator` implementation.
   public static let standard: AttributedStringGenerator = AttributedStringGenerator()
+  
+  /// The generator version used.
+  public let version: Version
   
   /// The generator options.
   public let options: Options
@@ -227,9 +294,9 @@ open class AttributedStringGenerator {
   /// If provided, this URL is used as a base URL for relative image links
   public let imageBaseUrl: URL?
   
-  
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
-  public init(options: Options = [],
+  public init(version: Version? = nil,
+              options: Options = [],
               fontSize: Float = 14.0,
               fontFamily: String = "\"Times New Roman\",Times,serif",
               fontColor: String = mdDefaultColor,
@@ -250,6 +317,13 @@ open class AttributedStringGenerator {
               maxImageHeight: String? = nil,
               customStyle: String = "",
               imageBaseUrl: URL? = nil) {
+    if let version {
+      self.version = version
+    } else if #available(iOS 26, macOS 26, watchOS 26, tvOS 26, visionOS 26, macCatalyst 26, *) {
+      self.version = .OS26
+    } else {
+      self.version = .preOS26
+    }
     self.options = options
     self.fontSize = fontSize
     self.fontFamily = fontFamily
@@ -299,7 +373,7 @@ open class AttributedStringGenerator {
   }
   
   open var htmlGenerator: HtmlGenerator {
-    return InternalHtmlGenerator(outer: self)
+    return self.version.makeHtmlGenerator(for: self)
   }
   
   open func generateHtml(_ htmlBody: String) -> String {
@@ -327,15 +401,30 @@ open class AttributedStringGenerator {
            "ol               { \(self.olStyle) }\n" +
            "li               { \(self.liStyle) }\n" +
            "table.blockquote { \(self.blockquoteStyle) }\n" +
+           "table.ult        { \(self.ulStyle) }\n" +
+           "table.olt        { \(self.olStyle) }\n" +
+           "table.uln        { \(self.ulNestedStyle) }\n" +
+           "table.oln        { \(self.olNestedStyle) }\n" +
            "table.mtable     { \(self.tableStyle) }\n" +
            "table.mtable thead th { \(self.tableHeaderStyle) }\n" +
            "pre              { \(self.preStyle) }\n" +
            "code             { \(self.codeStyle) }\n" +
            "pre code         { \(self.preCodeStyle) }\n" +
+           "tr.srow          { \(self.simpleItemStyle) }\n" +
+           "tr.crow          { \(self.itemStyle) }\n" +
+           "td.lnumber       { \(self.numberStyle) }\n" +
+           "td.lbullet       { \(self.bulletStyle) }\n" +
+           "td.sitem         { \(self.simpleLiStyle) }\n" +
+           "td.citem         { \(self.liStyle) }\n" +
            "td.codebox       { \(self.codeBoxStyle) }\n" +
            "td.thematic      { \(self.thematicBreakStyle) }\n" +
            "td.quote         { \(self.quoteStyle) }\n" +
            "img              { \(self.imgStyle) }\n" +
+           "p.spc            {\n" +
+           "  font-size: \((self.fontSize / 2) + 1)px;\n" +
+           "  margin: 0em;\n" +
+           "  padding: 0em;\n" +
+           "}\n" +
            "dt {\n" +
            "  font-weight: bold;\n" +
            "  margin: 0.6em 0 0.4em 0;\n" +
@@ -378,22 +467,107 @@ open class AttributedStringGenerator {
   }
 
   open var pStyle: String {
-    return "margin: 0.7em 0;"
+    return "margin: 0.7em 0em;"
   }
 
   open var ulStyle: String {
-    return "margin: 0.7em 0;"
+    switch self.version {
+      case .preOS26:
+        return "margin: 0.7em 0em;"
+      case .OS26:
+        return "width: 100%;" +
+               "border-collapse: collapse;" +
+               "margin: 0em;" +
+               "padding: 0em;" +
+               "font-size: \(self.fontSize)px;"
+    }
+  }
+  
+  open var ulNestedStyle: String {
+    return "width: 100%;" +
+           "border-collapse: collapse;" +
+           "margin: 0em;" +
+           "padding: 0em;" +
+           "font-size: \(self.fontSize)px;"
   }
 
   open var olStyle: String {
-    return "margin: 0.7em 0;"
+    switch self.version {
+      case .preOS26:
+        return "margin: 0.7em 0em;"
+      case .OS26:
+        return "width: 100%;" +
+               "border-collapse: collapse;" +
+               "margin: 0em;" +
+               "padding: 0em;" +
+               "font-size: \(self.fontSize)px;"
+    }
   }
 
+  open var olNestedStyle: String {
+    return "width: 100%;" +
+           "border-collapse: collapse;" +
+           "margin: 0em;" +
+           "padding: 0em;" +
+           "font-size: \(self.fontSize)px;"
+  }
+  
+  open var simpleItemStyle: String {
+    return """
+      width: 100%;
+    """
+  }
+  
+  open var itemStyle: String {
+    return """
+      width: 100%;
+    """
+  }
+  
+  open var bulletStyle: String {
+    return """
+      width: 2em;
+      padding: 0em 0.8em;
+      vertical-align: top;
+      text-align: center;
+    """
+  }
+  
+  open var numberStyle: String {
+    return """
+      width: 4em;
+      padding: 0em 0.4em 0em 0em;
+      vertical-align: top;
+      text-align: right;
+    """
+  }
+  
+  open var simpleLiStyle: String {
+    return """
+      margin: 0em;
+      padding: 0em 0em 0.2em 0em;
+      vertical-align: top;
+      text-align: left;
+    """
+  }
+  
   open var liStyle: String {
-    return "margin-left: 0.25em;" +
-           "margin-bottom: 0.1em;"
+    switch self.version {
+      case .preOS26:
+        return """
+          margin-left: 0.25em;
+          margin-bottom: 0.1em;
+        """
+      case .OS26:
+        return """
+          margin: 0em;
+          padding: 0em 0em 0.6em 0em;
+          vertical-align: top;
+          text-align: left;
+        """
+    }
   }
-
+  
   open var preStyle: String {
     return "background: \(self.codeBlockBackground);"
   }
@@ -455,7 +629,7 @@ open class AttributedStringGenerator {
   }
   
   open var tableHeaderStyle: String {
-    return "border-top: 1px solid #888;"
+    return "border-bottom: 1px solid #aaa;"
   }
   
   open var tableCellPadding: Int {

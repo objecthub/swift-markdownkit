@@ -31,6 +31,7 @@ struct ContentView: View {
     Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
     ligula. Mauris et orci ut lectus convallis euismod. _Mauris_
     vitae purus congue, finibus tellus nec, lacinia felis.
+    
     Etiam eget lectus quis leo tincidunt venenatis. Duis iaculis
     tristique tempor. _Maecenas vestibulum_ vehicula dui:
     [objecthub.com](https://objecthub.com).
@@ -94,6 +95,21 @@ struct ContentView: View {
     nulla, et pharetra nisi diam id nisi. Nam nunc purus, condimentum
     vitae risus tempor, gravida faucibus dolor. Fusce facilisis nisi
     erat, et cursus justo dignissim sed.
+    
+    ## Conclusion
+    
+    ### Represented as a Table
+    
+    | Column 1     | Column 2       | Column 3 |
+    | ------------ | -------------- | :------: |
+    | This text \
+      is very long | More `cell` text | One |
+    | Last **line**    | Last cell      | Two |
+    | Ok one more to go | And this also | Three |
+    
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
+    ligula. Mauris et orci ut lectus convallis euismod.
     """)
   
   var body: some View {
