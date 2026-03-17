@@ -100,16 +100,20 @@ struct ContentView: View {
     
     ### Represented as a Table
     
-    | Column 1     | Column 2       | Column 3 |
+    | Column 1     | Column 2       | Col 3 |
     | ------------ | -------------- | :------: |
     | This text \
       is very long | More `cell` text | One |
-    | Last **line**    | Last cell      | Two |
+    | Last **line**    | Last cell justo nec finibus. | Two |
     | Ok one more to go | And this also | Three |
     
     Lorem ipsum dolor sit amet, consectetur adipiscing elit.
     Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
     ligula. Mauris et orci ut lectus convallis euismod.
+    
+    ***
+    
+    This is the end.
     """)
   
   var body: some View {

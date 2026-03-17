@@ -45,6 +45,23 @@ open class AttributedStringGenerator {
     public static let tightLists = Options(rawValue: 1 << 0)
   }
   
+  /// Options for the rendering of table borders
+  public struct TableBorders: OptionSet {
+    public let rawValue: UInt
+    
+    public init(rawValue: UInt) {
+      self.rawValue = rawValue
+    }
+    
+    public static let header = TableBorders(rawValue: 1 << 0)
+    public static let top = TableBorders(rawValue: 1 << 1)
+    public static let bottom = TableBorders(rawValue: 1 << 2)
+    public static let left = TableBorders(rawValue: 1 << 3)
+    public static let right = TableBorders(rawValue: 1 << 4)
+    public static let rows = TableBorders(rawValue: 1 << 5)
+    public static let columns = TableBorders(rawValue: 1 << 6)
+  }
+  
   /// Version of the attributed string generator
   public enum Version {
     case preOS26
@@ -114,8 +131,7 @@ open class AttributedStringGenerator {
                 tagsuffix.append(" align=\"center\">")
             }
           }
-          var html = "<table class=\"mtable\" " +
-                     "cellpadding=\"\(self.outer.tableCellPadding)\"><thead><tr>\n"
+          var html = "<table class=\"mtable\"><thead><tr>\n"
           var i = 0
           for head in header {
             html += "<th\(tagsuffix[i])\(self.generate(text: head))&nbsp;</th>"
@@ -123,10 +139,10 @@ open class AttributedStringGenerator {
           }
           html += "\n</tr></thead><tbody>\n"
           for row in rows {
-            html += "<tr>"
+            html += "<tr class=\"mrow\">"
             i = 0
             for cell in row {
-              html += "<td\(tagsuffix[i])\(self.generate(text: cell))&nbsp;</td>"
+              html += "<td class=\"mcell\"\(tagsuffix[i])\(self.generate(text: cell))&nbsp;</td>"
               i += 1
             }
             html += "</tr>\n"
@@ -419,6 +435,8 @@ open class AttributedStringGenerator {
            "td.codebox       { \(self.codeBoxStyle) }\n" +
            "td.thematic      { \(self.thematicBreakStyle) }\n" +
            "td.quote         { \(self.quoteStyle) }\n" +
+           "td.mrow          { \(self.tableRowStyle) }\n" +
+           "td.mcell         { \(self.tableCellStyle) }\n" +
            "img              { \(self.imgStyle) }\n" +
            "p.spc            {\n" +
            "  font-size: \((self.fontSize / 2) + 1)px;\n" +
@@ -622,18 +640,103 @@ open class AttributedStringGenerator {
   }
   
   open var tableStyle: String {
-    return "border-collapse: collapse;" +
-           "margin: 0.3em 0;" +
-           "padding: 3px;" +
-           "font-size: \(self.fontSize)px;"
+    var res = "border-collapse: collapse;" +
+              "margin: 0.3em 0;" +
+              "padding: 3px;" +
+              "font-size: \(self.fontSize)px;\n"
+    let borders = self.tableBorders
+    if borders.contains(.top) {
+      res += "border-top: \(self.tableBorderSpec);\n"
+    }
+    if borders.contains(.bottom) {
+      res += "border-bottom: \(self.tableBorderSpec);\n"
+    }
+    if borders.contains(.left) {
+      res += "border-left: \(self.tableBorderSpec);\n"
+    }
+    if borders.contains(.right) {
+      res += "border-right: \(self.tableBorderSpec);\n"
+    }
+    return res
   }
   
   open var tableHeaderStyle: String {
-    return "border-bottom: 1px solid #aaa;"
+    let borders = self.tableBorders
+    var res = borders.contains(.header) ? "border-bottom: \(self.tableBorderSpec);\n" : ""
+    if borders.contains(.columns) {
+      res += "border-right: \(self.tableBorderSpec);\n"
+      res += "border-left: \(self.tableBorderSpec);\n"
+    }
+    if let rowPadding = self.tableHeaderPadding {
+      return res + "padding: \(rowPadding)px \(self.tableCellPadding)px;"
+    } else {
+      return res + "padding: \(self.tableCellPadding)px;"
+    }
+  }
+  
+  open var tableRowStyle: String {
+    if self.tableBorders.contains(.rows) {
+      return "border-bottom: \(self.tableBorderSpec);"
+    } else {
+      return ""
+    }
+  }
+  
+  open var tableCellStyle: String {
+    let borders = self.tableBorders
+    var res = ""
+    if borders.contains(.rows) {
+      res += "border-top: \(self.tableBorderSpec);\n"
+      res += "border-bottom: \(self.tableBorderSpec);\n"
+    }
+    if borders.contains(.columns) {
+      res += "border-right: \(self.tableBorderSpec);\n"
+      res += "border-left: \(self.tableBorderSpec);\n"
+    }
+    if let rowPadding = self.tableRowPadding {
+      return res +
+             "padding: \(rowPadding)px \(self.tableCellPadding)px;\n" +
+             "vertical-align: top;"
+    } else {
+      return res +
+             "padding: \(self.tableCellPadding)px;\n" +
+             "vertical-align: top;"
+    }
+  }
+  
+  open var tableBorders: TableBorders {
+    return .header
+  }
+  
+  open var tableBorderSpec: String {
+    return "1px solid #aaa"
+  }
+  
+  open var tableHeaderPadding: Int? {
+    switch self.version {
+      case .preOS26:
+        return nil
+      case .OS26:
+        return 4
+    }
+  }
+  
+  open var tableRowPadding: Int? {
+    switch self.version {
+      case .preOS26:
+        return nil
+      case .OS26:
+        return 3
+    }
   }
   
   open var tableCellPadding: Int {
-    return 2
+    switch self.version {
+      case .preOS26:
+        return 2
+      case .OS26:
+        return 6
+    }
   }
 }
 
