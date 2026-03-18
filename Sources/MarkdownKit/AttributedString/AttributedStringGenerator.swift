@@ -311,14 +311,13 @@ open class AttributedStringGenerator {
   public let imageBaseUrl: URL?
   
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
-  public init(version: Version? = nil,
+  public init(version: Version = .OS26,
               options: Options = [],
               fontSize: Float = 14.0,
-              fontFamily: String = "\"Times New Roman\",Times,serif",
+              fontFamily: String = "",
               fontColor: String = mdDefaultColor,
               codeFontSize: Float = 13.0,
-              codeFontFamily: String =
-                                "\"Consolas\",\"Andale Mono\",\"Courier New\",Courier,monospace",
+              codeFontFamily: String = "",
               codeFontColor: String = mdDefaultColor,
               codeBlockFontSize: Float = 12.0,
               codeBlockFontColor: String = mdDefaultColor,
@@ -333,19 +332,31 @@ open class AttributedStringGenerator {
               maxImageHeight: String? = nil,
               customStyle: String = "",
               imageBaseUrl: URL? = nil) {
-    if let version {
-      self.version = version
-    } else if #available(iOS 26, macOS 26, watchOS 26, tvOS 26, visionOS 26, macCatalyst 26, *) {
-      self.version = .OS26
-    } else {
-      self.version = .preOS26
-    }
+    self.version = version
     self.options = options
     self.fontSize = fontSize
-    self.fontFamily = fontFamily
+    if fontFamily.isEmpty {
+      switch version {
+        case .preOS26:
+          self.fontFamily = "\"Times New Roman\",Times,serif"
+        case .OS26:
+          self.fontFamily = "system-ui, -apple-system, 'Helvetica Neue', Helvetica, sans-serif"
+      }
+    } else {
+      self.fontFamily = fontFamily
+    }
     self.fontColor = fontColor
     self.codeFontSize = codeFontSize
-    self.codeFontFamily = codeFontFamily
+    if codeFontFamily.isEmpty {
+      switch version {
+        case .preOS26:
+          self.codeFontFamily = "Consolas, 'Andale Mono', 'Courier New', Courier, monospace"
+        case .OS26:
+          self.codeFontFamily = "'SF Mono', SFMono-Regular, ui-monospace, Menlo, Consolas, monospace"
+      }
+    } else {
+      self.codeFontFamily = codeFontFamily
+    }
     self.codeFontColor = codeFontColor
     self.codeBlockFontSize = codeBlockFontSize
     self.codeBlockFontColor = codeBlockFontColor

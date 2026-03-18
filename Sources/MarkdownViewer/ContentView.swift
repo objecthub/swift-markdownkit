@@ -105,7 +105,7 @@ struct ContentView: View {
     | This text \
       is very long | More `cell` text | One |
     | Last **line**    | Last cell justo nec finibus. | Two |
-    | Ok one more to go | And this also | Three |
+    | Ok one more | And this also | Three |
     
     Lorem ipsum dolor sit amet, consectetur adipiscing elit.
     Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
