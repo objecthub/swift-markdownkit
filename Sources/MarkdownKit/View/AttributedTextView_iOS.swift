@@ -10,9 +10,9 @@
 
 import UIKit
 import SwiftUI
-import MarkdownKit
 
-private struct AttributedTextView: UIViewRepresentable {
+@available(iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+struct AttributedTextView: UIViewRepresentable {
   let attributedText: NSAttributedString
   let availableWidth: CGFloat
   @Binding var contentHeight: CGFloat

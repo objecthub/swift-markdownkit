@@ -117,7 +117,7 @@ struct ContentView: View {
     """)
   
   var body: some View {
-    MarkdownText(text: self.content)
+    MarkdownText(self.content)
       .padding()
   }
 }

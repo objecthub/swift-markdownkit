@@ -23,6 +23,7 @@
 import AppKit
 import SwiftUI
 
+@available(macOS 14.0, *)
 struct AttributedTextView: NSViewRepresentable {
   let attributedText: NSAttributedString
   let availableWidth: CGFloat
