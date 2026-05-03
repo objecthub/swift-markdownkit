@@ -1,4 +1,4 @@
-// swift-tools-version:5.4
+// swift-tools-version:5.5
 //
 //  Package.swift
 //  MarkdownKit
@@ -13,7 +13,7 @@
 //  `swift test`
 //
 //  Created by Matthias Zenger on 09/08/2019.
-//  Copyright © 2019-2025 Google LLC.
+//  Copyright © 2019-2026 Google LLC.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -33,27 +33,42 @@ import PackageDescription
 let package = Package(
   name: "MarkdownKit",
   platforms: [
-    .macOS(.v10_12),
-    .iOS(.v13),
-    .tvOS(.v13),
-    .watchOS(.v6)
+    .macOS(.v11),
+    .iOS(.v15),
+    .tvOS(.v15),
+    .watchOS(.v8)
   ],
   products: [
-    .library(name: "MarkdownKit", targets: ["MarkdownKit"]),
-    .executable(name: "MarkdownKitProcess", targets: ["MarkdownKitProcess"])
+    .library(
+      name: "MarkdownKit",
+      targets: ["MarkdownKit"]
+    ),
+    .executable(
+      name: "MarkdownKitProcess",
+      targets: ["MarkdownKitProcess"]
+    )
   ],
   dependencies: [
+    .package(url: "https://github.com/objecthub/swift-commandlinekit.git", branch: "master")
   ],
   targets: [
-    .target(name: "MarkdownKit",
-            dependencies: [],
-            exclude: ["Info.plist"]),
-    .executableTarget(name: "MarkdownKitProcess",
-                      dependencies: ["MarkdownKit"],
-                      exclude: []),
-    .testTarget(name: "MarkdownKitTests",
-                dependencies: ["MarkdownKit"],
-                exclude: ["Info.plist"])
+    .target(
+      name: "MarkdownKit",
+      dependencies: [
+        .product(name: "CommandLineKit", package: "swift-commandlinekit")
+      ],
+      exclude: ["Info.plist"]
+    ),
+    .executableTarget(
+      name: "MarkdownKitProcess",
+      dependencies: ["MarkdownKit"],
+      exclude: []
+    ),
+    .testTarget(
+      name: "MarkdownKitTests",
+      dependencies: ["MarkdownKit"],
+      exclude: ["Info.plist"]
+    )
   ],
   swiftLanguageVersions: [.v5]
 )

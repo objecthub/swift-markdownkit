@@ -1,0 +1,15 @@
+{
+  "originHash" : "9ffde6580656bf76436f675d3a50d707e6f388d3d06a5188f8ddb4509d0311b4",
+  "pins" : [
+    {
+      "identity" : "swift-commandlinekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/objecthub/swift-commandlinekit",
+      "state" : {
+        "branch" : "master",
+        "revision" : "dad8d15a1924baa4b6395c1cfb9160ac84611778"
+      }
+    }
+  ],
+  "version" : 3
+}

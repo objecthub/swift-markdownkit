@@ -35,6 +35,7 @@
 		CC7B603D22AC6AD70092188C /* CodeLinkHtmlTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B603C22AC6AD70092188C /* CodeLinkHtmlTransformer.swift */; };
 		CC7B603F22AEFDFF0092188C /* ParserUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B603E22AEFDFF0092188C /* ParserUtil.swift */; };
 		CC7B604122B67F0C0092188C /* EmphasisTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B604022B67F0C0092188C /* EmphasisTransformer.swift */; };
+		CC7CCB8C2FA6A54F00C05C77 /* CommandLineKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC7CCB8B2FA6A54F00C05C77 /* CommandLineKit */; };
 		CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987F264B434F006950A7 /* CustomTextFragment.swift */; };
 		CC879881264B43C1006950A7 /* CustomBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987E264B431F006950A7 /* CustomBlock.swift */; };
 		CC8CBC17227F39C00084683B /* ListItemParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC16227F39C00084683B /* ListItemParser.swift */; };
@@ -173,6 +174,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC7CCB8C2FA6A54F00C05C77 /* CommandLineKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -443,7 +445,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2640;
 				ORGANIZATIONNAME = "Matthias Zenger";
 				TargetAttributes = {
 					CC2AF6E7227CD98100BEA420 = {
@@ -470,6 +472,9 @@
 				Base,
 			);
 			mainGroup = CC2AF6DE227CD98100BEA420;
+			packageReferences = (
+				CC7CCB8A2FA6A54F00C05C77 /* XCRemoteSwiftPackageReference "swift-commandlinekit" */,
+			);
 			productRefGroup = CC2AF6E9227CD98100BEA420 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -751,6 +756,7 @@
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "$(SRCROOT)/Sources/MarkdownKit/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -768,6 +774,8 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,4";
+				TVOS_DEPLOYMENT_TARGET = 15.6;
+				WATCHOS_DEPLOYMENT_TARGET = 8.7;
 			};
 			name = Debug;
 		};
@@ -788,6 +796,7 @@
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "$(SRCROOT)/Sources/MarkdownKit/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -804,6 +813,8 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,4";
+				TVOS_DEPLOYMENT_TARGET = 15.6;
+				WATCHOS_DEPLOYMENT_TARGET = 8.7;
 			};
 			name = Release;
 		};
@@ -1017,6 +1028,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CC7CCB8A2FA6A54F00C05C77 /* XCRemoteSwiftPackageReference "swift-commandlinekit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/objecthub/swift-commandlinekit";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CC7CCB8B2FA6A54F00C05C77 /* CommandLineKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CC7CCB8A2FA6A54F00C05C77 /* XCRemoteSwiftPackageReference "swift-commandlinekit" */;
+			productName = CommandLineKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CC2AF6DF227CD98100BEA420 /* Project object */;
 }

@@ -35,13 +35,29 @@ class MarkdownASTests: XCTestCase {
   func testSimpleNestedLists() {
     XCTAssertEqual(
       generateHtml("- Apple\n\t- Banana"),
-      "<ul>\n<li>Apple\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>\n<p style=\"margin: 0;\" />")
+      """
+      <table class="ult"><tbody>
+      <tr class="crow"><td class="lbullet"><b>•</b></td><td class="citem">Apple
+      <table class="uln"><tbody>
+      <tr class="srow"><td class="lbullet"><b>•</b></td><td class="sitem">Banana</td></tr>
+      </tbody></table>
+      </td></tr>
+      </tbody></table><p class="spc"></p>
+      """)
     XCTAssertEqual(
       AttributedStringGenerator(options: [.tightLists])
                .htmlGenerator
                .generate(doc: MarkdownParser.standard.parse("- Apple\n\t- Banana"))
                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
-      "<ul>\n<li>Apple\n<ul>\n<li>Banana</li>\n</ul>\n</li>\n</ul>\n<p style=\"margin: 0;\" />")
+      """
+      <table class="ult"><tbody>
+      <tr class="crow"><td class="lbullet"><b>•</b></td><td class="citem">Apple
+      <table class="uln"><tbody>
+      <tr class="srow"><td class="lbullet"><b>•</b></td><td class="sitem">Banana</td></tr>
+      </tbody></table>
+      </td></tr>
+      </tbody></table><p class="spc"></p>
+      """)
   }
   
   func testRelativeImageUrls() {

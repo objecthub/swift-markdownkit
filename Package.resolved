@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CommandLineKit",
+        "repositoryURL": "https://github.com/objecthub/swift-commandlinekit.git",
+        "state": {
+          "branch": "master",
+          "revision": "dad8d15a1924baa4b6395c1cfb9160ac84611778",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
