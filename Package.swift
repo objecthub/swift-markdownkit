@@ -61,7 +61,10 @@ let package = Package(
     ),
     .executableTarget(
       name: "MarkdownKitProcess",
-      dependencies: ["MarkdownKit"],
+      dependencies: [
+        "MarkdownKit",
+        .product(name: "CommandLineKit", package: "swift-commandlinekit")
+      ],
       exclude: []
     ),
     .testTarget(

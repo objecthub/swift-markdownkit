@@ -36,6 +36,8 @@
 		CC7B603F22AEFDFF0092188C /* ParserUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B603E22AEFDFF0092188C /* ParserUtil.swift */; };
 		CC7B604122B67F0C0092188C /* EmphasisTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7B604022B67F0C0092188C /* EmphasisTransformer.swift */; };
 		CC7CCB8C2FA6A54F00C05C77 /* CommandLineKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC7CCB8B2FA6A54F00C05C77 /* CommandLineKit */; };
+		CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */; };
+		CC7CCB962FA745F600C05C77 /* StringGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7CCB942FA745F600C05C77 /* StringGenerator.swift */; };
 		CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987F264B434F006950A7 /* CustomTextFragment.swift */; };
 		CC879881264B43C1006950A7 /* CustomBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987E264B431F006950A7 /* CustomBlock.swift */; };
 		CC8CBC17227F39C00084683B /* ListItemParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC16227F39C00084683B /* ListItemParser.swift */; };
@@ -138,6 +140,8 @@
 		CC7B603C22AC6AD70092188C /* CodeLinkHtmlTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeLinkHtmlTransformer.swift; sourceTree = "<group>"; };
 		CC7B603E22AEFDFF0092188C /* ParserUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserUtil.swift; sourceTree = "<group>"; };
 		CC7B604022B67F0C0092188C /* EmphasisTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmphasisTransformer.swift; sourceTree = "<group>"; };
+		CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringGeneratorTests.swift; sourceTree = "<group>"; };
+		CC7CCB942FA745F600C05C77 /* StringGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringGenerator.swift; sourceTree = "<group>"; };
 		CC87987E264B431F006950A7 /* CustomBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomBlock.swift; sourceTree = "<group>"; };
 		CC87987F264B434F006950A7 /* CustomTextFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextFragment.swift; sourceTree = "<group>"; };
 		CC8CBC16227F39C00084683B /* ListItemParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListItemParser.swift; sourceTree = "<group>"; };
@@ -262,6 +266,7 @@
 				CC088C0A22DB74090059460E /* TextFragment.swift */,
 				CC87987F264B434F006950A7 /* CustomTextFragment.swift */,
 				CC8CBC1A22862F4F0084683B /* Parser */,
+				CC7CCB952FA745F600C05C77 /* String */,
 				CC088C0C22DD2B960059460E /* HTML */,
 				CC088C0D22DD2BA70059460E /* AttributedString */,
 				CC321DFE2F69C1A40094C57A /* View */,
@@ -283,6 +288,7 @@
 				CC8D559C24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift */,
 				CC55DD87264B19D8001AAD10 /* MarkdownExtension.swift */,
 				CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */,
+				CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */,
 				CCC48C1425D9D81000D082AD /* LinuxMain.swift */,
 				CC2AF6F8227CD98100BEA420 /* Info.plist */,
 			);
@@ -314,6 +320,14 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		CC7CCB952FA745F600C05C77 /* String */ = {
+			isa = PBXGroup;
+			children = (
+				CC7CCB942FA745F600C05C77 /* StringGenerator.swift */,
+			);
+			path = String;
 			sourceTree = "<group>";
 		};
 		CC8CBC1A22862F4F0084683B /* Parser */ = {
@@ -538,6 +552,7 @@
 				CC6DE38E24C4865E004F8D44 /* ExtendedDocumentParser.swift in Sources */,
 				CCD0746A22A324400053B73C /* InlineTransformer.swift in Sources */,
 				CC7B603B22AC6AB40092188C /* DelimiterTransformer.swift in Sources */,
+				CC7CCB962FA745F600C05C77 /* StringGenerator.swift in Sources */,
 				CCD0746822A060CF0053B73C /* Text.swift in Sources */,
 				CC321DFF2F69C2020094C57A /* MarkdownText.swift in Sources */,
 				CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */,
@@ -564,6 +579,7 @@
 				CC7B603922AC67DC0092188C /* MarkdownInlineTests.swift in Sources */,
 				CC24757324C1EBB600678C59 /* ExtendedMarkdownBlockTests.swift in Sources */,
 				CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */,
+				CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */,
 				CC55DD88264B19D8001AAD10 /* MarkdownExtension.swift in Sources */,
 				CC088C2422E337BD0059460E /* MarkdownHtmlTests.swift in Sources */,
 				CCC48C0425D98FCB00D082AD /* MarkdownStringTests.swift in Sources */,
