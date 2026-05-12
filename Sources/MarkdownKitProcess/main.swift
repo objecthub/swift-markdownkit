@@ -22,6 +22,12 @@ import Foundation
 import MarkdownKit
 import CommandLineKit
 
+enum OutputFormat {
+  case html
+  case text
+  case rich
+}
+
 // This is a command-line tool for converting a text file in Markdown format into
 // HTML. The tool also allows converting a whole folder of Markdown files into HTML.
 
@@ -64,13 +70,15 @@ guard CommandLine.arguments.count > 1 && CommandLine.arguments.count < 5 else {
   exit(0)
 }
 
-var htmlOutput: Bool = true
+var format: OutputFormat = .html
 
 switch CommandLine.arguments[1] {
   case "html":
-    htmlOutput = true
+    format = .html
   case "text":
-    htmlOutput = false
+    format = .text
+  case "rich":
+    format = .rich
   default:
     print("unknown format: \(CommandLine.arguments[1])")
 }
@@ -114,10 +122,18 @@ if CommandLine.arguments.count == 3 {
 for (sourceUrl, optTargetUrl) in sourceTarget {
   if let textContent = try? String(contentsOf: sourceUrl) {
     let markdownContent = ExtendedMarkdownParser.standard.parse(textContent)
-    let output = htmlOutput
-               ? HtmlGenerator.standard.generate(doc: markdownContent)
-               : StringGenerator(numColumns: 80) // Terminal.size?.columns ?? 80)
-                   .generate(doc: markdownContent)
+    let output: String
+    switch format {
+      case .html:
+        output = HtmlGenerator.standard.generate(doc: markdownContent)
+      case .text:
+        output = StringGenerator(numColumns: 80) // Terminal.size?.columns ?? 80)
+                  .generate(doc: markdownContent)
+      case .rich:
+        output = TerminalGenerator(numColumns: 80) // Terminal.size?.columns ?? 80)
+                  .generate(doc: markdownContent)
+                  .encodedString
+    }
     if let targetUrl = optTargetUrl {
       if fileManager.fileExists(atPath: targetUrl.path) {
         print("cannot overwrite target file '\(targetUrl.path)'")

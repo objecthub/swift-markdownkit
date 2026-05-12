@@ -38,6 +38,7 @@
 		CC7CCB8C2FA6A54F00C05C77 /* CommandLineKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC7CCB8B2FA6A54F00C05C77 /* CommandLineKit */; };
 		CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */; };
 		CC7CCB962FA745F600C05C77 /* StringGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7CCB942FA745F600C05C77 /* StringGenerator.swift */; };
+		CC8649852FAFF94E00DEB33E /* TerminalGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */; };
 		CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987F264B434F006950A7 /* CustomTextFragment.swift */; };
 		CC879881264B43C1006950A7 /* CustomBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987E264B431F006950A7 /* CustomBlock.swift */; };
 		CC8CBC17227F39C00084683B /* ListItemParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC16227F39C00084683B /* ListItemParser.swift */; };
@@ -47,6 +48,8 @@
 		CC8CBC2322884F940084683B /* SetextHeadingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC2222884F940084683B /* SetextHeadingParser.swift */; };
 		CC8CBC25228898B00084683B /* HtmlBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC24228898B00084683B /* HtmlBlockParser.swift */; };
 		CC8D559D24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8D559C24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift */; };
+		CCA2A4BD2FB3CAD600A8B92E /* GeneratorContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */; };
+		CCA2A4BF2FB3CB5500A8B92E /* TableDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */; };
 		CCB033CF227CDB2F00E1C4DC /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */; };
 		CCB033D0227CDB2F00E1C4DC /* AtxHeadingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C8227CDB2F00E1C4DC /* AtxHeadingParser.swift */; };
 		CCB033D1227CDB2F00E1C4DC /* CodeBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C9227CDB2F00E1C4DC /* CodeBlockParser.swift */; };
@@ -142,6 +145,7 @@
 		CC7B604022B67F0C0092188C /* EmphasisTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmphasisTransformer.swift; sourceTree = "<group>"; };
 		CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringGeneratorTests.swift; sourceTree = "<group>"; };
 		CC7CCB942FA745F600C05C77 /* StringGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringGenerator.swift; sourceTree = "<group>"; };
+		CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalGenerator.swift; sourceTree = "<group>"; };
 		CC87987E264B431F006950A7 /* CustomBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomBlock.swift; sourceTree = "<group>"; };
 		CC87987F264B434F006950A7 /* CustomTextFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextFragment.swift; sourceTree = "<group>"; };
 		CC8CBC16227F39C00084683B /* ListItemParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListItemParser.swift; sourceTree = "<group>"; };
@@ -151,6 +155,8 @@
 		CC8CBC2222884F940084683B /* SetextHeadingParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SetextHeadingParser.swift; sourceTree = "<group>"; };
 		CC8CBC24228898B00084683B /* HtmlBlockParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HtmlBlockParser.swift; sourceTree = "<group>"; };
 		CC8D559C24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExtendedMarkdownHtmlTests.swift; sourceTree = "<group>"; };
+		CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorContext.swift; sourceTree = "<group>"; };
+		CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableDescriptor.swift; sourceTree = "<group>"; };
 		CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
 		CCB033C8227CDB2F00E1C4DC /* AtxHeadingParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AtxHeadingParser.swift; sourceTree = "<group>"; };
 		CCB033C9227CDB2F00E1C4DC /* CodeBlockParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CodeBlockParser.swift; sourceTree = "<group>"; };
@@ -325,7 +331,10 @@
 		CC7CCB952FA745F600C05C77 /* String */ = {
 			isa = PBXGroup;
 			children = (
+				CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */,
+				CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */,
 				CC7CCB942FA745F600C05C77 /* StringGenerator.swift */,
+				CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */,
 			);
 			path = String;
 			sourceTree = "<group>";
@@ -459,7 +468,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 2650;
 				ORGANIZATIONNAME = "Matthias Zenger";
 				TargetAttributes = {
 					CC2AF6E7227CD98100BEA420 = {
@@ -545,6 +554,7 @@
 				CCB033D6227CDB2F00E1C4DC /* DocumentParser.swift in Sources */,
 				CC321E012F69C20B0094C57A /* AttributedTextView_macOS.swift in Sources */,
 				CCD07466229FDFB90053B73C /* InlineParser.swift in Sources */,
+				CCA2A4BF2FB3CB5500A8B92E /* TableDescriptor.swift in Sources */,
 				CCB033D4227CDB2F00E1C4DC /* Block.swift in Sources */,
 				CC8CBC25228898B00084683B /* HtmlBlockParser.swift in Sources */,
 				CC088C0F22DD2BCD0059460E /* HtmlGenerator.swift in Sources */,
@@ -554,6 +564,7 @@
 				CC7B603B22AC6AB40092188C /* DelimiterTransformer.swift in Sources */,
 				CC7CCB962FA745F600C05C77 /* StringGenerator.swift in Sources */,
 				CCD0746822A060CF0053B73C /* Text.swift in Sources */,
+				CCA2A4BD2FB3CAD600A8B92E /* GeneratorContext.swift in Sources */,
 				CC321DFF2F69C2020094C57A /* MarkdownText.swift in Sources */,
 				CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */,
 				CC879881264B43C1006950A7 /* CustomBlock.swift in Sources */,
@@ -567,6 +578,7 @@
 				CC8CBC1F2286CED60084683B /* Blocks.swift in Sources */,
 				CC7B603F22AEFDFF0092188C /* ParserUtil.swift in Sources */,
 				CCB033D0227CDB2F00E1C4DC /* AtxHeadingParser.swift in Sources */,
+				CC8649852FAFF94E00DEB33E /* TerminalGenerator.swift in Sources */,
 				CC6DE38C24C48483004F8D44 /* ExtendedListItemParser.swift in Sources */,
 				CC7B604122B67F0C0092188C /* EmphasisTransformer.swift in Sources */,
 			);
