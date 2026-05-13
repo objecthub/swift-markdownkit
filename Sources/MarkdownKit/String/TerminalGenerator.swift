@@ -617,7 +617,7 @@ open class TerminalGenerator {
             alignment = .center
         }
         line.append(contentsOf: lineText.tokenize()
-          .joined(separator: " ", maxWidth: stat.maxWidth, align: alignment, fill: TextProperties.none))
+          .joined(separator: " ", maxWidth: stat.maxWidth, align: alignment, fill: TextProperties.empty))
       }
       result.append(line)
       // 2. Separator row
@@ -652,7 +652,7 @@ open class TerminalGenerator {
               alignment = .center
           }
           line.append(contentsOf: lineText.tokenize()
-            .joined(separator: " ", maxWidth: stat.maxWidth, align: alignment, fill: TextProperties.none))
+            .joined(separator: " ", maxWidth: stat.maxWidth, align: alignment, fill: TextProperties.empty))
         }
         result.append(line)
       }
@@ -740,7 +740,7 @@ open class TerminalGenerator {
                 bar: Character = "│",
                 barProperties: TextProperties = .grey,
                 headerProperties: TextProperties = TextProperties(textColor: .grey, textStyles: [.bold, .italic]),
-                rowProperties: TextProperties = .none) {
+                rowProperties: TextProperties = .empty) {
       self.topDelimiter = topDelimiter
       self.bottomDelimiter = bottomDelimiter
       self.headerSeparator = headerSeparator
@@ -805,7 +805,7 @@ open class TerminalGenerator {
                         height: Int,
                         header: Bool = false,
                         columnWidths: [Int],
-                        fill: TextProperties = .none,
+                        fill: TextProperties = .empty,
                         insertInto result: inout [AnsiText.Normalized]) {
       for linei in 0..<height {
         var line = self.bar
@@ -824,7 +824,7 @@ open class TerminalGenerator {
               alignment = .center
           }
           line.append(contentsOf: lineText.tokenize()
-            .joined(separator: " ", maxWidth: width, align: alignment, fill: TextProperties.none)
+            .joined(separator: " ", maxWidth: width, align: alignment, fill: TextProperties.empty)
             .map { text in text.applying(properties: fill, override: false)})
           line.append(self.spaceBar)
         }
