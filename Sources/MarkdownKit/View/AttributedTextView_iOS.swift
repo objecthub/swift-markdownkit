@@ -6,7 +6,7 @@
 //  Copyright © 2026 Matthias Zenger. All rights reserved.
 //
 
-#if os(iOS) || os(watchOS) || os(tvOS)
+#if os(iOS)
 
 import UIKit
 import SwiftUI

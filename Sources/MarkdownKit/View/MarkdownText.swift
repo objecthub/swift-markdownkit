@@ -18,6 +18,8 @@
 //  limitations under the License.
 //
 
+#if os(iOS) || os(macOS)
+
 import SwiftUI
 
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
@@ -104,3 +106,5 @@ public struct MarkdownText: View {
     }
   }
 }
+
+#endif
