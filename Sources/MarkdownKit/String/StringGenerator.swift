@@ -39,6 +39,11 @@ open class StringGenerator {
   /// The maximum number of columns to output (the width of the document).
   public let numColumns: Int
   
+  /// If `alignDisplayWidth` is set to true, the display width of characters is
+  /// considered for aligning text; otherwise, each character is considered to have
+  /// width 1 (i.e. one character = one column).
+  public let alignDisplayWidth: Bool
+  
   /// Plugins for rendering tables. The first renderer that returns a result
   /// determines what the output will be.
   public let tableRenderers: [TableRenderer]
@@ -47,16 +52,43 @@ open class StringGenerator {
   public static let standard = StringGenerator(numColumns: 80)
   
   /// Initialize with a specific column width
-  public init(numColumns: Int = 80, tableRenderers: [TableRenderer]? = nil) {
+  public init(numColumns: Int = 80,
+              alignDisplayWidth: Bool = true,
+              tableRenderers: [TableRenderer]? = nil) {
     self.numColumns = numColumns
+    self.alignDisplayWidth = alignDisplayWidth
     if let tableRenderers {
       self.tableRenderers = tableRenderers
     } else {
       self.tableRenderers = [
-        MinimalisticTableRenderer(),
-        FullTableRenderer()
+        MinimalisticTableRenderer(alignDisplayWidth: alignDisplayWidth),
+        FullTableRenderer(alignDisplayWidth: alignDisplayWidth)
       ]
     }
+  }
+  
+  /// Returns the display width of the given string.
+  open func displayWidth(of string: String) -> Int {
+    if self.alignDisplayWidth {
+      return string.terminalDisplayWidth
+    } else {
+      return string.count
+    }
+  }
+  
+  /// Returns the display width of the given string.
+  open func displayWidth(of string: String?, default: Int) -> Int {
+    if self.alignDisplayWidth {
+      return string?.terminalDisplayWidth ?? `default`
+    } else {
+      return string?.count ?? `default`
+    }
+  }
+  
+  /// Returns the display width for the given array of lines.
+  open func displayWidth(of lines: [String]) -> Int {
+    return self.displayWidth(of: lines.max(by: { self.displayWidth(of: $0) <
+                                                 self.displayWidth(of: $1) }), default: 0)
   }
   
   /// `generate` takes a block representing a Markdown document and returns a corresponding
@@ -117,7 +149,7 @@ open class StringGenerator {
         let lines = self.generate(blocks: blocks,
                                   context: context.new(parent: block,
                                                        tight: false,
-                                                       indent: indent.count))
+                                                       indent: self.displayWidth(of: indent)))
                         .map { line in indent + line }
         return lines
       case .list(let start, let tight, let blocks):
@@ -127,7 +159,7 @@ open class StringGenerator {
                                     parent: block,
                                     tight: tight,
                                     itemIndent: start != nil ? (blocks.count > 9 ? 4 : 3) : 2,
-                                    indent: indent.count))
+                                    indent: self.displayWidth(of: indent)))
                         .map { line in indent + line }
         return lines
       case .listItem(let type, let density, let blocks):
@@ -137,7 +169,7 @@ open class StringGenerator {
         let lines = self.generate(blocks: blocks,
                                   context: context.new(parent: block,
                                                        tight: density.isTight,
-                                                       indent: prefix.count))
+                                                       indent: self.displayWidth(of: prefix)))
         var result: [String] = []
         for (index, line) in lines.enumerated() {
           result.append((index == 0 ? prefix : indent) + line)
@@ -148,12 +180,13 @@ open class StringGenerator {
       case .heading(let level, let text):
         if let ch = self.headingUnderlineCharacter(level: level) {
           var lines = self.generate(text: text, maxColumns: context.maxColumns)
-          lines.append(String(repeating: ch, count: self.width(of: lines)))
+          lines.append(String(repeating: ch, count: self.displayWidth(of: lines)))
           return lines
         } else {
           let indent = String(repeating: self.headingUnderlineCharacter(level: 0) ?? "#",
                               count: level) + " "
-          let lines = self.generate(text: text, maxColumns: context.maxColumns - indent.count)
+          let lines = self.generate(text: text,
+                                    maxColumns: context.maxColumns - self.displayWidth(of: indent))
           return lines.map { line in indent + line }
         }
       case .indentedCode(let lines):
@@ -169,7 +202,7 @@ open class StringGenerator {
         var result: [String] = []
         if let lang {
           let suffix = " \(lang) ╌╌╌"
-          result.append(String(repeating: "╌", count: context.maxColumns - suffix.count) + suffix)
+          result.append(String(repeating: "╌", count: context.maxColumns - self.displayWidth(of: suffix)) + suffix)
         } else {
           result.append(String(repeating: "╌", count: context.maxColumns))
         }
@@ -199,7 +232,7 @@ open class StringGenerator {
         let (termPrefix, defPrefix) = self.definitionPrefix(definitions: defs, context: context)
         let indent = self.definitionIndent(definitions: defs, context: context)
         let defIndent = defPrefix + indent
-        let lineIndent = defPrefix + String(repeating: " ", count: indent.count)
+        let lineIndent = defPrefix + String(repeating: " ", count: self.displayWidth(of: indent))
         var result: [String] = []
         var first = true
         for def in defs {
@@ -210,7 +243,9 @@ open class StringGenerator {
           let term = self.generate(text: def.item, maxColumns: context.maxColumns - 1)
                          .map { line in termPrefix + line }
           result.append(contentsOf: term)
-          let defContext = context.new(parent: block, tight: true, indent: defIndent.count)
+          let defContext = context.new(parent: block,
+                                       tight: true,
+                                       indent: self.displayWidth(of: defIndent))
           for descr in def.descriptions {
             if case .listItem(_, _, let blocks) = descr {
               let lines = self.generate(blocks: blocks, context: defContext)
@@ -300,9 +335,7 @@ open class StringGenerator {
     let rowLines = rows.map { row in row.map { cell in self.generate(text: cell) } }
     // Calculate the maximum and minimum column widths
     var numWords: [Int] = []
-    var columnWidths = headerLines.map {
-      lines in lines.max(by: { $0.count < $1.count })?.count ?? 0
-    }
+    var columnWidths = headerLines.map { lines in self.displayWidth(of: lines) }
     var minWidths: [Int] = []
     for lines in headerLines {
       var width = 0
@@ -310,7 +343,7 @@ open class StringGenerator {
       for line in lines {
         let words = self.tokenize(line)
         wordcount += words.count
-        width = max(width, words.max(by: { $0.count < $1.count })?.count ?? 0)
+        width = max(width, self.displayWidth(of: words))
       }
       numWords.append(wordcount)
       minWidths.append(width)
@@ -322,8 +355,7 @@ open class StringGenerator {
           columnWidths.append(0)
         }
         // Compute new maximum width
-        columnWidths[index] = max(columnWidths[index],
-                                  lines.max(by: { $0.count < $1.count })?.count ?? 0)
+        columnWidths[index] = max(columnWidths[index], self.displayWidth(of: lines))
         // Expand `minWidths` as needed
         while index >= minWidths.count {
           minWidths.append(0)
@@ -337,7 +369,7 @@ open class StringGenerator {
         for line in lines {
           let words = self.tokenize(line)
           wordcount += words.count
-          width = max(width, words.max(by: { $0.count < $1.count })?.count ?? 0)
+          width = max(width, self.displayWidth(of: words))
         }
         numWords[index] += wordcount
         minWidths[index] = max(minWidths[index], width)
@@ -362,7 +394,7 @@ open class StringGenerator {
     for word in words {
       if currentLine.isEmpty {
         currentLine = word
-      } else if currentLine.count + 1 + word.count <= maxColumns {
+      } else if self.displayWidth(of: currentLine) + 1 + self.displayWidth(of: word) <= maxColumns {
         currentLine += " " + word
       } else {
         lines.append(currentLine)
@@ -375,14 +407,6 @@ open class StringGenerator {
     return lines
   }
   
-  public func width(of lines: [String]) -> Int {
-    var width = 0
-    for line in lines {
-      width = max(width, line.count)
-    }
-    return width
-  }
-    
   open func newContext(doc: Block, maxColumns: Int) -> GeneratorContext {
     return GeneratorContext(doc: doc, maxColumns: maxColumns)
   }
@@ -426,8 +450,8 @@ open class StringGenerator {
       case .ordered(let num, let ch):
         prefix = "\(num)\(ch) "
     }
-    let columns = columns ?? prefix.count
-    return (String(repeating: " ", count: max(columns - prefix.count, 0)) + prefix,
+    let columns = columns ?? self.displayWidth(of: prefix)
+    return (String(repeating: " ", count: max(columns - self.displayWidth(of: prefix), 0)) + prefix,
             String(repeating: " ", count: max(columns, 2)))
   }
   
@@ -454,6 +478,12 @@ open class StringGenerator {
   ///       3 │   Leonie Schmid    │ 19/12/1986
   ///  
   public class MinimalisticTableRenderer: TableRenderer {
+    let alignDisplayWidth: Bool
+    
+    public init(alignDisplayWidth: Bool) {
+      self.alignDisplayWidth = alignDisplayWidth
+    }
+    
     open func renderTable(_ descriptor: TableDescriptor,
                           using generate: (Text, Int) -> [String],
                           in context: GeneratorContext) -> [String]? {
@@ -481,7 +511,8 @@ open class StringGenerator {
                                to: stat.maxWidth,
                                with: " ",
                                at: coli,
-                               inHeader: true)
+                               inHeader: true,
+                               alignDisplayWidth: self.alignDisplayWidth)
       }
       result.append(line)
       // 2. Separator row
@@ -503,7 +534,11 @@ open class StringGenerator {
             line += " │ "
           }
           let lineText = coli < row.count ? row[coli] : ""
-          line += descriptor.pad(string: lineText, to: stat.maxWidth, with: " ", at: coli)
+          line += descriptor.pad(string: lineText,
+                                 to: stat.maxWidth,
+                                 with: " ",
+                                 at: coli,
+                                 alignDisplayWidth: self.alignDisplayWidth)
         }
         result.append(line)
       }
@@ -567,17 +602,20 @@ open class StringGenerator {
     let headerSeparator: Delimiter
     let rowSeparator: Delimiter
     let bar: Character
+    let alignDisplayWidth: Bool
     
     init(topDelimiter: Delimiter = Delimiter(left: "┌", right: "┐", mid: "┬", line: "─"),
          bottomDelimiter: Delimiter = Delimiter(left: "└", right: "┘", mid: "┴", line: "─"),
          headerSeparator: Delimiter = Delimiter(left: "╞", right: "╡", mid: "╪", line: "═"),
          rowSeparator: Delimiter = Delimiter(left: "├", right: "┤", mid: "┼", line: "─"),
-         bar: Character = "│") {
+         bar: Character = "│",
+         alignDisplayWidth: Bool) {
       self.topDelimiter = topDelimiter
       self.bottomDelimiter = bottomDelimiter
       self.headerSeparator = headerSeparator
       self.rowSeparator = rowSeparator
       self.bar = bar
+      self.alignDisplayWidth = alignDisplayWidth
     }
     
     open func renderTable(_ descriptor: TableDescriptor,
@@ -642,7 +680,8 @@ open class StringGenerator {
                                  to: width,
                                  with: " ",
                                  at: coli,
-                                 inHeader: header)
+                                 inHeader: header,
+                                 alignDisplayWidth: self.alignDisplayWidth)
           line += " \(self.bar)"
         }
         result.append(line)

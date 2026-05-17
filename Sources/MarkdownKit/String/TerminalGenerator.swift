@@ -190,7 +190,7 @@ open class TerminalGenerator {
         let lines = self.generate(blocks: blocks,
                                   context: context.new(parent: block,
                                                        tight: false,
-                                                       indent: indent.count))
+                                                       indent: indent.terminalDisplayWidth))
                         .map { line in indent + line }
         return lines
       case .list(let start, let tight, let blocks):
@@ -200,7 +200,7 @@ open class TerminalGenerator {
                                     parent: block,
                                     tight: tight,
                                     itemIndent: start != nil ? (blocks.count > 9 ? 4 : 3) : 2,
-                                    indent: indent.count))
+                                    indent: indent.terminalDisplayWidth))
                         .map { line in indent + line }
         return lines
       case .listItem(let type, let density, let blocks):
@@ -210,7 +210,7 @@ open class TerminalGenerator {
         let lines = self.generate(blocks: blocks,
                                   context: context.new(parent: block,
                                                        tight: density.isTight,
-                                                       indent: prefix.count))
+                                                       indent: prefix.terminalDisplayWidth))
         var result: [AnsiText.Normalized] = []
         for (index, line) in lines.enumerated() {
           result.append((index == 0 ? prefix : indent).appending(line))
@@ -232,7 +232,10 @@ open class TerminalGenerator {
               res.append(nil)
               res.append(line)
             }
-            return res.joined(separator: " ", maxWidth: context.maxColumns, align: .center)
+            return res.joined(separator: " ",
+                              maxWidth: context.maxColumns,
+                              align: .center,
+                              alignWidth: true)
           }
           return lines
         // No underlining
@@ -287,7 +290,8 @@ open class TerminalGenerator {
         let (termPrefix, defPrefix) = self.definitionPrefix(definitions: defs, context: context)
         let indent = self.definitionIndent(definitions: defs, context: context)
         let defIndent = defPrefix + indent
-        let lineIndent = defPrefix + AnsiText.Normalized(repeating: " ", count: indent.count)
+        let lineIndent = defPrefix + AnsiText.Normalized(repeating: " ",
+                                                         count: indent.terminalDisplayWidth)
         var result: [AnsiText.Normalized] = []
         var first = true
         for def in defs {
@@ -300,7 +304,9 @@ open class TerminalGenerator {
                            termPrefix.appending(line).applying(properties: self.defTermProperties)
                          }
           result.append(contentsOf: term)
-          let defContext = context.new(parent: block, tight: true, indent: defIndent.count)
+          let defContext = context.new(parent: block,
+                                       tight: true,
+                                       indent: defIndent.terminalDisplayWidth)
           for descr in def.descriptions {
             if case .listItem(_, _, let blocks) = descr {
               let lines = self.generate(blocks: blocks, context: defContext)
@@ -336,7 +342,10 @@ open class TerminalGenerator {
     if let maxColumns {
       var result: [AnsiText.Normalized] = []
       for line in lines {
-        let wrapped = line.tokenize().joined(separator: " ", maxWidth: maxColumns, align: .left)
+        let wrapped = line.tokenize().joined(separator: " ",
+                                             maxWidth: maxColumns,
+                                             align: .left,
+                                             alignWidth: true)
         result.append(contentsOf: wrapped)
       }
       return result
@@ -401,8 +410,8 @@ open class TerminalGenerator {
     let rowLines = rows.map { row in row.map { cell in self.generate(text: cell) } }
     // Calculate the maximum and minimum column widths
     var numWords: [Int] = []
-    var columnWidths = headerLines.map {
-      lines in lines.max(by: { $0.count < $1.count })?.count ?? 0
+    var columnWidths = headerLines.map { lines in
+      lines.max(by: { $0.terminalDisplayWidth<$1.terminalDisplayWidth })?.terminalDisplayWidth ?? 0
     }
     var minWidths: [Int] = []
     for lines in headerLines {
@@ -411,7 +420,8 @@ open class TerminalGenerator {
       for line in lines {
         let words = line.tokenize()
         wordcount += words.count
-        width = max(width, words.max(by: { $0.count < $1.count })?.count ?? 0)
+        width = max(width,
+          words.max(by: { $0.terminalDisplayWidth<$1.terminalDisplayWidth })?.terminalDisplayWidth ?? 0)
       }
       numWords.append(wordcount)
       minWidths.append(width)
@@ -423,8 +433,9 @@ open class TerminalGenerator {
           columnWidths.append(0)
         }
         // Compute new maximum width
-        columnWidths[index] = max(columnWidths[index],
-                                  lines.max(by: { $0.count < $1.count })?.count ?? 0)
+        columnWidths[index] =
+          max(columnWidths[index],
+              lines.max(by: { $0.terminalDisplayWidth<$1.terminalDisplayWidth })?.terminalDisplayWidth ?? 0)
         // Expand `minWidths` as needed
         while index >= minWidths.count {
           minWidths.append(0)
@@ -438,7 +449,9 @@ open class TerminalGenerator {
         for line in lines {
           let words = line.tokenize()
           wordcount += words.count
-          width = max(width, words.max(by: { $0.count < $1.count })?.count ?? 0)
+          width =
+            max(width,
+                words.max(by: { $0.terminalDisplayWidth < $1.terminalDisplayWidth })?.terminalDisplayWidth ?? 0)
         }
         numWords[index] += wordcount
         minWidths[index] = max(minWidths[index], width)
@@ -463,7 +476,7 @@ open class TerminalGenerator {
     for word in words {
       if currentLine.isEmpty {
         currentLine = word
-      } else if currentLine.count + 1 + word.count <= maxColumns {
+      } else if currentLine.terminalDisplayWidth + 1 + word.terminalDisplayWidth <= maxColumns {
         currentLine += " " + word
       } else {
         lines.append(currentLine)
@@ -479,7 +492,7 @@ open class TerminalGenerator {
   public func width(of lines: [AnsiText.Normalized]) -> Int {
     var width = 0
     for line in lines {
-      width = max(width, line.count)
+      width = max(width, line.terminalDisplayWidth)
     }
     return width
   }
@@ -508,7 +521,7 @@ open class TerminalGenerator {
       var suffix = AnsiText.Normalized(" \(lang) ", properties: self.codeBlockLangProperties)
       suffix.append(AnsiText.Normalized("╌╌╌", properties: self.codeBlockBorderProperties))
       var result = AnsiText.Normalized(repeating: "╌",
-                                       count: maxColumns - suffix.count,
+                                       count: maxColumns - suffix.terminalDisplayWidth,
                                        properties: self.codeBlockBorderProperties)
       result.append(suffix)
       return result
@@ -543,8 +556,8 @@ open class TerminalGenerator {
       case .ordered(let num, let ch):
         prefix = AnsiText.Normalized("\(num)\(ch) ")
     }
-    let columns = columns ?? prefix.count
-    return (AnsiText.Normalized(repeating: " ", count: max(columns - prefix.count, 0)) + prefix,
+    let columns = columns ?? prefix.terminalDisplayWidth
+    return (AnsiText.Normalized(repeating: " ", count: max(columns - prefix.terminalDisplayWidth, 0)) + prefix,
             AnsiText.Normalized(repeating: " ", count: max(columns, 2)))
   }
   
@@ -617,7 +630,11 @@ open class TerminalGenerator {
             alignment = .center
         }
         line.append(contentsOf: lineText.tokenize()
-          .joined(separator: " ", maxWidth: stat.maxWidth, align: alignment, fill: TextProperties.empty))
+          .joined(separator: " ",
+                  maxWidth: stat.maxWidth,
+                  align: alignment,
+                  alignWidth: true,
+                  fill: TextProperties.empty))
       }
       result.append(line)
       // 2. Separator row
@@ -652,7 +669,11 @@ open class TerminalGenerator {
               alignment = .center
           }
           line.append(contentsOf: lineText.tokenize()
-            .joined(separator: " ", maxWidth: stat.maxWidth, align: alignment, fill: TextProperties.empty))
+            .joined(separator: " ",
+                    maxWidth: stat.maxWidth,
+                    align: alignment,
+                    alignWidth: true,
+                    fill: TextProperties.empty))
         }
         result.append(line)
       }
@@ -824,7 +845,11 @@ open class TerminalGenerator {
               alignment = .center
           }
           line.append(contentsOf: lineText.tokenize()
-            .joined(separator: " ", maxWidth: width, align: alignment, fill: TextProperties.empty)
+            .joined(separator: " ",
+                    maxWidth: width,
+                    align: alignment,
+                    alignWidth: true,
+                    fill: TextProperties.empty)
             .map { text in text.applying(properties: fill, override: false)})
           line.append(self.spaceBar)
         }

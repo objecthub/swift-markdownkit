@@ -19,14 +19,22 @@
 //
 
 import XCTest
+import Foundation
 import MarkdownKit
 
 class StringGeneratorTests: XCTestCase {
   
-  private func generateString(numColumns: Int = 80, _ str: String) -> String {
-    let generator = StringGenerator(numColumns: numColumns)
-    return generator.generate(doc: MarkdownParser.standard.parse(str))
-      .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+  private func generateString(numColumns: Int = 80,
+                              alignDisplayWidth: Bool = true,
+                              trim: Bool = true,
+                              _ str: String) -> String {
+    let generator = StringGenerator(numColumns: numColumns, alignDisplayWidth: alignDisplayWidth)
+    let result = generator.generate(doc: ExtendedMarkdownParser.standard.parse(str))
+    if trim {
+      return result.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    } else {
+      return result
+    }
   }
   
   func testSimpleParagraph() {
@@ -173,17 +181,65 @@ class StringGeneratorTests: XCTestCase {
   }
   
   func testTable() {
-    let result = generateString("""
+    let result = generateString(trim: false,
+      """
       | Name | Age |
       |------|-----|
       | Alice | 30 |
       | Bob | 25 |
       """)
-    
-    XCTAssertTrue(result.contains("Name"))
-    XCTAssertTrue(result.contains("Age"))
-    XCTAssertTrue(result.contains("Alice"))
-    XCTAssertTrue(result.contains("Bob"))
+    print(result)
+    XCTAssertEqual(result,
+      """
+          Name  │ Age
+          ──────┼────
+          Alice │ 30 
+          Bob   │ 25 
+      """)
+  }
+  
+  func testTableWithEmojis() {
+    let result = generateString(trim: false,
+      """
+      | Name | Age |
+      |------|-----|
+      | ✅ Alice | 30 |
+      | Bob | 25 |
+      """)
+    print(result)
+    XCTAssertEqual(result,
+      """
+          Name     │ Age
+          ─────────┼────
+          ✅ Alice │ 30 
+          Bob      │ 25 
+      """)
+  }
+  
+  func testEmojis() {
+    let result = generateString("✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ " +
+                                "✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ")
+    let lines = result.split(whereSeparator: \.isNewline)
+    XCTAssertEqual(lines.count, 2)
+    XCTAssertEqual(lines[0].count, 39)
+    XCTAssertEqual(String(lines[0]).terminalDisplayWidth, 75)
+    XCTAssertEqual(result,
+    """
+    ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅
+    ✅✅✅✅✅✅✅✅✅
+    """)
+    let result2 = generateString(alignDisplayWidth: false,
+                                "✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ " +
+                                "✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ")
+    let lines2 = result2.split(whereSeparator: \.isNewline)
+    XCTAssertEqual(lines2.count, 1)
+    XCTAssertEqual(lines2[0].count, 49)
+    XCTAssertEqual(String(lines2[0]).terminalDisplayWidth, 94)
+    XCTAssertEqual(result2.terminalDisplayWidth, 94)
+    XCTAssertEqual(result2,
+    """
+    ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅ ✅✅✅✅✅✅✅✅✅
+    """)
   }
   
   func testComplexDocument() {

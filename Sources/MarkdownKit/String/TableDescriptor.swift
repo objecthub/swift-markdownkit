@@ -43,8 +43,9 @@ public struct TableDescriptor {
                   to len: Int,
                   with ch: Character = " ",
                   at column: Int,
-                  inHeader header: Bool = false) -> String {
-    let paddingNeeded = len - string.count
+                  inHeader header: Bool = false,
+                  alignDisplayWidth: Bool = true) -> String {
+    let paddingNeeded = len - (alignDisplayWidth ? string.terminalDisplayWidth : string.count)
     guard paddingNeeded > 0 else {
       return string
     }
