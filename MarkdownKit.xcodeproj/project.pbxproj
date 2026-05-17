@@ -48,6 +48,7 @@
 		CC8CBC2322884F940084683B /* SetextHeadingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC2222884F940084683B /* SetextHeadingParser.swift */; };
 		CC8CBC25228898B00084683B /* HtmlBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8CBC24228898B00084683B /* HtmlBlockParser.swift */; };
 		CC8D559D24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8D559C24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift */; };
+		CC8F27722FBA5DE5000AF851 /* TerminalGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8F27712FBA5DE5000AF851 /* TerminalGeneratorTests.swift */; };
 		CCA2A4BD2FB3CAD600A8B92E /* GeneratorContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */; };
 		CCA2A4BF2FB3CB5500A8B92E /* TableDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */; };
 		CCB033CF227CDB2F00E1C4DC /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */; };
@@ -155,6 +156,7 @@
 		CC8CBC2222884F940084683B /* SetextHeadingParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SetextHeadingParser.swift; sourceTree = "<group>"; };
 		CC8CBC24228898B00084683B /* HtmlBlockParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HtmlBlockParser.swift; sourceTree = "<group>"; };
 		CC8D559C24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExtendedMarkdownHtmlTests.swift; sourceTree = "<group>"; };
+		CC8F27712FBA5DE5000AF851 /* TerminalGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalGeneratorTests.swift; sourceTree = "<group>"; };
 		CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorContext.swift; sourceTree = "<group>"; };
 		CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableDescriptor.swift; sourceTree = "<group>"; };
 		CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
@@ -295,6 +297,7 @@
 				CC55DD87264B19D8001AAD10 /* MarkdownExtension.swift */,
 				CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */,
 				CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */,
+				CC8F27712FBA5DE5000AF851 /* TerminalGeneratorTests.swift */,
 				CCC48C1425D9D81000D082AD /* LinuxMain.swift */,
 				CC2AF6F8227CD98100BEA420 /* Info.plist */,
 			);
@@ -595,6 +598,7 @@
 				CC55DD88264B19D8001AAD10 /* MarkdownExtension.swift in Sources */,
 				CC088C2422E337BD0059460E /* MarkdownHtmlTests.swift in Sources */,
 				CCC48C0425D98FCB00D082AD /* MarkdownStringTests.swift in Sources */,
+				CC8F27722FBA5DE5000AF851 /* TerminalGeneratorTests.swift in Sources */,
 				CC2AF6F7227CD98100BEA420 /* MarkdownBlockTests.swift in Sources */,
 				CC8D559D24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift in Sources */,
 				CC8CBC192284B3F40084683B /* MarkdownFactory.swift in Sources */,

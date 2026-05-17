@@ -31,6 +31,8 @@ XCTMain(
     testCase(MarkdownHtmlTests.allTests),
     testCase(ExtendedMarkdownHtmlTests.allTests),
     testCase(MarkdownStringTests.allTests),
+    testCase(StringGeneratorTests.allTests),
+    testCase(TerminalGeneratorTests.allTests)
   ]
 )
 

@@ -1,10 +1,10 @@
 //
 //  StringGeneratorTests.swift
 //  MarkdownKitTests
-//
-//  Created on 03/05/2026.
-//  Copyright © 2026 Google LLC.
-//
+//  
+//  Created by Matthias Zenger on 03/05/2021.
+//  Copyright © 2026 Matthias Zenger. All rights reserved.
+//  
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -188,7 +188,6 @@ class StringGeneratorTests: XCTestCase {
       | Alice | 30 |
       | Bob | 25 |
       """)
-    print(result)
     XCTAssertEqual(result,
       """
           Name  │ Age
@@ -206,7 +205,6 @@ class StringGeneratorTests: XCTestCase {
       | ✅ Alice | 30 |
       | Bob | 25 |
       """)
-    print(result)
     XCTAssertEqual(result,
       """
           Name     │ Age
