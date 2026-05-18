@@ -28,6 +28,8 @@ _Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it p
 </tr>
 </table>
 
+&nbsp;
+
 ## Parsing Markdown
 
 ### Using the framework
@@ -285,7 +287,8 @@ _Swift MarkdownKit_ also comes with a generator for attributed strings.
 [`AttributedStringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift)
 uses a customized HTML generator internally to define the translation from Markdown into
 `NSAttributedString`. The initializer of `AttributedStringGenerator` provides a number of
-parameters for customizing the style of the generated attributed string. 
+parameters for customizing the style of the generated attributed string. Alternatively, it
+is also possible to subclass the internal HTML generator and customize the output this way.
 
 ```swift
 let generator = AttributedStringGenerator(fontSize: 12,
@@ -294,6 +297,8 @@ let generator = AttributedStringGenerator(fontSize: 12,
                                           h1Color: "#000")
 let attributedStr = generator.generate(doc: markdown)
 ```
+
+There are two generators for outputting formatted text. [`StringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/StringGenerator.swift) formats text based on the given Markdown and returns text that can be, e.g. edited in a text editor. [`TerminalGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/TerminalGenerator.swift) formats text for output in an ANSI-compliant terminal, using control sequences to mark up the text.
 
 ### Using the command-line tool
 
@@ -310,14 +315,18 @@ remote: Compressing objects: 100% (54/54), done.
 remote: Total 70 (delta 13), reused 65 (delta 11), pack-reused 0
 Unpacking objects: 100% (70/70), done.
 > cd swift-markdownkit
-> swift build -c release
-[1/3] Compiling Swift Module 'MarkdownKit' (25 sources)
-[2/3] Compiling Swift Module 'MarkdownKitProcess' (1 sources)
-[3/3] Linking ./.build/x86_64-apple-macosx/release/MarkdownKitProcess
-> ./.build/x86_64-apple-macosx/release/MarkdownKitProcess
-usage: mdkitprocess <source> [<target>]
-where: <source> is either a Markdown file or a directory containing Markdown files
-       <target> is either an HTML file or a directory in which HTML files are written
+> swift run MarkdownKitProcess
+Building for debugging...
+[1/1] Write swift-version--58304C5D6DBC2206.txt
+Build of product 'MarkdownKitProcess' complete! (0.07s)
+usage: mdkitprocess <format> <source> [<target>] [<width>]
+where: <format> is either 'text', 'ansi', 'html', 'rtf', or 'rtfd'
+       <source> is either a Markdown file or a directory of Markdown files
+       <target> is either a file path or an existing directory into which
+                the output files are written into. '-' writes the output
+                into the termimal.
+       <width>  defines a terminal width in columns for the formats 'text'
+                and 'ansi'
 ```
 
 ## Displaying Markdown with SwiftUI
