@@ -180,44 +180,46 @@ open class StringGenerator {
       case .heading(let level, let text):
         if let ch = self.headingUnderlineCharacter(level: level) {
           var lines = self.generate(text: text, maxColumns: context.maxColumns)
-          lines.append(String(repeating: ch, count: self.displayWidth(of: lines)))
+          lines.append(String(repeating: ch, count: max(self.displayWidth(of: lines), 0)))
           return lines
         } else {
           let indent = String(repeating: self.headingUnderlineCharacter(level: 0) ?? "#",
-                              count: level) + " "
+                              count: max(level, 0)) + " "
           let lines = self.generate(text: text,
                                     maxColumns: context.maxColumns - self.displayWidth(of: indent))
           return lines.map { line in indent + line }
         }
       case .indentedCode(let lines):
         var result: [String] = []
-        result.append(String(repeating: "╌", count: context.maxColumns))
+        result.append(String(repeating: "╌", count: max(context.maxColumns, 0)))
         for line in lines {
           let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
           result.append(String(normalized))
         }
-        result.append(String(repeating: "╌", count: context.maxColumns))
+        result.append(String(repeating: "╌", count: max(context.maxColumns, 0)))
         return result
       case .fencedCode(let lang, let lines):
         var result: [String] = []
         if let lang {
           let suffix = " \(lang) ╌╌╌"
-          result.append(String(repeating: "╌", count: context.maxColumns - self.displayWidth(of: suffix)) + suffix)
+          result.append(String(repeating: "╌",
+                               count: max(context.maxColumns - self.displayWidth(of: suffix), 0))
+                        + suffix)
         } else {
-          result.append(String(repeating: "╌", count: context.maxColumns))
+          result.append(String(repeating: "╌", count: max(context.maxColumns, 0)))
         }
         for line in lines {
           let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
           result.append(String(normalized))
         }
-        result.append(String(repeating: "╌", count: context.maxColumns))
+        result.append(String(repeating: "╌", count: max(context.maxColumns, 0)))
         return result
       case .htmlBlock(_):
         return []
       case .referenceDef(_, _, _):
         return []
       case .thematicBreak:
-        return ["   " + String(repeating: "◠", count: context.maxColumns - 6)]
+        return ["   " + String(repeating: "◠", count: max(context.maxColumns - 6, 0))]
       case .table(let header, let align, let rows):
         let descriptor = self.tableDescriptor(header: header, alignments: align, rows: rows)
         for renderer in self.tableRenderers {
@@ -232,7 +234,8 @@ open class StringGenerator {
         let (termPrefix, defPrefix) = self.definitionPrefix(definitions: defs, context: context)
         let indent = self.definitionIndent(definitions: defs, context: context)
         let defIndent = defPrefix + indent
-        let lineIndent = defPrefix + String(repeating: " ", count: self.displayWidth(of: indent))
+        let lineIndent = defPrefix + String(repeating: " ",
+                                            count: max(self.displayWidth(of: indent), 0))
         var result: [String] = []
         var first = true
         for def in defs {
@@ -319,7 +322,7 @@ open class StringGenerator {
       case .html(_):
         return "" // Skip HTML in plain text output
       case .delimiter(let ch, let n, _):
-        return String(repeating: ch, count: n)
+        return String(repeating: ch, count: max(n, 0))
       case .softLineBreak:
         return " "
       case .hardLineBreak:
@@ -492,8 +495,8 @@ open class StringGenerator {
       }
       let indent =
         String(repeating: " ",
-               count: min((context.maxColumns -
-                         descriptor.columnStats.reduce(-3, { (r, v) in r + v.maxWidth + 3 }))/2, 4))
+               count: max(min((context.maxColumns -
+                    descriptor.columnStats.reduce(-3, { (r, v) in r + v.maxWidth + 3 }))/2, 4), 0))
       let headerLines = descriptor.header.map { text in
         generate(text, context.maxColumns).joined()
       }
@@ -521,7 +524,7 @@ open class StringGenerator {
         if coli > 0 {
           line += "─┼─"
         }
-        line += String(repeating: "─", count: stat.maxWidth)
+        line += String(repeating: "─", count: max(stat.maxWidth, 0))
       }
       result.append(line)
       // 3. Iterate over all rows

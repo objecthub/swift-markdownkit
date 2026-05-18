@@ -59,8 +59,9 @@ public struct MarkdownText: View {
   
   /// Creates a Markdown text view for the specified Markdown document.
   public init(_ text: Block,
-              generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil,
-              waitingMessage: NSAttributedString = NSAttributedString(string: "⏳")) {
+              waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
+              generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil) {
+    self.waitingMessage = waitingMessage
     if let generator {
       self.generator = { colorScheme in generator(text, colorScheme) }
     } else {
@@ -73,16 +74,15 @@ public struct MarkdownText: View {
         }
       }
     }
-    self.waitingMessage = waitingMessage
   }
   
   /// Creates a Markdown text view for the specified Markdown document as a string.
   public init(string: String,
-              generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil,
-              waitingMessage: NSAttributedString = NSAttributedString(string: "⏳")) {
+              waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
+              generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil) {
     self.init(ExtendedMarkdownParser.standard.parse(string),
-              generator: generator,
-              waitingMessage: waitingMessage)
+              waitingMessage: waitingMessage,
+              generator: generator)
   }
   
   public var body: some View {

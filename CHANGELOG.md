@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4 (2026-05-18)
+
+- SwiftUI view for Markdown based on attributed strings (for iOS and macOS). The view supports the full Markdown syntax, is fully responsive and adjusts dynamically also to changes to the color scheme.
+- Generators for formatted text (i.e. for display in text editors) and for output in ANSI terminals (including ANSI-compliant markup). Full support for unicode characters.
+
+## 1.3 (2025-05-04)
+
+- Loose lists are now detected correctly based on section 5.3 of the CommonMark spec. This fixes a serious bug that was leading to too may lists being interpreted as loose.
+- The signature of case `listItem` of enum `Block` changes to enable this bug fix.
+- Fixed accessibility bug that prevented `EmphasisTransformer` to be extensible.
+
 ## 1.2 (2025-03-28)
 
 - Improve the generation of nested lists for `AttributedStringGenerator`

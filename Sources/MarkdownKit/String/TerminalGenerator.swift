@@ -222,7 +222,7 @@ open class TerminalGenerator {
         // Distinguish headers with underline vs. others
         if let ch = self.headingUnderlineCharacter(level: level) {
           var lines = self.generate(text: text, maxColumns: context.maxColumns)
-          lines.append(AnsiText.Normalized(repeating: ch, count: self.width(of: lines)))
+          lines.append(AnsiText.Normalized(repeating: ch, count: max(self.width(of: lines), 0)))
           if level > 0 && level <= self.headerProperties.count {
             lines = lines.map { text in text.applying(properties: self.headerProperties[level - 1])}
           }
@@ -274,7 +274,7 @@ open class TerminalGenerator {
       case .thematicBreak:
         return [AnsiText.Normalized("   ").appending(
                   AnsiText.Normalized(repeating: "◠",
-                                      count: context.maxColumns - 6,
+                                      count: max(context.maxColumns - 6, 0),
                                       properties: self.breakProperties))]
       case .table(let header, let align, let rows):
         let descriptor = self.tableDescriptor(header: header, alignments: align, rows: rows)
@@ -394,7 +394,7 @@ open class TerminalGenerator {
       case .html(_):
         return AnsiText.Normalized()
       case .delimiter(let ch, let n, _):
-        return AnsiText.Normalized(repeating: ch, count: n)
+        return AnsiText.Normalized(repeating: ch, count: max(n, 0))
       case .softLineBreak:
         return AnsiText.Normalized(" ")
       case .hardLineBreak:
@@ -521,12 +521,12 @@ open class TerminalGenerator {
       var suffix = AnsiText.Normalized(" \(lang) ", properties: self.codeBlockLangProperties)
       suffix.append(AnsiText.Normalized("╌╌╌", properties: self.codeBlockBorderProperties))
       var result = AnsiText.Normalized(repeating: "╌",
-                                       count: maxColumns - suffix.terminalDisplayWidth,
+                                       count: max(maxColumns - suffix.terminalDisplayWidth, 0),
                                        properties: self.codeBlockBorderProperties)
       result.append(suffix)
       return result
     } else {
-      return AnsiText.Normalized(String(repeating: "╌", count: maxColumns),
+      return AnsiText.Normalized(String(repeating: "╌", count: max(maxColumns, 0)),
                                  properties: self.codeBlockBorderProperties)
     }
   }
@@ -603,10 +603,10 @@ open class TerminalGenerator {
       }
       let indent =
         AnsiText.Normalized(repeating: " ",
-                            count: min((context.maxColumns -
+                            count: max(min((context.maxColumns -
                                         descriptor.columnStats.reduce(-3, { r, v in
                                           r + v.maxWidth + 3
-                                        }))/2, 4))
+                                        }))/2, 4), 0))
       let headerLines = descriptor.header.map { text in
         generate(text, context.maxColumns).joined()
       }
@@ -644,7 +644,7 @@ open class TerminalGenerator {
           line.append(AnsiText.Normalized("─┼─", properties: self.borderProperties))
         }
         line.append(AnsiText.Normalized(repeating: "─",
-                                        count: stat.maxWidth,
+                                        count: max(stat.maxWidth, 0),
                                         properties: self.borderProperties))
       }
       result.append(line)
