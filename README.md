@@ -259,7 +259,7 @@ This will print an array with the following two entries:
 _Swift MarkdownKit_ provides several _generators_, i.e. Markdown processors which
 output, for a given Markdown document, a corresponding representation in a different format.
 
-[`HtmlGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/HTML/HtmlGenerator.swift) defines a simple mapping from Markdown into HTML. Here is an example for the usage of the generator: 
+[`HtmlGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/HTML/HtmlGenerator.swift) defines a simple mapping from Markdown into **HTML**. Here is an example for the usage of the generator: 
 
 ```swift
 let html = HtmlGenerator.standard.generate(doc: markdown)
@@ -283,12 +283,8 @@ open class CustomizedHtmlGenerator: HtmlGenerator {
 }
 ```
 
-_Swift MarkdownKit_ also comes with a generator for attributed strings.
-[`AttributedStringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift)
-uses a customized HTML generator internally to define the translation from Markdown into
-`NSAttributedString`. The initializer of `AttributedStringGenerator` provides a number of
-parameters for customizing the style of the generated attributed string. Alternatively, it
-is also possible to subclass the internal HTML generator and customize the output this way.
+_Swift MarkdownKit_ also comes with a generator for **attributed strings**.
+[`AttributedStringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift) uses a customized HTML generator internally to define the translation from Markdown into `NSAttributedString`. The initializer of `AttributedStringGenerator` provides a number of parameters for customizing the style of the generated attributed string. Alternatively, it is also possible to subclass the internal HTML generator and customize the output this way. For the implementation of syntax highlighting in code blocks, `AttributedStringGenerator` uses [Highlight.js](https://github.com/highlightjs/highlight.js/). Syntax highlighting is configured with a [`SyntaxHighlightingConfig`](https://github.com/objecthub/swift-markdownkit/blob/f6bd3102cbd1413b5205fc72564a48d4e3a78822/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift#L81) value which gets passed to the initializer of `AttributedStringGenerator` via parameter `syntaxHighlighting:`. Setting this parameter to `nil` will disable syntax highlighting.
 
 ```swift
 let generator = AttributedStringGenerator(fontSize: 12,
@@ -422,6 +418,6 @@ The _MarkdownKit_ framework comes with a copy of [Highlight.js](https://github.c
 ## Copyright
 
 Author: Matthias Zenger (<matthias@objecthub.net>)  
-Copyright © 2019-2025 Google LLC.
-Copyright © 2026 Matthias Zenger.
+Copyright © 2019-2025 Google LLC.  
+Copyright © 2026 Matthias Zenger.  
 _Please note: This is not an official Google product._
