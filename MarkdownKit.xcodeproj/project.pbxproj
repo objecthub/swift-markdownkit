@@ -38,6 +38,114 @@
 		CC7CCB8C2FA6A54F00C05C77 /* CommandLineKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC7CCB8B2FA6A54F00C05C77 /* CommandLineKit */; };
 		CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */; };
 		CC7CCB962FA745F600C05C77 /* StringGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7CCB942FA745F600C05C77 /* StringGenerator.swift */; };
+		CC8307432FC12E6300FDD777 /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8307422FC0F55500FDD777 /* SyntaxHighlighter.swift */; };
+		CC8307442FC12ED900FDD777 /* highlight.min.js in Resources */ = {isa = PBXBuildFile; fileRef = CC8307412FC0F51A00FDD777 /* highlight.min.js */; };
+		CC8307462FC1320600FDD777 /* HighlightingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8307452FC1320600FDD777 /* HighlightingConfig.swift */; };
+		CC8307AF2FC1D41800FDD777 /* a11y-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307482FC1D3DF00FDD777 /* a11y-dark.css */; };
+		CC8307B02FC1D41800FDD777 /* a11y-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307492FC1D3DF00FDD777 /* a11y-light.css */; };
+		CC8307B12FC1D41800FDD777 /* agate.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83074A2FC1D3DF00FDD777 /* agate.css */; };
+		CC8307B22FC1D41800FDD777 /* an-old-hope.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83074B2FC1D3DF00FDD777 /* an-old-hope.css */; };
+		CC8307B32FC1D41800FDD777 /* androidstudio.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83074C2FC1D3DF00FDD777 /* androidstudio.css */; };
+		CC8307B42FC1D41800FDD777 /* arduino-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83074D2FC1D3DF00FDD777 /* arduino-light.css */; };
+		CC8307B52FC1D41800FDD777 /* arta.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83074E2FC1D3DF00FDD777 /* arta.css */; };
+		CC8307B62FC1D41800FDD777 /* ascetic.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83074F2FC1D3DF00FDD777 /* ascetic.css */; };
+		CC8307B72FC1D41800FDD777 /* atelier-cave-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307502FC1D3DF00FDD777 /* atelier-cave-dark.css */; };
+		CC8307B82FC1D41800FDD777 /* atelier-cave-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307512FC1D3DF00FDD777 /* atelier-cave-light.css */; };
+		CC8307B92FC1D41800FDD777 /* atelier-dune-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307522FC1D3DF00FDD777 /* atelier-dune-dark.css */; };
+		CC8307BA2FC1D41800FDD777 /* atelier-dune-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307532FC1D3DF00FDD777 /* atelier-dune-light.css */; };
+		CC8307BB2FC1D41800FDD777 /* atelier-estuary-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307542FC1D3DF00FDD777 /* atelier-estuary-dark.css */; };
+		CC8307BC2FC1D41800FDD777 /* atelier-estuary-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307552FC1D3DF00FDD777 /* atelier-estuary-light.css */; };
+		CC8307BD2FC1D41800FDD777 /* atelier-forest-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307562FC1D3DF00FDD777 /* atelier-forest-dark.css */; };
+		CC8307BE2FC1D41800FDD777 /* atelier-forest-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307572FC1D3DF00FDD777 /* atelier-forest-light.css */; };
+		CC8307BF2FC1D41800FDD777 /* atelier-heath-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307582FC1D3DF00FDD777 /* atelier-heath-dark.css */; };
+		CC8307C02FC1D41800FDD777 /* atelier-heath-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307592FC1D3DF00FDD777 /* atelier-heath-light.css */; };
+		CC8307C12FC1D41800FDD777 /* atelier-lakeside-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83075A2FC1D3DF00FDD777 /* atelier-lakeside-dark.css */; };
+		CC8307C22FC1D41800FDD777 /* atelier-lakeside-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83075B2FC1D3DF00FDD777 /* atelier-lakeside-light.css */; };
+		CC8307C32FC1D41800FDD777 /* atelier-plateau-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83075C2FC1D3DF00FDD777 /* atelier-plateau-dark.css */; };
+		CC8307C42FC1D41800FDD777 /* atelier-plateau-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83075D2FC1D3DF00FDD777 /* atelier-plateau-light.css */; };
+		CC8307C52FC1D41800FDD777 /* atelier-savanna-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83075E2FC1D3DF00FDD777 /* atelier-savanna-dark.css */; };
+		CC8307C62FC1D41800FDD777 /* atelier-savanna-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83075F2FC1D3DF00FDD777 /* atelier-savanna-light.css */; };
+		CC8307C72FC1D41800FDD777 /* atelier-seaside-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307602FC1D3DF00FDD777 /* atelier-seaside-dark.css */; };
+		CC8307C82FC1D41800FDD777 /* atelier-seaside-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307612FC1D3DF00FDD777 /* atelier-seaside-light.css */; };
+		CC8307C92FC1D41800FDD777 /* atelier-sulphurpool-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307622FC1D3DF00FDD777 /* atelier-sulphurpool-dark.css */; };
+		CC8307CA2FC1D41800FDD777 /* atelier-sulphurpool-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307632FC1D3DF00FDD777 /* atelier-sulphurpool-light.css */; };
+		CC8307CB2FC1D41800FDD777 /* atom-one-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307642FC1D3DF00FDD777 /* atom-one-dark.css */; };
+		CC8307CC2FC1D41800FDD777 /* atom-one-dark-reasonable.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307652FC1D3DF00FDD777 /* atom-one-dark-reasonable.css */; };
+		CC8307CD2FC1D41800FDD777 /* atom-one-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307662FC1D3DF00FDD777 /* atom-one-light.css */; };
+		CC8307CE2FC1D41800FDD777 /* brown-paper.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307672FC1D3DF00FDD777 /* brown-paper.css */; };
+		CC8307CF2FC1D41800FDD777 /* codepen-embed.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307682FC1D3DF00FDD777 /* codepen-embed.css */; };
+		CC8307D02FC1D41800FDD777 /* color-brewer.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307692FC1D3DF00FDD777 /* color-brewer.css */; };
+		CC8307D12FC1D41800FDD777 /* darcula.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83076A2FC1D3DF00FDD777 /* darcula.css */; };
+		CC8307D22FC1D41800FDD777 /* dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83076B2FC1D3DF00FDD777 /* dark.css */; };
+		CC8307D32FC1D41800FDD777 /* default.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83076C2FC1D3DF00FDD777 /* default.css */; };
+		CC8307D42FC1D41800FDD777 /* docco.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83076D2FC1D3DF00FDD777 /* docco.css */; };
+		CC8307D52FC1D41800FDD777 /* dracula.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83076E2FC1D3DF00FDD777 /* dracula.css */; };
+		CC8307D62FC1D41800FDD777 /* far.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83076F2FC1D3DF00FDD777 /* far.css */; };
+		CC8307D72FC1D41800FDD777 /* foundation.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307702FC1D3DF00FDD777 /* foundation.css */; };
+		CC8307D82FC1D41800FDD777 /* github.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307712FC1D3DF00FDD777 /* github.css */; };
+		CC8307D92FC1D41800FDD777 /* github-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307722FC1D3DF00FDD777 /* github-dark.css */; };
+		CC8307DA2FC1D41800FDD777 /* github-gist.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307732FC1D3DF00FDD777 /* github-gist.css */; };
+		CC8307DB2FC1D41800FDD777 /* gml.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307742FC1D3DF00FDD777 /* gml.css */; };
+		CC8307DC2FC1D41800FDD777 /* googlecode.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307752FC1D3DF00FDD777 /* googlecode.css */; };
+		CC8307DD2FC1D41800FDD777 /* gradient-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307762FC1D3DF00FDD777 /* gradient-dark.css */; };
+		CC8307DE2FC1D41800FDD777 /* gradient-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307772FC1D3DF00FDD777 /* gradient-light.css */; };
+		CC8307DF2FC1D41800FDD777 /* grayscale.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307782FC1D3DF00FDD777 /* grayscale.css */; };
+		CC8307E02FC1D41800FDD777 /* gruvbox-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307792FC1D3DF00FDD777 /* gruvbox-dark.css */; };
+		CC8307E12FC1D41800FDD777 /* gruvbox-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83077A2FC1D3DF00FDD777 /* gruvbox-light.css */; };
+		CC8307E22FC1D41800FDD777 /* hopscotch.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83077B2FC1D3DF00FDD777 /* hopscotch.css */; };
+		CC8307E32FC1D41800FDD777 /* hybrid.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83077C2FC1D3DF00FDD777 /* hybrid.css */; };
+		CC8307E42FC1D41800FDD777 /* idea.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83077D2FC1D3DF00FDD777 /* idea.css */; };
+		CC8307E52FC1D41800FDD777 /* ir-black.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83077E2FC1D3DF00FDD777 /* ir-black.css */; };
+		CC8307E62FC1D41800FDD777 /* isbl-editor-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83077F2FC1D3DF00FDD777 /* isbl-editor-dark.css */; };
+		CC8307E72FC1D41800FDD777 /* isbl-editor-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307802FC1D3DF00FDD777 /* isbl-editor-light.css */; };
+		CC8307E82FC1D41800FDD777 /* kimbie-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307812FC1D3DF00FDD777 /* kimbie-dark.css */; };
+		CC8307E92FC1D41800FDD777 /* kimbie-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307822FC1D3DF00FDD777 /* kimbie-light.css */; };
+		CC8307EA2FC1D41800FDD777 /* lightfair.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307832FC1D3DF00FDD777 /* lightfair.css */; };
+		CC8307EB2FC1D41800FDD777 /* lioshi.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307842FC1D3DF00FDD777 /* lioshi.css */; };
+		CC8307EC2FC1D41800FDD777 /* magula.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307852FC1D3DF00FDD777 /* magula.css */; };
+		CC8307ED2FC1D41800FDD777 /* mono-blue.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307862FC1D3DF00FDD777 /* mono-blue.css */; };
+		CC8307EE2FC1D41800FDD777 /* monokai.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307872FC1D3DF00FDD777 /* monokai.css */; };
+		CC8307EF2FC1D41800FDD777 /* monokai-sublime.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307882FC1D3DF00FDD777 /* monokai-sublime.css */; };
+		CC8307F02FC1D41800FDD777 /* night-owl.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307892FC1D3DF00FDD777 /* night-owl.css */; };
+		CC8307F12FC1D41800FDD777 /* nnfx-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83078A2FC1D3DF00FDD777 /* nnfx-dark.css */; };
+		CC8307F22FC1D41800FDD777 /* nnfx-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83078B2FC1D3DF00FDD777 /* nnfx-light.css */; };
+		CC8307F32FC1D41800FDD777 /* nord.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83078C2FC1D3DF00FDD777 /* nord.css */; };
+		CC8307F42FC1D41800FDD777 /* obsidian.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83078D2FC1D3DF00FDD777 /* obsidian.css */; };
+		CC8307F52FC1D41800FDD777 /* ocean.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83078E2FC1D3DF00FDD777 /* ocean.css */; };
+		CC8307F62FC1D41800FDD777 /* paraiso-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83078F2FC1D3DF00FDD777 /* paraiso-dark.css */; };
+		CC8307F72FC1D41800FDD777 /* paraiso-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307902FC1D3DF00FDD777 /* paraiso-light.css */; };
+		CC8307F82FC1D41800FDD777 /* pojoaque.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307912FC1D3DF00FDD777 /* pojoaque.css */; };
+		CC8307F92FC1D41800FDD777 /* purebasic.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307922FC1D3DF00FDD777 /* purebasic.css */; };
+		CC8307FA2FC1D41800FDD777 /* qtcreator_dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307932FC1D3DF00FDD777 /* qtcreator_dark.css */; };
+		CC8307FB2FC1D41800FDD777 /* qtcreator_light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307942FC1D3DF00FDD777 /* qtcreator_light.css */; };
+		CC8307FC2FC1D41800FDD777 /* railscasts.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307952FC1D3DF00FDD777 /* railscasts.css */; };
+		CC8307FD2FC1D41800FDD777 /* rainbow.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307962FC1D3DF00FDD777 /* rainbow.css */; };
+		CC8307FE2FC1D41800FDD777 /* routeros.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307972FC1D3DF00FDD777 /* routeros.css */; };
+		CC8307FF2FC1D41800FDD777 /* school-book.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307982FC1D3DF00FDD777 /* school-book.css */; };
+		CC8308002FC1D41800FDD777 /* shades-of-purple.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307992FC1D3DF00FDD777 /* shades-of-purple.css */; };
+		CC8308012FC1D41800FDD777 /* silk-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83079A2FC1D3DF00FDD777 /* silk-dark.css */; };
+		CC8308022FC1D41800FDD777 /* silk-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83079B2FC1D3DF00FDD777 /* silk-light.css */; };
+		CC8308032FC1D41800FDD777 /* snazzy.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83079C2FC1D3DF00FDD777 /* snazzy.css */; };
+		CC8308042FC1D41800FDD777 /* solarized-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83079D2FC1D3DF00FDD777 /* solarized-dark.css */; };
+		CC8308052FC1D41800FDD777 /* solarized-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83079E2FC1D3DF00FDD777 /* solarized-light.css */; };
+		CC8308062FC1D41800FDD777 /* srcery.css in Resources */ = {isa = PBXBuildFile; fileRef = CC83079F2FC1D3DF00FDD777 /* srcery.css */; };
+		CC8308072FC1D41800FDD777 /* stackoverflow-dark.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A02FC1D3DF00FDD777 /* stackoverflow-dark.css */; };
+		CC8308082FC1D41800FDD777 /* stackoverflow-light.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A12FC1D3DF00FDD777 /* stackoverflow-light.css */; };
+		CC8308092FC1D41800FDD777 /* sunburst.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A22FC1D3DF00FDD777 /* sunburst.css */; };
+		CC83080A2FC1D41800FDD777 /* tomorrow.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A32FC1D3DF00FDD777 /* tomorrow.css */; };
+		CC83080B2FC1D41800FDD777 /* tomorrow-night.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A42FC1D3DF00FDD777 /* tomorrow-night.css */; };
+		CC83080C2FC1D41800FDD777 /* tomorrow-night-blue.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A52FC1D3DF00FDD777 /* tomorrow-night-blue.css */; };
+		CC83080D2FC1D41800FDD777 /* tomorrow-night-bright.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A62FC1D3DF00FDD777 /* tomorrow-night-bright.css */; };
+		CC83080E2FC1D41800FDD777 /* tomorrow-night-eighties.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A72FC1D3DF00FDD777 /* tomorrow-night-eighties.css */; };
+		CC83080F2FC1D41800FDD777 /* vs.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A82FC1D3DF00FDD777 /* vs.css */; };
+		CC8308102FC1D41800FDD777 /* vs2015.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307A92FC1D3DF00FDD777 /* vs2015.css */; };
+		CC8308112FC1D41800FDD777 /* vulcan.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307AA2FC1D3DF00FDD777 /* vulcan.css */; };
+		CC8308122FC1D41800FDD777 /* xcode.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307AB2FC1D3DF00FDD777 /* xcode.css */; };
+		CC8308132FC1D41800FDD777 /* xcode-dusk.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307AC2FC1D3DF00FDD777 /* xcode-dusk.css */; };
+		CC8308142FC1D41800FDD777 /* xt256.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307AD2FC1D3DF00FDD777 /* xt256.css */; };
+		CC8308152FC1D41800FDD777 /* zenburn.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307AE2FC1D3DF00FDD777 /* zenburn.css */; };
+		CC8308182FC24AC700FDD777 /* markdownkit.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8308162FC2486C00FDD777 /* markdownkit.css */; };
+		CC83081D2FC27E3800FDD777 /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */; };
 		CC8649852FAFF94E00DEB33E /* TerminalGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */; };
 		CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987F264B434F006950A7 /* CustomTextFragment.swift */; };
 		CC879881264B43C1006950A7 /* CustomBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987E264B431F006950A7 /* CustomBlock.swift */; };
@@ -146,6 +254,115 @@
 		CC7B604022B67F0C0092188C /* EmphasisTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmphasisTransformer.swift; sourceTree = "<group>"; };
 		CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringGeneratorTests.swift; sourceTree = "<group>"; };
 		CC7CCB942FA745F600C05C77 /* StringGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringGenerator.swift; sourceTree = "<group>"; };
+		CC8307412FC0F51A00FDD777 /* highlight.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = highlight.min.js; sourceTree = "<group>"; };
+		CC8307422FC0F55500FDD777 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
+		CC8307452FC1320600FDD777 /* HighlightingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingConfig.swift; sourceTree = "<group>"; };
+		CC8307482FC1D3DF00FDD777 /* a11y-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "a11y-dark.css"; sourceTree = "<group>"; };
+		CC8307492FC1D3DF00FDD777 /* a11y-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "a11y-light.css"; sourceTree = "<group>"; };
+		CC83074A2FC1D3DF00FDD777 /* agate.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = agate.css; sourceTree = "<group>"; };
+		CC83074B2FC1D3DF00FDD777 /* an-old-hope.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "an-old-hope.css"; sourceTree = "<group>"; };
+		CC83074C2FC1D3DF00FDD777 /* androidstudio.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = androidstudio.css; sourceTree = "<group>"; };
+		CC83074D2FC1D3DF00FDD777 /* arduino-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "arduino-light.css"; sourceTree = "<group>"; };
+		CC83074E2FC1D3DF00FDD777 /* arta.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = arta.css; sourceTree = "<group>"; };
+		CC83074F2FC1D3DF00FDD777 /* ascetic.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = ascetic.css; sourceTree = "<group>"; };
+		CC8307502FC1D3DF00FDD777 /* atelier-cave-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-cave-dark.css"; sourceTree = "<group>"; };
+		CC8307512FC1D3DF00FDD777 /* atelier-cave-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-cave-light.css"; sourceTree = "<group>"; };
+		CC8307522FC1D3DF00FDD777 /* atelier-dune-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-dune-dark.css"; sourceTree = "<group>"; };
+		CC8307532FC1D3DF00FDD777 /* atelier-dune-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-dune-light.css"; sourceTree = "<group>"; };
+		CC8307542FC1D3DF00FDD777 /* atelier-estuary-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-estuary-dark.css"; sourceTree = "<group>"; };
+		CC8307552FC1D3DF00FDD777 /* atelier-estuary-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-estuary-light.css"; sourceTree = "<group>"; };
+		CC8307562FC1D3DF00FDD777 /* atelier-forest-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-forest-dark.css"; sourceTree = "<group>"; };
+		CC8307572FC1D3DF00FDD777 /* atelier-forest-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-forest-light.css"; sourceTree = "<group>"; };
+		CC8307582FC1D3DF00FDD777 /* atelier-heath-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-heath-dark.css"; sourceTree = "<group>"; };
+		CC8307592FC1D3DF00FDD777 /* atelier-heath-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-heath-light.css"; sourceTree = "<group>"; };
+		CC83075A2FC1D3DF00FDD777 /* atelier-lakeside-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-lakeside-dark.css"; sourceTree = "<group>"; };
+		CC83075B2FC1D3DF00FDD777 /* atelier-lakeside-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-lakeside-light.css"; sourceTree = "<group>"; };
+		CC83075C2FC1D3DF00FDD777 /* atelier-plateau-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-plateau-dark.css"; sourceTree = "<group>"; };
+		CC83075D2FC1D3DF00FDD777 /* atelier-plateau-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-plateau-light.css"; sourceTree = "<group>"; };
+		CC83075E2FC1D3DF00FDD777 /* atelier-savanna-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-savanna-dark.css"; sourceTree = "<group>"; };
+		CC83075F2FC1D3DF00FDD777 /* atelier-savanna-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-savanna-light.css"; sourceTree = "<group>"; };
+		CC8307602FC1D3DF00FDD777 /* atelier-seaside-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-seaside-dark.css"; sourceTree = "<group>"; };
+		CC8307612FC1D3DF00FDD777 /* atelier-seaside-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-seaside-light.css"; sourceTree = "<group>"; };
+		CC8307622FC1D3DF00FDD777 /* atelier-sulphurpool-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-sulphurpool-dark.css"; sourceTree = "<group>"; };
+		CC8307632FC1D3DF00FDD777 /* atelier-sulphurpool-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atelier-sulphurpool-light.css"; sourceTree = "<group>"; };
+		CC8307642FC1D3DF00FDD777 /* atom-one-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atom-one-dark.css"; sourceTree = "<group>"; };
+		CC8307652FC1D3DF00FDD777 /* atom-one-dark-reasonable.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atom-one-dark-reasonable.css"; sourceTree = "<group>"; };
+		CC8307662FC1D3DF00FDD777 /* atom-one-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "atom-one-light.css"; sourceTree = "<group>"; };
+		CC8307672FC1D3DF00FDD777 /* brown-paper.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "brown-paper.css"; sourceTree = "<group>"; };
+		CC8307682FC1D3DF00FDD777 /* codepen-embed.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "codepen-embed.css"; sourceTree = "<group>"; };
+		CC8307692FC1D3DF00FDD777 /* color-brewer.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "color-brewer.css"; sourceTree = "<group>"; };
+		CC83076A2FC1D3DF00FDD777 /* darcula.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = darcula.css; sourceTree = "<group>"; };
+		CC83076B2FC1D3DF00FDD777 /* dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = dark.css; sourceTree = "<group>"; };
+		CC83076C2FC1D3DF00FDD777 /* default.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = default.css; sourceTree = "<group>"; };
+		CC83076D2FC1D3DF00FDD777 /* docco.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = docco.css; sourceTree = "<group>"; };
+		CC83076E2FC1D3DF00FDD777 /* dracula.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = dracula.css; sourceTree = "<group>"; };
+		CC83076F2FC1D3DF00FDD777 /* far.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = far.css; sourceTree = "<group>"; };
+		CC8307702FC1D3DF00FDD777 /* foundation.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = foundation.css; sourceTree = "<group>"; };
+		CC8307712FC1D3DF00FDD777 /* github.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = github.css; sourceTree = "<group>"; };
+		CC8307722FC1D3DF00FDD777 /* github-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "github-dark.css"; sourceTree = "<group>"; };
+		CC8307732FC1D3DF00FDD777 /* github-gist.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "github-gist.css"; sourceTree = "<group>"; };
+		CC8307742FC1D3DF00FDD777 /* gml.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = gml.css; sourceTree = "<group>"; };
+		CC8307752FC1D3DF00FDD777 /* googlecode.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = googlecode.css; sourceTree = "<group>"; };
+		CC8307762FC1D3DF00FDD777 /* gradient-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "gradient-dark.css"; sourceTree = "<group>"; };
+		CC8307772FC1D3DF00FDD777 /* gradient-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "gradient-light.css"; sourceTree = "<group>"; };
+		CC8307782FC1D3DF00FDD777 /* grayscale.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = grayscale.css; sourceTree = "<group>"; };
+		CC8307792FC1D3DF00FDD777 /* gruvbox-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "gruvbox-dark.css"; sourceTree = "<group>"; };
+		CC83077A2FC1D3DF00FDD777 /* gruvbox-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "gruvbox-light.css"; sourceTree = "<group>"; };
+		CC83077B2FC1D3DF00FDD777 /* hopscotch.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = hopscotch.css; sourceTree = "<group>"; };
+		CC83077C2FC1D3DF00FDD777 /* hybrid.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = hybrid.css; sourceTree = "<group>"; };
+		CC83077D2FC1D3DF00FDD777 /* idea.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = idea.css; sourceTree = "<group>"; };
+		CC83077E2FC1D3DF00FDD777 /* ir-black.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "ir-black.css"; sourceTree = "<group>"; };
+		CC83077F2FC1D3DF00FDD777 /* isbl-editor-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "isbl-editor-dark.css"; sourceTree = "<group>"; };
+		CC8307802FC1D3DF00FDD777 /* isbl-editor-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "isbl-editor-light.css"; sourceTree = "<group>"; };
+		CC8307812FC1D3DF00FDD777 /* kimbie-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "kimbie-dark.css"; sourceTree = "<group>"; };
+		CC8307822FC1D3DF00FDD777 /* kimbie-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "kimbie-light.css"; sourceTree = "<group>"; };
+		CC8307832FC1D3DF00FDD777 /* lightfair.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = lightfair.css; sourceTree = "<group>"; };
+		CC8307842FC1D3DF00FDD777 /* lioshi.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = lioshi.css; sourceTree = "<group>"; };
+		CC8307852FC1D3DF00FDD777 /* magula.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = magula.css; sourceTree = "<group>"; };
+		CC8307862FC1D3DF00FDD777 /* mono-blue.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "mono-blue.css"; sourceTree = "<group>"; };
+		CC8307872FC1D3DF00FDD777 /* monokai.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = monokai.css; sourceTree = "<group>"; };
+		CC8307882FC1D3DF00FDD777 /* monokai-sublime.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "monokai-sublime.css"; sourceTree = "<group>"; };
+		CC8307892FC1D3DF00FDD777 /* night-owl.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "night-owl.css"; sourceTree = "<group>"; };
+		CC83078A2FC1D3DF00FDD777 /* nnfx-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "nnfx-dark.css"; sourceTree = "<group>"; };
+		CC83078B2FC1D3DF00FDD777 /* nnfx-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "nnfx-light.css"; sourceTree = "<group>"; };
+		CC83078C2FC1D3DF00FDD777 /* nord.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = nord.css; sourceTree = "<group>"; };
+		CC83078D2FC1D3DF00FDD777 /* obsidian.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = obsidian.css; sourceTree = "<group>"; };
+		CC83078E2FC1D3DF00FDD777 /* ocean.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = ocean.css; sourceTree = "<group>"; };
+		CC83078F2FC1D3DF00FDD777 /* paraiso-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "paraiso-dark.css"; sourceTree = "<group>"; };
+		CC8307902FC1D3DF00FDD777 /* paraiso-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "paraiso-light.css"; sourceTree = "<group>"; };
+		CC8307912FC1D3DF00FDD777 /* pojoaque.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = pojoaque.css; sourceTree = "<group>"; };
+		CC8307922FC1D3DF00FDD777 /* purebasic.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = purebasic.css; sourceTree = "<group>"; };
+		CC8307932FC1D3DF00FDD777 /* qtcreator_dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = qtcreator_dark.css; sourceTree = "<group>"; };
+		CC8307942FC1D3DF00FDD777 /* qtcreator_light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = qtcreator_light.css; sourceTree = "<group>"; };
+		CC8307952FC1D3DF00FDD777 /* railscasts.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = railscasts.css; sourceTree = "<group>"; };
+		CC8307962FC1D3DF00FDD777 /* rainbow.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = rainbow.css; sourceTree = "<group>"; };
+		CC8307972FC1D3DF00FDD777 /* routeros.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = routeros.css; sourceTree = "<group>"; };
+		CC8307982FC1D3DF00FDD777 /* school-book.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "school-book.css"; sourceTree = "<group>"; };
+		CC8307992FC1D3DF00FDD777 /* shades-of-purple.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "shades-of-purple.css"; sourceTree = "<group>"; };
+		CC83079A2FC1D3DF00FDD777 /* silk-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "silk-dark.css"; sourceTree = "<group>"; };
+		CC83079B2FC1D3DF00FDD777 /* silk-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "silk-light.css"; sourceTree = "<group>"; };
+		CC83079C2FC1D3DF00FDD777 /* snazzy.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = snazzy.css; sourceTree = "<group>"; };
+		CC83079D2FC1D3DF00FDD777 /* solarized-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "solarized-dark.css"; sourceTree = "<group>"; };
+		CC83079E2FC1D3DF00FDD777 /* solarized-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "solarized-light.css"; sourceTree = "<group>"; };
+		CC83079F2FC1D3DF00FDD777 /* srcery.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = srcery.css; sourceTree = "<group>"; };
+		CC8307A02FC1D3DF00FDD777 /* stackoverflow-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "stackoverflow-dark.css"; sourceTree = "<group>"; };
+		CC8307A12FC1D3DF00FDD777 /* stackoverflow-light.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "stackoverflow-light.css"; sourceTree = "<group>"; };
+		CC8307A22FC1D3DF00FDD777 /* sunburst.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = sunburst.css; sourceTree = "<group>"; };
+		CC8307A32FC1D3DF00FDD777 /* tomorrow.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = tomorrow.css; sourceTree = "<group>"; };
+		CC8307A42FC1D3DF00FDD777 /* tomorrow-night.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "tomorrow-night.css"; sourceTree = "<group>"; };
+		CC8307A52FC1D3DF00FDD777 /* tomorrow-night-blue.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "tomorrow-night-blue.css"; sourceTree = "<group>"; };
+		CC8307A62FC1D3DF00FDD777 /* tomorrow-night-bright.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "tomorrow-night-bright.css"; sourceTree = "<group>"; };
+		CC8307A72FC1D3DF00FDD777 /* tomorrow-night-eighties.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "tomorrow-night-eighties.css"; sourceTree = "<group>"; };
+		CC8307A82FC1D3DF00FDD777 /* vs.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = vs.css; sourceTree = "<group>"; };
+		CC8307A92FC1D3DF00FDD777 /* vs2015.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = vs2015.css; sourceTree = "<group>"; };
+		CC8307AA2FC1D3DF00FDD777 /* vulcan.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = vulcan.css; sourceTree = "<group>"; };
+		CC8307AB2FC1D3DF00FDD777 /* xcode.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = xcode.css; sourceTree = "<group>"; };
+		CC8307AC2FC1D3DF00FDD777 /* xcode-dusk.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "xcode-dusk.css"; sourceTree = "<group>"; };
+		CC8307AD2FC1D3DF00FDD777 /* xt256.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = xt256.css; sourceTree = "<group>"; };
+		CC8307AE2FC1D3DF00FDD777 /* zenburn.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = zenburn.css; sourceTree = "<group>"; };
+		CC8308162FC2486C00FDD777 /* markdownkit.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = markdownkit.css; sourceTree = "<group>"; };
+		CC8308192FC2609300FDD777 /* markdownkit-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "markdownkit-dark.css"; sourceTree = "<group>"; };
+		CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
 		CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalGenerator.swift; sourceTree = "<group>"; };
 		CC87987E264B431F006950A7 /* CustomBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomBlock.swift; sourceTree = "<group>"; };
 		CC87987F264B434F006950A7 /* CustomTextFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextFragment.swift; sourceTree = "<group>"; };
@@ -274,6 +491,7 @@
 				CC088C0A22DB74090059460E /* TextFragment.swift */,
 				CC87987F264B434F006950A7 /* CustomTextFragment.swift */,
 				CC8CBC1A22862F4F0084683B /* Parser */,
+				CC8307402FC0F49200FDD777 /* Highlighter */,
 				CC7CCB952FA745F600C05C77 /* String */,
 				CC088C0C22DD2B960059460E /* HTML */,
 				CC088C0D22DD2BA70059460E /* AttributedString */,
@@ -298,6 +516,7 @@
 				CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */,
 				CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */,
 				CC8F27712FBA5DE5000AF851 /* TerminalGeneratorTests.swift */,
+				CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */,
 				CCC48C1425D9D81000D082AD /* LinuxMain.swift */,
 				CC2AF6F8227CD98100BEA420 /* Info.plist */,
 			);
@@ -340,6 +559,129 @@
 				CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */,
 			);
 			path = String;
+			sourceTree = "<group>";
+		};
+		CC8307402FC0F49200FDD777 /* Highlighter */ = {
+			isa = PBXGroup;
+			children = (
+				CC8307422FC0F55500FDD777 /* SyntaxHighlighter.swift */,
+				CC8307452FC1320600FDD777 /* HighlightingConfig.swift */,
+				CC8307412FC0F51A00FDD777 /* highlight.min.js */,
+				CC8307472FC1D36B00FDD777 /* Themes */,
+			);
+			path = Highlighter;
+			sourceTree = "<group>";
+		};
+		CC8307472FC1D36B00FDD777 /* Themes */ = {
+			isa = PBXGroup;
+			children = (
+				CC8307482FC1D3DF00FDD777 /* a11y-dark.css */,
+				CC8307492FC1D3DF00FDD777 /* a11y-light.css */,
+				CC83074A2FC1D3DF00FDD777 /* agate.css */,
+				CC83074B2FC1D3DF00FDD777 /* an-old-hope.css */,
+				CC83074C2FC1D3DF00FDD777 /* androidstudio.css */,
+				CC83074D2FC1D3DF00FDD777 /* arduino-light.css */,
+				CC83074E2FC1D3DF00FDD777 /* arta.css */,
+				CC83074F2FC1D3DF00FDD777 /* ascetic.css */,
+				CC8307502FC1D3DF00FDD777 /* atelier-cave-dark.css */,
+				CC8307512FC1D3DF00FDD777 /* atelier-cave-light.css */,
+				CC8307522FC1D3DF00FDD777 /* atelier-dune-dark.css */,
+				CC8307532FC1D3DF00FDD777 /* atelier-dune-light.css */,
+				CC8307542FC1D3DF00FDD777 /* atelier-estuary-dark.css */,
+				CC8307552FC1D3DF00FDD777 /* atelier-estuary-light.css */,
+				CC8307562FC1D3DF00FDD777 /* atelier-forest-dark.css */,
+				CC8307572FC1D3DF00FDD777 /* atelier-forest-light.css */,
+				CC8307582FC1D3DF00FDD777 /* atelier-heath-dark.css */,
+				CC8307592FC1D3DF00FDD777 /* atelier-heath-light.css */,
+				CC83075A2FC1D3DF00FDD777 /* atelier-lakeside-dark.css */,
+				CC83075B2FC1D3DF00FDD777 /* atelier-lakeside-light.css */,
+				CC83075C2FC1D3DF00FDD777 /* atelier-plateau-dark.css */,
+				CC83075D2FC1D3DF00FDD777 /* atelier-plateau-light.css */,
+				CC83075E2FC1D3DF00FDD777 /* atelier-savanna-dark.css */,
+				CC83075F2FC1D3DF00FDD777 /* atelier-savanna-light.css */,
+				CC8307602FC1D3DF00FDD777 /* atelier-seaside-dark.css */,
+				CC8307612FC1D3DF00FDD777 /* atelier-seaside-light.css */,
+				CC8307622FC1D3DF00FDD777 /* atelier-sulphurpool-dark.css */,
+				CC8307632FC1D3DF00FDD777 /* atelier-sulphurpool-light.css */,
+				CC8307642FC1D3DF00FDD777 /* atom-one-dark.css */,
+				CC8307652FC1D3DF00FDD777 /* atom-one-dark-reasonable.css */,
+				CC8307662FC1D3DF00FDD777 /* atom-one-light.css */,
+				CC8307672FC1D3DF00FDD777 /* brown-paper.css */,
+				CC8307682FC1D3DF00FDD777 /* codepen-embed.css */,
+				CC8307692FC1D3DF00FDD777 /* color-brewer.css */,
+				CC83076A2FC1D3DF00FDD777 /* darcula.css */,
+				CC83076B2FC1D3DF00FDD777 /* dark.css */,
+				CC83076C2FC1D3DF00FDD777 /* default.css */,
+				CC83076D2FC1D3DF00FDD777 /* docco.css */,
+				CC83076E2FC1D3DF00FDD777 /* dracula.css */,
+				CC83076F2FC1D3DF00FDD777 /* far.css */,
+				CC8307702FC1D3DF00FDD777 /* foundation.css */,
+				CC8307712FC1D3DF00FDD777 /* github.css */,
+				CC8307722FC1D3DF00FDD777 /* github-dark.css */,
+				CC8307732FC1D3DF00FDD777 /* github-gist.css */,
+				CC8307742FC1D3DF00FDD777 /* gml.css */,
+				CC8307752FC1D3DF00FDD777 /* googlecode.css */,
+				CC8307762FC1D3DF00FDD777 /* gradient-dark.css */,
+				CC8307772FC1D3DF00FDD777 /* gradient-light.css */,
+				CC8307782FC1D3DF00FDD777 /* grayscale.css */,
+				CC8307792FC1D3DF00FDD777 /* gruvbox-dark.css */,
+				CC83077A2FC1D3DF00FDD777 /* gruvbox-light.css */,
+				CC83077B2FC1D3DF00FDD777 /* hopscotch.css */,
+				CC83077C2FC1D3DF00FDD777 /* hybrid.css */,
+				CC83077D2FC1D3DF00FDD777 /* idea.css */,
+				CC83077E2FC1D3DF00FDD777 /* ir-black.css */,
+				CC83077F2FC1D3DF00FDD777 /* isbl-editor-dark.css */,
+				CC8307802FC1D3DF00FDD777 /* isbl-editor-light.css */,
+				CC8307812FC1D3DF00FDD777 /* kimbie-dark.css */,
+				CC8307822FC1D3DF00FDD777 /* kimbie-light.css */,
+				CC8307832FC1D3DF00FDD777 /* lightfair.css */,
+				CC8307842FC1D3DF00FDD777 /* lioshi.css */,
+				CC8307852FC1D3DF00FDD777 /* magula.css */,
+				CC8308162FC2486C00FDD777 /* markdownkit.css */,
+				CC8308192FC2609300FDD777 /* markdownkit-dark.css */,
+				CC8307862FC1D3DF00FDD777 /* mono-blue.css */,
+				CC8307872FC1D3DF00FDD777 /* monokai.css */,
+				CC8307882FC1D3DF00FDD777 /* monokai-sublime.css */,
+				CC8307892FC1D3DF00FDD777 /* night-owl.css */,
+				CC83078A2FC1D3DF00FDD777 /* nnfx-dark.css */,
+				CC83078B2FC1D3DF00FDD777 /* nnfx-light.css */,
+				CC83078C2FC1D3DF00FDD777 /* nord.css */,
+				CC83078D2FC1D3DF00FDD777 /* obsidian.css */,
+				CC83078E2FC1D3DF00FDD777 /* ocean.css */,
+				CC83078F2FC1D3DF00FDD777 /* paraiso-dark.css */,
+				CC8307902FC1D3DF00FDD777 /* paraiso-light.css */,
+				CC8307912FC1D3DF00FDD777 /* pojoaque.css */,
+				CC8307922FC1D3DF00FDD777 /* purebasic.css */,
+				CC8307932FC1D3DF00FDD777 /* qtcreator_dark.css */,
+				CC8307942FC1D3DF00FDD777 /* qtcreator_light.css */,
+				CC8307952FC1D3DF00FDD777 /* railscasts.css */,
+				CC8307962FC1D3DF00FDD777 /* rainbow.css */,
+				CC8307972FC1D3DF00FDD777 /* routeros.css */,
+				CC8307982FC1D3DF00FDD777 /* school-book.css */,
+				CC8307992FC1D3DF00FDD777 /* shades-of-purple.css */,
+				CC83079A2FC1D3DF00FDD777 /* silk-dark.css */,
+				CC83079B2FC1D3DF00FDD777 /* silk-light.css */,
+				CC83079C2FC1D3DF00FDD777 /* snazzy.css */,
+				CC83079D2FC1D3DF00FDD777 /* solarized-dark.css */,
+				CC83079E2FC1D3DF00FDD777 /* solarized-light.css */,
+				CC83079F2FC1D3DF00FDD777 /* srcery.css */,
+				CC8307A02FC1D3DF00FDD777 /* stackoverflow-dark.css */,
+				CC8307A12FC1D3DF00FDD777 /* stackoverflow-light.css */,
+				CC8307A22FC1D3DF00FDD777 /* sunburst.css */,
+				CC8307A32FC1D3DF00FDD777 /* tomorrow.css */,
+				CC8307A42FC1D3DF00FDD777 /* tomorrow-night.css */,
+				CC8307A52FC1D3DF00FDD777 /* tomorrow-night-blue.css */,
+				CC8307A62FC1D3DF00FDD777 /* tomorrow-night-bright.css */,
+				CC8307A72FC1D3DF00FDD777 /* tomorrow-night-eighties.css */,
+				CC8307A82FC1D3DF00FDD777 /* vs.css */,
+				CC8307A92FC1D3DF00FDD777 /* vs2015.css */,
+				CC8307AA2FC1D3DF00FDD777 /* vulcan.css */,
+				CC8307AB2FC1D3DF00FDD777 /* xcode.css */,
+				CC8307AC2FC1D3DF00FDD777 /* xcode-dusk.css */,
+				CC8307AD2FC1D3DF00FDD777 /* xt256.css */,
+				CC8307AE2FC1D3DF00FDD777 /* zenburn.css */,
+			);
+			path = Themes;
 			sourceTree = "<group>";
 		};
 		CC8CBC1A22862F4F0084683B /* Parser */ = {
@@ -518,6 +860,111 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC8308182FC24AC700FDD777 /* markdownkit.css in Resources */,
+				CC8307AF2FC1D41800FDD777 /* a11y-dark.css in Resources */,
+				CC8307B02FC1D41800FDD777 /* a11y-light.css in Resources */,
+				CC8307B12FC1D41800FDD777 /* agate.css in Resources */,
+				CC8307B22FC1D41800FDD777 /* an-old-hope.css in Resources */,
+				CC8307B32FC1D41800FDD777 /* androidstudio.css in Resources */,
+				CC8307B42FC1D41800FDD777 /* arduino-light.css in Resources */,
+				CC8307B52FC1D41800FDD777 /* arta.css in Resources */,
+				CC8307B62FC1D41800FDD777 /* ascetic.css in Resources */,
+				CC8307B72FC1D41800FDD777 /* atelier-cave-dark.css in Resources */,
+				CC8307B82FC1D41800FDD777 /* atelier-cave-light.css in Resources */,
+				CC8307B92FC1D41800FDD777 /* atelier-dune-dark.css in Resources */,
+				CC8307BA2FC1D41800FDD777 /* atelier-dune-light.css in Resources */,
+				CC8307BB2FC1D41800FDD777 /* atelier-estuary-dark.css in Resources */,
+				CC8307BC2FC1D41800FDD777 /* atelier-estuary-light.css in Resources */,
+				CC8307BD2FC1D41800FDD777 /* atelier-forest-dark.css in Resources */,
+				CC8307BE2FC1D41800FDD777 /* atelier-forest-light.css in Resources */,
+				CC8307BF2FC1D41800FDD777 /* atelier-heath-dark.css in Resources */,
+				CC8307C02FC1D41800FDD777 /* atelier-heath-light.css in Resources */,
+				CC8307C12FC1D41800FDD777 /* atelier-lakeside-dark.css in Resources */,
+				CC8307C22FC1D41800FDD777 /* atelier-lakeside-light.css in Resources */,
+				CC8307C32FC1D41800FDD777 /* atelier-plateau-dark.css in Resources */,
+				CC8307C42FC1D41800FDD777 /* atelier-plateau-light.css in Resources */,
+				CC8307C52FC1D41800FDD777 /* atelier-savanna-dark.css in Resources */,
+				CC8307C62FC1D41800FDD777 /* atelier-savanna-light.css in Resources */,
+				CC8307C72FC1D41800FDD777 /* atelier-seaside-dark.css in Resources */,
+				CC8307C82FC1D41800FDD777 /* atelier-seaside-light.css in Resources */,
+				CC8307C92FC1D41800FDD777 /* atelier-sulphurpool-dark.css in Resources */,
+				CC8307CA2FC1D41800FDD777 /* atelier-sulphurpool-light.css in Resources */,
+				CC8307CB2FC1D41800FDD777 /* atom-one-dark.css in Resources */,
+				CC8307CC2FC1D41800FDD777 /* atom-one-dark-reasonable.css in Resources */,
+				CC8307CD2FC1D41800FDD777 /* atom-one-light.css in Resources */,
+				CC8307CE2FC1D41800FDD777 /* brown-paper.css in Resources */,
+				CC8307CF2FC1D41800FDD777 /* codepen-embed.css in Resources */,
+				CC8307D02FC1D41800FDD777 /* color-brewer.css in Resources */,
+				CC8307D12FC1D41800FDD777 /* darcula.css in Resources */,
+				CC8307D22FC1D41800FDD777 /* dark.css in Resources */,
+				CC8307D32FC1D41800FDD777 /* default.css in Resources */,
+				CC8307D42FC1D41800FDD777 /* docco.css in Resources */,
+				CC8307D52FC1D41800FDD777 /* dracula.css in Resources */,
+				CC8307D62FC1D41800FDD777 /* far.css in Resources */,
+				CC8307D72FC1D41800FDD777 /* foundation.css in Resources */,
+				CC8307D82FC1D41800FDD777 /* github.css in Resources */,
+				CC8307D92FC1D41800FDD777 /* github-dark.css in Resources */,
+				CC8307DA2FC1D41800FDD777 /* github-gist.css in Resources */,
+				CC8307DB2FC1D41800FDD777 /* gml.css in Resources */,
+				CC8307DC2FC1D41800FDD777 /* googlecode.css in Resources */,
+				CC8307DD2FC1D41800FDD777 /* gradient-dark.css in Resources */,
+				CC8307DE2FC1D41800FDD777 /* gradient-light.css in Resources */,
+				CC8307DF2FC1D41800FDD777 /* grayscale.css in Resources */,
+				CC8307E02FC1D41800FDD777 /* gruvbox-dark.css in Resources */,
+				CC8307E12FC1D41800FDD777 /* gruvbox-light.css in Resources */,
+				CC8307E22FC1D41800FDD777 /* hopscotch.css in Resources */,
+				CC8307E32FC1D41800FDD777 /* hybrid.css in Resources */,
+				CC8307E42FC1D41800FDD777 /* idea.css in Resources */,
+				CC8307E52FC1D41800FDD777 /* ir-black.css in Resources */,
+				CC8307E62FC1D41800FDD777 /* isbl-editor-dark.css in Resources */,
+				CC8307E72FC1D41800FDD777 /* isbl-editor-light.css in Resources */,
+				CC8307E82FC1D41800FDD777 /* kimbie-dark.css in Resources */,
+				CC8307E92FC1D41800FDD777 /* kimbie-light.css in Resources */,
+				CC8307EA2FC1D41800FDD777 /* lightfair.css in Resources */,
+				CC8307EB2FC1D41800FDD777 /* lioshi.css in Resources */,
+				CC8307EC2FC1D41800FDD777 /* magula.css in Resources */,
+				CC8307ED2FC1D41800FDD777 /* mono-blue.css in Resources */,
+				CC8307EE2FC1D41800FDD777 /* monokai.css in Resources */,
+				CC8307EF2FC1D41800FDD777 /* monokai-sublime.css in Resources */,
+				CC8307F02FC1D41800FDD777 /* night-owl.css in Resources */,
+				CC8307F12FC1D41800FDD777 /* nnfx-dark.css in Resources */,
+				CC8307F22FC1D41800FDD777 /* nnfx-light.css in Resources */,
+				CC8307F32FC1D41800FDD777 /* nord.css in Resources */,
+				CC8307F42FC1D41800FDD777 /* obsidian.css in Resources */,
+				CC8307F52FC1D41800FDD777 /* ocean.css in Resources */,
+				CC8307F62FC1D41800FDD777 /* paraiso-dark.css in Resources */,
+				CC8307F72FC1D41800FDD777 /* paraiso-light.css in Resources */,
+				CC8307F82FC1D41800FDD777 /* pojoaque.css in Resources */,
+				CC8307F92FC1D41800FDD777 /* purebasic.css in Resources */,
+				CC8307FA2FC1D41800FDD777 /* qtcreator_dark.css in Resources */,
+				CC8307FB2FC1D41800FDD777 /* qtcreator_light.css in Resources */,
+				CC8307FC2FC1D41800FDD777 /* railscasts.css in Resources */,
+				CC8307FD2FC1D41800FDD777 /* rainbow.css in Resources */,
+				CC8307FE2FC1D41800FDD777 /* routeros.css in Resources */,
+				CC8307FF2FC1D41800FDD777 /* school-book.css in Resources */,
+				CC8308002FC1D41800FDD777 /* shades-of-purple.css in Resources */,
+				CC8308012FC1D41800FDD777 /* silk-dark.css in Resources */,
+				CC8308022FC1D41800FDD777 /* silk-light.css in Resources */,
+				CC8308032FC1D41800FDD777 /* snazzy.css in Resources */,
+				CC8308042FC1D41800FDD777 /* solarized-dark.css in Resources */,
+				CC8308052FC1D41800FDD777 /* solarized-light.css in Resources */,
+				CC8308062FC1D41800FDD777 /* srcery.css in Resources */,
+				CC8308072FC1D41800FDD777 /* stackoverflow-dark.css in Resources */,
+				CC8308082FC1D41800FDD777 /* stackoverflow-light.css in Resources */,
+				CC8308092FC1D41800FDD777 /* sunburst.css in Resources */,
+				CC83080A2FC1D41800FDD777 /* tomorrow.css in Resources */,
+				CC83080B2FC1D41800FDD777 /* tomorrow-night.css in Resources */,
+				CC83080C2FC1D41800FDD777 /* tomorrow-night-blue.css in Resources */,
+				CC83080D2FC1D41800FDD777 /* tomorrow-night-bright.css in Resources */,
+				CC83080E2FC1D41800FDD777 /* tomorrow-night-eighties.css in Resources */,
+				CC83080F2FC1D41800FDD777 /* vs.css in Resources */,
+				CC8308102FC1D41800FDD777 /* vs2015.css in Resources */,
+				CC8308112FC1D41800FDD777 /* vulcan.css in Resources */,
+				CC8308122FC1D41800FDD777 /* xcode.css in Resources */,
+				CC8308132FC1D41800FDD777 /* xcode-dusk.css in Resources */,
+				CC8308142FC1D41800FDD777 /* xt256.css in Resources */,
+				CC8308152FC1D41800FDD777 /* zenburn.css in Resources */,
+				CC8307442FC12ED900FDD777 /* highlight.min.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -569,6 +1016,7 @@
 				CCD0746822A060CF0053B73C /* Text.swift in Sources */,
 				CCA2A4BD2FB3CAD600A8B92E /* GeneratorContext.swift in Sources */,
 				CC321DFF2F69C2020094C57A /* MarkdownText.swift in Sources */,
+				CC8307432FC12E6300FDD777 /* SyntaxHighlighter.swift in Sources */,
 				CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */,
 				CC879881264B43C1006950A7 /* CustomBlock.swift in Sources */,
 				CC8CBC2322884F940084683B /* SetextHeadingParser.swift in Sources */,
@@ -578,6 +1026,7 @@
 				CC8CBC21228730800084683B /* LinkRefDefinitionParser.swift in Sources */,
 				CC7B603D22AC6AD70092188C /* CodeLinkHtmlTransformer.swift in Sources */,
 				CC088C0B22DB74090059460E /* TextFragment.swift in Sources */,
+				CC8307462FC1320600FDD777 /* HighlightingConfig.swift in Sources */,
 				CC8CBC1F2286CED60084683B /* Blocks.swift in Sources */,
 				CC7B603F22AEFDFF0092188C /* ParserUtil.swift in Sources */,
 				CCB033D0227CDB2F00E1C4DC /* AtxHeadingParser.swift in Sources */,
@@ -595,6 +1044,7 @@
 				CC24757324C1EBB600678C59 /* ExtendedMarkdownBlockTests.swift in Sources */,
 				CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */,
 				CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */,
+				CC83081D2FC27E3800FDD777 /* SyntaxHighlighterTests.swift in Sources */,
 				CC55DD88264B19D8001AAD10 /* MarkdownExtension.swift in Sources */,
 				CC088C2422E337BD0059460E /* MarkdownHtmlTests.swift in Sources */,
 				CCC48C0425D98FCB00D082AD /* MarkdownStringTests.swift in Sources */,

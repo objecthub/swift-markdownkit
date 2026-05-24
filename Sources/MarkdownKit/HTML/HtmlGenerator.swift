@@ -94,10 +94,16 @@ open class HtmlGenerator {
                self.generate(lines: lines).encodingPredefinedXmlEntities() +
                "</code></pre>\n"
       case .fencedCode(let lang, let lines):
-        if let language = lang {
-          return "<pre><code class=\"\(language)\">" +
-                 self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
-                 "</code></pre>\n"
+        if let lang {
+          if lang == "mermaid" {
+            return "<pre class=\"mermaid\">" +
+                   self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
+                   "</pre>\n"
+          } else {
+            return "<pre><code class=\"language-\(lang)\">" +
+                   self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
+                   "</code></pre>\n"
+          }
         } else {
           return "<pre><code>" +
                  self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +

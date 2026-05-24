@@ -69,13 +69,36 @@ struct ContentView: View {
     Pellentesque ac lectus aliquam, efficitur lacus eu, efficitur justo.
     
     ```scheme
+    ;; This is the first definition
     (define foo 12)
+    ; This is the second one
     (define (bar n)
-      (if (> n 2) 12 "hello world))
+      (if (> n 12345)
+          (foo 'end '(one two) (foo x) #t)
+          "hello world"))
     ```
     
     **Aenean libero nunc**, elementum at justo congue, tristique tincidunt
     lorem. Donec ultrices ante mi, vehicula euismod neque egestas quis.
+    
+    ```swift
+    /// A generic stack for equatable items.
+    public struct Stack<T>: Equatable where T: Equatable {
+      private(set) var items: [T]
+      public init(items: [T] = []) {
+        self.items = items
+      }
+      public mutating func push(item: T) { items.append(item) }
+      fileprivate var description: String {
+        if items.isEmpty {
+          "The stack is empty"
+        } else {
+          "\\(items.count) items in the stack"
+        }
+      }
+    }
+    ```
+    
     Vestibulum vitae ex ut tellus auctor mattis. Aenean eget ornare
     arcu. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
     
@@ -101,7 +124,7 @@ struct ContentView: View {
     ### Represented as a Table
     
     | Column 1     | Column 2       | Col 3 |
-    | ------------ | -------------- | :------: |
+    | ------------ | -------------: | :------: |
     | This text \
       is very long | More `cell` text | One |
     | Last **line**    | Last cell justo nec finibus. | Two |

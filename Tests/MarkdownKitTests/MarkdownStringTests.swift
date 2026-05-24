@@ -50,6 +50,8 @@ class MarkdownStringTests: XCTestCase {
                    "x≉3.141")
     XCTAssertEqual("&ntriangleleft;&ntrianglelefteq;&ntriangleright;".decodingNamedCharacters(),
                    "⋪⋬⋫")
+    XCTAssertEqual("(if (&gt; n 2) 12 &quot;hello world&quot;)".decodingNamedCharacters(),
+                   "(if (> n 2) 12 \"hello world\")")
   }
   
   static let allTests = [

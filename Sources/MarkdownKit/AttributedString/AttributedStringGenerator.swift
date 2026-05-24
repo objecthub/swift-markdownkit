@@ -77,6 +77,49 @@ open class AttributedStringGenerator {
     }
   }
   
+  /// Configuration for the syntax highlighter.
+  public struct SyntaxHighlightingConfig {
+    /// Either a theme name or CSS to be used with `highlight.js`.
+    let theme: String
+    
+    /// Ignore syntax errors and make an attempt to highlight the code anyway.
+    let ignoreSyntacticIssues: Bool
+    
+    /// Do not highlight languages in this set
+    let ignoredLanguages: Set<String>
+    
+    /// Should indented code blocks be highlighted?
+    let highlightIndentedCodeBlocks: Bool
+    
+    public init(theme: String,
+                ignoreSyntacticIssues: Bool = true,
+                ignoredLanguages: Set<String> = [],
+                highlightIndentedCodeBlocks: Bool = true) {
+      self.theme = theme
+      self.ignoreSyntacticIssues = ignoreSyntacticIssues
+      self.ignoredLanguages = ignoredLanguages
+      self.highlightIndentedCodeBlocks = highlightIndentedCodeBlocks
+    }
+    
+    public static let `default` = SyntaxHighlightingConfig(
+      theme:
+        """
+        .hljs{display:block;overflow-x:auto;padding:.5em;background:#fff;color:#000}.hljs-comment,.hljs-quote{color:#a31515;font-style:italic}.hljs-variable{color:#cc2222}.hljs-built_in{color:#00a}.hljs-keyword,.hljs-name,.hljs-selector-tag,.hljs-tag{color:#00f}.hljs-addition,.hljs-attribute,.hljs-literal,.hljs-section,.hljs-string,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type{color:#008800}.hljs-deletion,.hljs-meta,.hljs-selector-attr,.hljs-selector-pseudo{color:#2b91af}.hljs-doctag{color:#808080}.hljs-attr{color:#ff0000}.hljs-bullet,.hljs-link,.hljs-symbol{color:#B87333}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}.hljs-number{color:#777}
+        """,
+      ignoreSyntacticIssues: true,        // highlight even if there are syntactical issues
+      ignoredLanguages: [""],             // do not infer a language for fenced code blocks
+      highlightIndentedCodeBlocks: true)  // infer the language for indented code blocks
+    
+    public static let defaultDark = SyntaxHighlightingConfig(
+      theme:
+        """
+        .hljs{display:block;overflow-x:auto;padding:.5em;background:#1e1e1e;color:#dcdcdc}.hljs-keyword,.hljs-literal,.hljs-name,.hljs-symbol{color:#569cd6}.hljs-link{color:#569cd6;text-decoration:underline}.hljs-built_in,.hljs-type{color:#4ec9b0}.hljs-class,.hljs-number{color:#b8d7a3}.hljs-meta-string,.hljs-string{color:#57a64a}.hljs-regexp,.hljs-template-tag{color:#9a5334}.hljs-formula,.hljs-function,.hljs-params,.hljs-subst,.hljs-title{color:#dcdcdc}.hljs-comment,.hljs-quote{color:#ee8080;font-style:italic}.hljs-doctag{color:#608b4e}.hljs-meta,.hljs-meta-keyword,.hljs-tag{color:#9b9b9b}.hljs-template-variable,.hljs-variable{color:#bd63c5}.hljs-attr,.hljs-attribute,.hljs-builtin-name{color:#9cdcfe}.hljs-section{color:#FFD700}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}.hljs-bullet,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-id,.hljs-selector-pseudo,.hljs-selector-tag{color:#d7ba7d}.hljs-addition{background-color:#144212;display:inline-block;width:100%}.hljs-deletion{background-color:#600;display:inline-block;width:100%}
+        """,
+      ignoreSyntacticIssues: true,        // highlight even if there are syntactical issues
+      ignoredLanguages: [""],             // do not infer a language for fenced code blocks
+      highlightIndentedCodeBlocks: true)  // infer the language for indented code blocks
+  }
+  
   /// Customized html generator to work around limitations of the current HTML to
   /// `NSAttributedString` conversion logic provided by the operating system. This
   /// should be used prior to macOS 26 and iOS 26
@@ -238,6 +281,46 @@ open class AttributedStringGenerator {
                    self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
                    "</td></tr>\n"
           }
+        case .indentedCode(let lines):
+          let begin = "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
+                      "<td class=\"codebox\">"
+          let end = "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
+          var code = lines.joined(separator: "")
+          var markup = "<code>"
+          if self.outer.highlightIndentedCodeBlocks,
+             let hl = SyntaxHighlighter.proxy,
+             let transformed = hl.highlight(code: code,
+                                            as: nil,
+                                            ignoreIllegals: self.outer.ignoreSyntacticIssues) {
+            code = transformed
+            markup = "<code class=\"hljs\">"
+          }
+          let middle = "<pre>" + markup + code + "</code></pre>\n"
+          return begin + middle + end
+        case .fencedCode(let lang, let lines):
+          let begin = "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
+                      "<td class=\"codebox\">"
+          let end = "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
+          var code = lines.joined(separator: "")
+          let middle: String
+          if self.outer.ignoredLanguages.contains(lang ?? "") {
+            middle = "<pre><code>" + code + "</code></pre>\n"
+          } else if let lang, lang == "mermaid" {
+            middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
+          } else {
+            var markup = "<code>"
+            if let hl = SyntaxHighlighter.proxy,
+               let transformed = hl.highlight(code: code,
+                                              as: lang,
+                                              ignoreIllegals: self.outer.ignoreSyntacticIssues) {
+              code = transformed
+              markup = "<code class=\"hljs\">"
+            } else if let lang {
+              markup = "<code class=\"language-\(lang)\">"
+            }
+            middle = "<pre>" + markup + code + "</code></pre>\n"
+          }
+          return begin + middle + end
         default:
           return super.generate(block: block, parent: parent, tight: tight)
       }
@@ -279,7 +362,19 @@ open class AttributedStringGenerator {
 
   /// The code block background color.
   public let codeBlockBackground: String
-
+  
+  /// The theme used for syntax highlighting code blocks
+  public let codeBlockHighlightingConfig: HighlightingConfig?
+  
+  /// Should a code block with syntactic issues be highlighted?
+  public let ignoreSyntacticIssues: Bool
+  
+  /// Languages that should not be highlighted
+  public let ignoredLanguages: Set<String>
+  
+  /// Should indented code blocks be highlighted?
+  public let highlightIndentedCodeBlocks: Bool
+  
   /// The border color (used for code blocks and for thematic breaks).
   public let borderColor: String
 
@@ -322,8 +417,9 @@ open class AttributedStringGenerator {
               codeBlockFontSize: Float = 12.0,
               codeBlockFontColor: String = mdDefaultColor,
               codeBlockBackground: String = mdDefaultBackgroundColor,
-              borderColor: String = "#bbb",
-              blockquoteColor: String = "#99c",
+              syntaxHighlighting: SyntaxHighlightingConfig? = .default,
+              borderColor: String = "#cccccc",
+              blockquoteColor: String = "#abe",
               h1Color: String = mdDefaultColor,
               h2Color: String = mdDefaultColor,
               h3Color: String = mdDefaultColor,
@@ -361,6 +457,20 @@ open class AttributedStringGenerator {
     self.codeBlockFontSize = codeBlockFontSize
     self.codeBlockFontColor = codeBlockFontColor
     self.codeBlockBackground = codeBlockBackground
+    if let syntaxHighlighting {
+      self.codeBlockHighlightingConfig = SyntaxHighlighter.proxy?.getConfig(
+                                           forTheme: syntaxHighlighting.theme,
+                                           withFont: self.codeFontFamily,
+                                           ofSize: self.codeBlockFontSize)
+      self.ignoreSyntacticIssues = syntaxHighlighting.ignoreSyntacticIssues
+      self.ignoredLanguages = syntaxHighlighting.ignoredLanguages
+      self.highlightIndentedCodeBlocks = syntaxHighlighting.highlightIndentedCodeBlocks
+    } else {
+      self.codeBlockHighlightingConfig = nil
+      self.ignoreSyntacticIssues = false
+      self.ignoredLanguages = []
+      self.highlightIndentedCodeBlocks = false
+    }
     self.borderColor = borderColor
     self.blockquoteColor = blockquoteColor
     self.h1Color = h1Color
@@ -378,7 +488,7 @@ open class AttributedStringGenerator {
     return self.generateAttributedString(self.htmlGenerator.generate(doc: doc))
   }
 
-  /// Generates an attributed string from the given Markdown blocks
+  /// Generates an attributed string from the given Markdown block
   open func generate(block: Block) -> NSAttributedString? {
     return self.generateAttributedString(self.htmlGenerator.generate(block: block, parent: .none))
   }
@@ -408,9 +518,15 @@ open class AttributedStringGenerator {
   }
   
   open var htmlHead: String {
-    return "<head><meta charset=\"utf-8\"/><style type=\"text/css\">\n" +
-           self.docStyle +
-           "\n</style></head>\n"
+    let res = "<head><meta charset=\"utf-8\"/><style type=\"text/css\">\n" +
+              self.docStyle +
+              "\n</style>"
+    if let codeBlockHighlightingConfig {
+      return res + "<style type=\"text/css\">\n" +
+             codeBlockHighlightingConfig.lightTheme + "\n</style></head>\n"
+    } else {
+      return res + "</head>\n"
+    }
   }
 
   open func htmlBody(_ body: String) -> String {
