@@ -680,25 +680,21 @@ public final class SyntaxHighlighter {
       } else if char == "}" {
         depth -= 1
         if depth < 0 {
-          print("(1)")
           return false
         }
       }
     }
     guard depth == 0 else {
-      print("(2)")
       return false
     }
     // 2. No obviously illegal characters at the top level
     let illegalPattern = #"[<>]"#
     if trimmed.range(of: illegalPattern, options: .regularExpression) != nil {
-      print("(3)")
       return false
     }
     // 3. Must contain at least one plausible rule: something { something }
     let rulePattern = #"[^{}]+\{[^{}]*\}"#
     if trimmed.range(of: rulePattern, options: .regularExpression) == nil {
-      print("(4)")
       return false
     }
     // 4. Each declaration block should contain plausible property: value pairs
@@ -718,7 +714,6 @@ public final class SyntaxHighlighter {
       // Each non-empty block should have at least one "property: value" pair
       let declarationPattern = #".*:.*"#
       if block.range(of: declarationPattern, options: .regularExpression) == nil {
-        print("(5)")
         return false
       }
     }

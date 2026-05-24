@@ -363,6 +363,7 @@
 		CC8308162FC2486C00FDD777 /* markdownkit.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = markdownkit.css; sourceTree = "<group>"; };
 		CC8308192FC2609300FDD777 /* markdownkit-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "markdownkit-dark.css"; sourceTree = "<group>"; };
 		CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
+		CC83081E2FC39DCB00FDD777 /* LICENSE (highlight.js) */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LICENSE (highlight.js)"; sourceTree = "<group>"; };
 		CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalGenerator.swift; sourceTree = "<group>"; };
 		CC87987E264B431F006950A7 /* CustomBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomBlock.swift; sourceTree = "<group>"; };
 		CC87987F264B434F006950A7 /* CustomTextFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextFragment.swift; sourceTree = "<group>"; };
@@ -566,6 +567,7 @@
 			children = (
 				CC8307422FC0F55500FDD777 /* SyntaxHighlighter.swift */,
 				CC8307452FC1320600FDD777 /* HighlightingConfig.swift */,
+				CC83081E2FC39DCB00FDD777 /* LICENSE (highlight.js) */,
 				CC8307412FC0F51A00FDD777 /* highlight.min.js */,
 				CC8307472FC1D36B00FDD777 /* Themes */,
 			);

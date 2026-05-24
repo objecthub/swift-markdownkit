@@ -1,5 +1,5 @@
 //
-//  Theme.swift
+//  HighlightingConfig.swift
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 23/05/2026.

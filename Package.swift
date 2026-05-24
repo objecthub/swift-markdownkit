@@ -57,7 +57,10 @@ let package = Package(
       dependencies: [
         .product(name: "CommandLineKit", package: "swift-commandlinekit")
       ],
-      exclude: ["Info.plist"],
+      exclude: [
+        "Info.plist",
+        "Highlighter/LICENSE (highlight.js)"
+      ],
       resources: [
         .copy("Highlighter/highlight.min.js"),
         .copy("Highlighter/Themes/a11y-dark.css"),

@@ -411,6 +411,14 @@ _Swift Package Manager_ is not needed.
 - [Swift 6](https://developer.apple.com/swift/)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
+## License
+
+_MarkdownKit_ is released under an [Apache License 2.0](https://github.com/objecthub/swift-markdownkit/blob/master/LICENSE).
+
+_MarkdownKit_ contains some code snippets from [HighlighterSwift](https://github.com/smittytone/HighlighterSwift) which is licensed under an [MIT license](https://github.com/smittytone/HighlighterSwift/blob/main/LICENCE.md). _HighlighterSwift_ is © 2026, Tony Smith. Portions are © 2016, Juan Pablo Illanes.
+
+The _MarkdownKit_ framework comes with a copy of [Highlight.js](https://github.com/highlightjs/highlight.js/). _Highlight.js_ is released under a [BSD License](https://github.com/highlightjs/highlight.js/blob/main/LICENSE).
+
 ## Copyright
 
 Author: Matthias Zenger (<matthias@objecthub.net>)  
