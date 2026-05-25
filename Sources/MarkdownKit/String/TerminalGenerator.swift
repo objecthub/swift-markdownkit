@@ -92,42 +92,50 @@ open class TerminalGenerator {
   
   /// Initialize with a specific column width
   public init(numColumns: Int = 80,
-              headerProperties: [TextProperties] = [
-                TextProperties(textColor: .red, textStyles: [.bold]),
-                TextProperties(textColor: .default, textStyles: [.bold]),
-                TextProperties(textColor: .navy, textStyles: []),
-                TextProperties(textColor: .navy, textStyles: [.underline]),
-                TextProperties(textColor: .default, textStyles: [.underline])
-              ],
-              linkProperties: TextProperties = .blue,
-              codeProperties: TextProperties = .underline,
-              codeBlockBorderProperties: TextProperties = .default,
-              codeBlockLangProperties: TextProperties = .grey,
-              emphasisProperties: TextProperties = .italic,
-              strongProperties: TextProperties = .bold,
-              defTermProperties: TextProperties = TextProperties(textColor: .grey,
-                                                                 textStyles: [.bold]),
-              defDescrProperties: TextProperties = TextProperties(textColor: .grey),
-              blockquoteProperties: TextProperties = .silver,
-              breakProperties: TextProperties = TextProperties(textColor: .maroon,
-                                                               textStyles: [.dim]),
+              headerProperties: [TextProperties]? = nil,
+              linkProperties: TextProperties? = nil,
+              codeProperties: TextProperties? = nil,
+              codeBlockBorderProperties: TextProperties? = nil,
+              codeBlockLangProperties: TextProperties? = nil,
+              emphasisProperties: TextProperties? = nil,
+              strongProperties: TextProperties? = nil,
+              defTermProperties: TextProperties? = nil,
+              defDescrProperties: TextProperties? = nil,
+              blockquoteProperties: TextProperties? = nil,
+              breakProperties: TextProperties? = nil,
               tableRenderers: [TableRenderer] = [
                 MinimalisticTableRenderer(borderProperties: .silver,
                                           headerProperties: .italic),
                 FullTableRenderer()
-              ]) {
+              ]) 
+  {
     self.numColumns = numColumns
-    self.headerProperties = headerProperties
-    self.linkProperties = linkProperties
-    self.codeProperties = codeProperties
-    self.codeBlockBorderProperties = codeBlockBorderProperties
-    self.codeBlockLangProperties = codeBlockLangProperties
-    self.emphasisProperties = emphasisProperties
-    self.strongProperties = strongProperties
-    self.defTermProperties = defTermProperties
-    self.defDescrProperties = defDescrProperties
-    self.blockquoteProperties = blockquoteProperties
-    self.breakProperties = breakProperties
+    if let headerProperties {
+      self.headerProperties = headerProperties
+    } else {
+      self.headerProperties = [
+        TextProperties(textColor: .red, textStyles: [.bold]),
+        TextProperties(textColor: .default, textStyles: [.bold]),
+        TextProperties(textColor: .navy, textStyles: []),
+        TextProperties(textColor: .navy, textStyles: [.underline]),
+        TextProperties(textColor: .default, textStyles: [.underline])
+      ]
+    }
+    self.linkProperties = linkProperties == nil ? .blue : linkProperties!
+    self.codeProperties = codeProperties == nil ? .underline : codeProperties!
+    self.codeBlockBorderProperties = codeBlockBorderProperties == nil ? .`default`
+                                                                      : codeBlockBorderProperties!
+    self.codeBlockLangProperties = codeBlockLangProperties == nil ? .grey : codeBlockLangProperties!
+    self.emphasisProperties = emphasisProperties == nil ? .italic : emphasisProperties!
+    self.strongProperties = strongProperties == nil ? .bold : strongProperties!
+    self.defTermProperties = defTermProperties == nil ? TextProperties(textColor: .grey,
+                                                                       textStyles: [.bold])
+                                                      : defTermProperties!
+    self.defDescrProperties = defDescrProperties == nil ? .grey : defDescrProperties!
+    self.blockquoteProperties = blockquoteProperties == nil ? .silver : blockquoteProperties!
+    self.breakProperties = breakProperties == nil ? TextProperties(textColor: .maroon,
+                                                                   textStyles: [.dim])
+                                                  : breakProperties!
     self.tableRenderers = tableRenderers
   }
   
