@@ -80,16 +80,16 @@ open class AttributedStringGenerator {
   /// Configuration for the syntax highlighter.
   public struct SyntaxHighlightingConfig {
     /// Either a theme name or CSS to be used with `highlight.js`.
-    let theme: String
+    public let theme: String
     
     /// Ignore syntax errors and make an attempt to highlight the code anyway.
-    let ignoreSyntacticIssues: Bool
+    public let ignoreSyntacticIssues: Bool
     
     /// Do not highlight languages in this set
-    let ignoredLanguages: Set<String>
+    public let ignoredLanguages: Set<String>
     
     /// Should indented code blocks be highlighted?
-    let highlightIndentedCodeBlocks: Bool
+    public let highlightIndentedCodeBlocks: Bool
     
     public init(theme: String,
                 ignoreSyntacticIssues: Bool = true,
