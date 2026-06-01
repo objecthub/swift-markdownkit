@@ -83,12 +83,71 @@ open class TerminalGenerator {
   /// The text properties for thematic break lines.
   public let breakProperties: TextProperties
   
+  public let codeBlockHighlightingConfig: AnsiHighlightingConfig?
+  
+  /// Should a code block with syntactic issues be highlighted?
+  public let ignoreSyntacticIssues: Bool
+  
+  /// Languages that should not be highlighted
+  public let ignoredLanguages: Set<String>
+  
+  /// Should indented code blocks be highlighted?
+  public let highlightIndentedCodeBlocks: Bool
+  
   /// Plugins for rendering tables. The first renderer that returns a result
   /// determines what the output will be.
   public let tableRenderers: [TableRenderer]
   
   /// Default `StringGenerator` implementation with 80 columns
   public static let standard = TerminalGenerator(numColumns: 80)
+  
+  /// Configuration for the syntax highlighter.
+  public struct SyntaxHighlightingConfig {
+    /// Either a theme name or CSS to be used with `highlight.js`.
+    public let theme: String
+    
+    /// Ignore syntax errors and make an attempt to highlight the code anyway.
+    public let ignoreSyntacticIssues: Bool
+    
+    /// Do not highlight languages in this set
+    public let ignoredLanguages: Set<String>
+    
+    /// Should indented code blocks be highlighted?
+    public let highlightIndentedCodeBlocks: Bool
+    
+    /// Support 256 colors?
+    public let fullColorSupport: Bool
+    
+    public init(theme: String,
+                ignoreSyntacticIssues: Bool = true,
+                ignoredLanguages: Set<String> = [],
+                highlightIndentedCodeBlocks: Bool = true,
+                fullColorSupport: Bool = true) {
+      self.theme = theme
+      self.ignoreSyntacticIssues = ignoreSyntacticIssues
+      self.ignoredLanguages = ignoredLanguages
+      self.highlightIndentedCodeBlocks = highlightIndentedCodeBlocks
+      self.fullColorSupport = fullColorSupport
+    }
+    
+    public static let `default` = SyntaxHighlightingConfig(
+      theme:
+        """
+        .hljs{display:block;overflow-x:auto;padding:.5em;background:#fff;color:#000}.hljs-comment,.hljs-quote{color:#a31515;font-style:italic}.hljs-variable{color:#cc2222}.hljs-built_in{color:#00a}.hljs-keyword,.hljs-name,.hljs-selector-tag,.hljs-tag{color:#00f}.hljs-addition,.hljs-attribute,.hljs-literal,.hljs-section,.hljs-string,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type{color:#008800}.hljs-deletion,.hljs-meta,.hljs-selector-attr,.hljs-selector-pseudo{color:#2b91af}.hljs-doctag{color:#808080}.hljs-attr{color:#ff0000}.hljs-bullet,.hljs-link,.hljs-symbol{color:#B87333}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}.hljs-number{color:#777}
+        """,
+      ignoreSyntacticIssues: true,        // highlight even if there are syntactical issues
+      ignoredLanguages: [""],             // do not infer a language for fenced code blocks
+      highlightIndentedCodeBlocks: true)  // infer the language for indented code blocks
+    
+    public static let defaultDark = SyntaxHighlightingConfig(
+      theme:
+        """
+        .hljs{display:block;overflow-x:auto;padding:.5em;background:#1e1e1e;color:#dcdcdc}.hljs-keyword,.hljs-literal,.hljs-name,.hljs-symbol{color:#569cd6}.hljs-link{color:#569cd6;text-decoration:underline}.hljs-built_in,.hljs-type{color:#4ec9b0}.hljs-class,.hljs-number{color:#b8d7a3}.hljs-meta-string,.hljs-string{color:#57a64a}.hljs-regexp,.hljs-template-tag{color:#9a5334}.hljs-formula,.hljs-function,.hljs-params,.hljs-subst,.hljs-title{color:#dcdcdc}.hljs-comment,.hljs-quote{color:#ee8080;font-style:italic}.hljs-doctag{color:#608b4e}.hljs-meta,.hljs-meta-keyword,.hljs-tag{color:#9b9b9b}.hljs-template-variable,.hljs-variable{color:#bd63c5}.hljs-attr,.hljs-attribute,.hljs-builtin-name{color:#9cdcfe}.hljs-section{color:#FFD700}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}.hljs-bullet,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-id,.hljs-selector-pseudo,.hljs-selector-tag{color:#d7ba7d}.hljs-addition{background-color:#144212;display:inline-block;width:100%}.hljs-deletion{background-color:#600;display:inline-block;width:100%}
+        """,
+      ignoreSyntacticIssues: true,        // highlight even if there are syntactical issues
+      ignoredLanguages: [""],             // do not infer a language for fenced code blocks
+      highlightIndentedCodeBlocks: true)  // infer the language for indented code blocks
+  }
   
   /// Initialize with a specific column width
   public init(numColumns: Int = 80,
@@ -103,6 +162,7 @@ open class TerminalGenerator {
               defDescrProperties: TextProperties? = nil,
               blockquoteProperties: TextProperties? = nil,
               breakProperties: TextProperties? = nil,
+              syntaxHighlighting: SyntaxHighlightingConfig? = .default,
               tableRenderers: [TableRenderer] = [
                 MinimalisticTableRenderer(borderProperties: .silver,
                                           headerProperties: .italic),
@@ -136,6 +196,19 @@ open class TerminalGenerator {
     self.breakProperties = breakProperties == nil ? TextProperties(textColor: .maroon,
                                                                    textStyles: [.dim])
                                                   : breakProperties!
+    if let syntaxHighlighting {
+      self.codeBlockHighlightingConfig = SyntaxHighlighter.proxy?.getAnsiConfig(
+                                           forTheme: syntaxHighlighting.theme,
+                                           fullColorSupport: syntaxHighlighting.fullColorSupport)
+      self.ignoreSyntacticIssues = syntaxHighlighting.ignoreSyntacticIssues
+      self.ignoredLanguages = syntaxHighlighting.ignoredLanguages
+      self.highlightIndentedCodeBlocks = syntaxHighlighting.highlightIndentedCodeBlocks
+    } else {
+      self.codeBlockHighlightingConfig = nil
+      self.ignoreSyntacticIssues = false
+      self.ignoredLanguages = []
+      self.highlightIndentedCodeBlocks = false
+    }
     self.tableRenderers = tableRenderers
   }
   
@@ -260,18 +333,42 @@ open class TerminalGenerator {
       case .indentedCode(let lines):
         var result: [AnsiText.Normalized] = []
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
-        for line in lines {
-          let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-          result.append(AnsiText.Normalized(String(normalized)))
+        if self.highlightIndentedCodeBlocks,
+           let config = self.codeBlockHighlightingConfig,
+           let hl = SyntaxHighlighter.proxy,
+           let transformed = hl.highlight(code: lines.joined(separator: ""),
+                                          as: nil,
+                                          ignoreIllegals: self.ignoreSyntacticIssues) {
+          let encoded = hl.asAnsiTerminalString(transformed.decodingNamedCharacters(),
+                                                using: config)
+          let newlines = encoded.split(whereSeparator: \.isNewline)
+          result.append(contentsOf: newlines)
+        } else {
+          for line in lines {
+            let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
+            result.append(AnsiText.Normalized(String(normalized)))
+          }
         }
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
         return result
       case .fencedCode(let lang, let lines):
         var result: [AnsiText.Normalized] = []
         result.append(self.codeBlockBorder(lang: lang, maxColumns: context.maxColumns))
-        for line in lines {
-          let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-          result.append(AnsiText.Normalized(String(normalized)))
+        if !self.ignoredLanguages.contains(lang ?? ""),
+           let config = self.codeBlockHighlightingConfig,
+           let hl = SyntaxHighlighter.proxy,
+           let transformed = hl.highlight(code: lines.joined(separator: ""),
+                                          as: lang,
+                                          ignoreIllegals: self.ignoreSyntacticIssues) {
+          let encoded = hl.asAnsiTerminalString(transformed.decodingNamedCharacters(),
+                                                using: config)
+          let newlines = encoded.split(whereSeparator: \.isNewline)
+          result.append(contentsOf: newlines)
+        } else {
+          for line in lines {
+            let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
+            result.append(AnsiText.Normalized(String(normalized)))
+          }
         }
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
         return result
@@ -565,12 +662,15 @@ open class TerminalGenerator {
         prefix = AnsiText.Normalized("\(num)\(ch) ")
     }
     let columns = columns ?? prefix.terminalDisplayWidth
-    return (AnsiText.Normalized(repeating: " ", count: max(columns - prefix.terminalDisplayWidth, 0)) + prefix,
-            AnsiText.Normalized(repeating: " ", count: max(columns, 2)))
+    return (AnsiText.Normalized(repeating: " ",
+                                count: max(columns - prefix.terminalDisplayWidth, 0)) + prefix,
+            AnsiText.Normalized(repeating: " ",
+                                count: max(columns, 2)))
   }
   
   open func definitionPrefix(definitions: Definitions,
-                             context: GeneratorContext) -> (AnsiText.Normalized, AnsiText.Normalized) {
+                             context: GeneratorContext)
+                         -> (AnsiText.Normalized, AnsiText.Normalized) {
     switch context.parent {
       case .definitionList(_), .listItem(_, _, _), .list(_, _, _):
         return (AnsiText.Normalized(), AnsiText.Normalized())
@@ -746,7 +846,9 @@ open class TerminalGenerator {
       public func separatorLine(_ columnWidths: [Int]) -> AnsiText.Normalized {
         var line = self.leftStart
         for (index, width) in columnWidths.enumerated() {
-          line.append(AnsiText.Normalized(repeating: self.line, count: max(width, 1), properties: properties))
+          line.append(AnsiText.Normalized(repeating: self.line,
+                                          count: max(width, 1),
+                                          properties: properties))
           line.append((index < columnWidths.count - 1) ? self.midSeparator : self.rightEnd)
         }
         return line
@@ -762,13 +864,18 @@ open class TerminalGenerator {
     let headerProperties: TextProperties
     let rowProperties: TextProperties
     
-    public init(topDelimiter: Delimiter = Delimiter(left: "┌", right: "┐", mid: "┬", line: "─", properties: .grey),
-                bottomDelimiter: Delimiter = Delimiter(left: "└", right: "┘", mid: "┴", line: "─", properties: .grey),
-                headerSeparator: Delimiter = Delimiter(left: "╞", right: "╡", mid: "╪", line: "═", properties: .grey),
-                rowSeparator: Delimiter = Delimiter(left: "├", right: "┤", mid: "┼", line: "─", properties: .grey),
+    public init(topDelimiter: Delimiter
+                  = Delimiter(left: "┌", right: "┐", mid: "┬", line: "─", properties: .grey),
+                bottomDelimiter: Delimiter 
+                  = Delimiter(left: "└", right: "┘", mid: "┴", line: "─", properties: .grey),
+                headerSeparator: Delimiter
+                  = Delimiter(left: "╞", right: "╡", mid: "╪", line: "═", properties: .grey),
+                rowSeparator: Delimiter
+                  = Delimiter(left: "├", right: "┤", mid: "┼", line: "─", properties: .grey),
                 bar: Character = "│",
                 barProperties: TextProperties = .grey,
-                headerProperties: TextProperties = TextProperties(textColor: .grey, textStyles: [.bold, .italic]),
+                headerProperties: TextProperties = TextProperties(textColor: .grey,
+                                                                  textStyles: [.bold, .italic]),
                 rowProperties: TextProperties = .empty) {
       self.topDelimiter = topDelimiter
       self.bottomDelimiter = bottomDelimiter

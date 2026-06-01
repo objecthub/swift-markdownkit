@@ -24,6 +24,7 @@
 
 import Foundation
 import JavaScriptCore
+import CommandLineKit
 #if canImport(AppKit)
 import AppKit
 public typealias HRColor = NSColor
@@ -212,6 +213,25 @@ public final class SyntaxHighlighter {
              usingFont: withFont ?? HRFont.monospacedSystemFont(ofSize: 14.0, weight: .regular))
   }
   
+  public func getAnsiConfig(forTheme nameOrContent: String,
+                            fullColorSupport: Bool) -> AnsiHighlightingConfig? {
+    #if SWIFT_PACKAGE
+    let bundle = Bundle.module
+    #else
+    let bundle = Bundle(for: SyntaxHighlighter.self)
+    #endif
+    guard nameOrContent.count < 80,
+          let path = bundle.path(forResource: nameOrContent, ofType: "css"),
+          let content = try? String(contentsOfFile: path) else {
+      if self.isValidCSS(nameOrContent) {
+        return AnsiHighlightingConfig(withTheme: nameOrContent, fullColorSupport: fullColorSupport)
+      } else {
+        return nil
+      }
+    }
+    return AnsiHighlightingConfig(withTheme: content, fullColorSupport: fullColorSupport)
+  }
+  
   /// Applies syntax highlighting to source code.
   ///
   /// This method uses Highlight.js to analyze and highlight the provided source code,
@@ -367,6 +387,113 @@ public final class SyntaxHighlighter {
       }
     }
     return resultString
+  }
+  
+  /// Converts highlighted HTML into a styled ANSI terminal string.
+  ///
+  /// This method takes the HTML output from `highlight(code:as:ignoreIllegals:)` and
+  /// converts it into a string with ANSI escape sequences suitable for display in
+  /// terminal applications, with colors and styling applied according to the specified theme.
+  ///
+  /// - Parameters:
+  ///   - html: The HTML string returned by `highlight(code:as:ignoreIllegals:)`.
+  ///   - config: The ANSI highlighting config to apply for colors and styling.
+  ///
+  /// - Returns: A string with ANSI escape sequences for syntax highlighting,
+  ///            or `nil` if conversion fails.
+  ///
+  /// Example:
+  /// ```swift
+  /// if let html = highlighter.highlight(code: sourceCode, as: "swift"),
+  ///    let config = AnsiHighlighterConfig(withTheme: "monokai") {
+  ///   let ansiString = highlighter.asAnsiTerminalString(html, using: config)
+  ///   print(ansiString ?? "")
+  /// }
+  /// ```
+  public func asAnsiTerminalString(_ html: String,
+                                   using config: AnsiHighlightingConfig) -> AnsiText.Normalized {
+    var result = AnsiText.Normalized()
+    var scanned: String? = nil
+    var propStack: [String] = ["hljs"]
+    let scanner: Scanner = Scanner(string: html)
+    scanner.charactersToBeSkipped = nil
+    while !scanner.isAtEnd {
+      // Read up to the first tag
+      scanned = scanner.scanUpToString("<")
+      if let content = scanned, !content.isEmpty {
+        result.append(config.apply(to: content, styleList: propStack))
+        if scanner.isAtEnd {
+          continue
+        }
+      }
+      // Skip over the tag delimiter
+      scanner.skipNextCharacter()
+      // Get the next character
+      let nextChar: String = scanner.getNextCharacter(in: html)
+      if nextChar == "s" {
+        // We have a SPAN tag, so skip over the tag...
+        _ = scanner.scanString("span class=\"")
+        // ... get the inner class info...
+        scanned = scanner.scanUpToString("\">")
+        // ... skip over the closing tag...
+        _ = scanner.scanString("\">")
+        // ... and stash the class data we extracted
+        if let content = scanned, !content.isEmpty {
+          propStack.append(content)
+        }
+      } else if nextChar == "/" {
+        // We have a SPAN end tag so skip over it
+        _ = scanner.scanString("/span>")
+        propStack.removeLast()
+      } else {
+        // We have code text, so style it based on the previous SPAN classes we've stored
+        result.append(config.apply(to: "<", styleList: propStack))
+        scanner.skipNextCharacter()
+      }
+    }
+    return result
+    // Process HTML escapes in the rendered string
+    /* let results = self.htmlEscape.matches(in: result.description,
+                                          options: [.reportCompletion],
+                                          range: NSMakeRange(0, result.description.count))
+    var localOffset = 0
+    var processedResult = result
+    for checkResult: NSTextCheckingResult in results {
+      let fixedRange = NSMakeRange(checkResult.range.location - localOffset,
+                                   checkResult.range.length)
+      let entity = (result.description as NSString).substring(with: fixedRange)
+      if let decodedEntity = NamedCharacters.decode(entity: entity) {
+        // Find the segment containing this entity and split it
+        var charIndex = 0
+        var segmentIndex = 0
+        for (idx, (_, text)) in processedResult.segments.enumerated() {
+          let segmentLength = text.count
+          if charIndex + segmentLength > fixedRange.location {
+            segmentIndex = idx
+            break
+          }
+          charIndex += segmentLength
+        }
+        let (props, segmentText) = processedResult.segments[segmentIndex]
+        let localStart = fixedRange.location - charIndex
+        let localEnd = localStart + fixedRange.length
+        let before = String(segmentText.prefix(localStart))
+        let after = String(segmentText.suffix(segmentText.count - localEnd))
+        var newSegments: [(TextProperties, String)] = []
+        newSegments.append(contentsOf: processedResult.segments[..<segmentIndex])
+        if !before.isEmpty {
+          newSegments.append((props, before))
+        }
+        newSegments.append((props, String(decodedEntity)))
+        if !after.isEmpty {
+          newSegments.append((props, after))
+        }
+        newSegments.append(contentsOf: processedResult.segments[(segmentIndex + 1)...])
+        processedResult = AnsiText.Normalized(segments: newSegments)
+        localOffset += (checkResult.range.length - 1)
+      }
+    }
+    return processedResult */
   }
   
   /// Configuration for adding line numbers to highlighted code.
@@ -654,7 +781,11 @@ public final class SyntaxHighlighter {
           family = "Arial"
         case "monospace":
           let sysFont = HRFont.monospacedSystemFont(ofSize: size, weight: .regular)
+          #if os(iOS) || os(tvOS) || os(visionOS)
+          return (sysFont.familyName, sysFont)
+          #else
           return (sysFont.familyName ?? "monospace", sysFont)
+          #endif
         default:
           family = f
       }

@@ -146,6 +146,7 @@
 		CC8308152FC1D41800FDD777 /* zenburn.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8307AE2FC1D3DF00FDD777 /* zenburn.css */; };
 		CC8308182FC24AC700FDD777 /* markdownkit.css in Resources */ = {isa = PBXBuildFile; fileRef = CC8308162FC2486C00FDD777 /* markdownkit.css */; };
 		CC83081D2FC27E3800FDD777 /* SyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */; };
+		CC8308212FC591EB00FDD777 /* AnsiHighlightingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8308202FC591DC00FDD777 /* AnsiHighlightingConfig.swift */; };
 		CC8649852FAFF94E00DEB33E /* TerminalGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */; };
 		CC879880264B43BD006950A7 /* CustomTextFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987F264B434F006950A7 /* CustomTextFragment.swift */; };
 		CC879881264B43C1006950A7 /* CustomBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC87987E264B431F006950A7 /* CustomBlock.swift */; };
@@ -364,6 +365,7 @@
 		CC8308192FC2609300FDD777 /* markdownkit-dark.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "markdownkit-dark.css"; sourceTree = "<group>"; };
 		CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
 		CC83081E2FC39DCB00FDD777 /* LICENSE (highlight.js) */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LICENSE (highlight.js)"; sourceTree = "<group>"; };
+		CC8308202FC591DC00FDD777 /* AnsiHighlightingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnsiHighlightingConfig.swift; sourceTree = "<group>"; };
 		CC8649842FAFF94200DEB33E /* TerminalGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalGenerator.swift; sourceTree = "<group>"; };
 		CC87987E264B431F006950A7 /* CustomBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomBlock.swift; sourceTree = "<group>"; };
 		CC87987F264B434F006950A7 /* CustomTextFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextFragment.swift; sourceTree = "<group>"; };
@@ -567,6 +569,7 @@
 			children = (
 				CC8307422FC0F55500FDD777 /* SyntaxHighlighter.swift */,
 				CC8307452FC1320600FDD777 /* HighlightingConfig.swift */,
+				CC8308202FC591DC00FDD777 /* AnsiHighlightingConfig.swift */,
 				CC83081E2FC39DCB00FDD777 /* LICENSE (highlight.js) */,
 				CC8307412FC0F51A00FDD777 /* highlight.min.js */,
 				CC8307472FC1D36B00FDD777 /* Themes */,
@@ -996,6 +999,7 @@
 				CC8CBC17227F39C00084683B /* ListItemParser.swift in Sources */,
 				CCC48BF525D880FA00D082AD /* String+Entities.swift in Sources */,
 				CCB033D2227CDB2F00E1C4DC /* BlockParser.swift in Sources */,
+				CC8308212FC591EB00FDD777 /* AnsiHighlightingConfig.swift in Sources */,
 				CCC48C0A25D9AF7500D082AD /* NamedCharacters.swift in Sources */,
 				CC321E002F69C2070094C57A /* AttributedTextView_iOS.swift in Sources */,
 				CC6D239822C03CBA00BB1302 /* LinkTransformer.swift in Sources */,

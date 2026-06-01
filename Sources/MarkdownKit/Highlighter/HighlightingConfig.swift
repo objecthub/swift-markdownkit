@@ -67,6 +67,8 @@ public class HighlightingConfig {
       UIFontDescriptor.AttributeName.family : font.familyName,
       UIFontDescriptor.AttributeName.face : "Oblique"
     ])
+    self.boldCodeFont = HRFont(descriptor: boldDescriptor, size: font.pointSize)
+    self.italicCodeFont = HRFont(descriptor: italicDescriptor, size: font.pointSize)
     #else
     let boldDescriptor = NSFontDescriptor(fontAttributes: [.family : font.familyName!,
                                                            .face : "Bold"])
@@ -74,10 +76,10 @@ public class HighlightingConfig {
                                                              .face : "Italic"])
     let obliqueDescriptor = NSFontDescriptor(fontAttributes: [.family : font.familyName!,
                                                               .face : "Oblique"])
-    #endif
     self.boldCodeFont = HRFont(descriptor: boldDescriptor, size: font.pointSize) ?? font
     self.italicCodeFont = HRFont(descriptor: italicDescriptor, size: font.pointSize) ??
                           HRFont(descriptor: obliqueDescriptor, size: font.pointSize) ?? font
+    #endif
     // Generate and store the theme variants
     self.strippedTheme = Self.stripTheme(self.theme)
     self.lightTheme = Self.strippedThemeToString(self.strippedTheme)
@@ -140,7 +142,7 @@ public class HighlightingConfig {
     }
   }
   
-  private static func stripTheme(_ themeString : String) -> [String : [String: String]] {
+  internal static func stripTheme(_ themeString : String) -> [String : [String: String]] {
     let objcString: NSString = (themeString as NSString)
     let cssRegex = try! NSRegularExpression(
       pattern: "(?:(\\.[a-zA-Z0-9\\-_]*(?:[, ]\\.[a-zA-Z0-9\\-_]*)*)\\{([^\\}]*?)\\})",

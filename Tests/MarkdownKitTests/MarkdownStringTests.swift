@@ -52,6 +52,8 @@ class MarkdownStringTests: XCTestCase {
                    "⋪⋬⋫")
     XCTAssertEqual("(if (&gt; n 2) 12 &quot;hello world&quot;)".decodingNamedCharacters(),
                    "(if (> n 2) 12 \"hello world\")")
+    XCTAssertEqual(";; This defines `foo` - &amp;quot;".decodingNamedCharacters(),
+                   ";; This defines `foo` - &quot;")
   }
   
   static let allTests = [
