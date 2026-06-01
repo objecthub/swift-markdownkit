@@ -1,9 +1,10 @@
 # Changelog
 
-## 1.4 (2026-05-18)
+## 1.4 (2026-06-01)
 
 - SwiftUI view for Markdown based on attributed strings (for iOS and macOS). The view supports the full Markdown syntax, is fully responsive and adjusts dynamically also to changes to the color scheme.
 - Generators for formatted text (i.e. for display in text editors) and for output in ANSI terminals (including ANSI-compliant markup). Full support for unicode characters.
+- Support for syntax highlighting of code blocks across `HtmlGenerator`, `AttributedStringGenerator`, and `TerminalGenerator`.
 
 ## 1.3 (2025-05-04)
 

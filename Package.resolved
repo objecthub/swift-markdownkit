@@ -5,9 +5,9 @@
         "package": "CommandLineKit",
         "repositoryURL": "https://github.com/objecthub/swift-commandlinekit.git",
         "state": {
-          "branch": "master",
-          "revision": "d042197211d3e8d9b701e0c5f26a2f0bc438bf70",
-          "version": null
+          "branch": null,
+          "revision": "58aa1a2285c5b8ad54e874a2bd66f790eb7e1766",
+          "version": "1.1.1"
         }
       }
     ]

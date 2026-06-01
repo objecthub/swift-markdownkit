@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/objecthub/swift-commandlinekit",
       "state" : {
-        "branch" : "master",
-        "revision" : "9e3362b745aa77db7a15e6ca6b780399aff3cdab"
+        "revision" : "58aa1a2285c5b8ad54e874a2bd66f790eb7e1766",
+        "version" : "1.1.1"
       }
     }
   ],

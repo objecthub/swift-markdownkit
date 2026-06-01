@@ -168,12 +168,7 @@ public class AnsiHighlightingConfig {
     guard let rgb = color.usingColorSpace(NSColorSpace.deviceRGB) else {
       return nil
     }
-    // return TextColor(rgb: (rgb.redComponent, rgb.greenComponent, rgb.blueComponent),
-    //                  fullColorSupport: fullColorSupport)
-    let col = (UInt8(min(1.0, max(0.0, rgb.redComponent)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, rgb.greenComponent)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, rgb.blueComponent)) * Double(UInt8.max)))
-    return TextColor(color: col,
+    return TextColor(rgb: (rgb.redComponent, rgb.greenComponent, rgb.blueComponent),
                      fullColorSupport: fullColorSupport)
     #else
     var r: CGFloat = 0
@@ -181,11 +176,7 @@ public class AnsiHighlightingConfig {
     var b: CGFloat = 0
     var a: CGFloat = 0
     color.getRed(&r, green: &g, blue: &b, alpha: &a)
-    // return TextColor(rgb: (r, g, b), fullColorSupport: fullColorSupport)
-    let col = (UInt8(min(1.0, max(0.0, r)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, g)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, b)) * Double(UInt8.max)))
-    return TextColor(color: col, fullColorSupport: fullColorSupport)
+    return TextColor(rgb: (r, g, b), fullColorSupport: fullColorSupport)
     #endif
   }
   
@@ -196,12 +187,7 @@ public class AnsiHighlightingConfig {
     guard let rgb = color.usingColorSpace(NSColorSpace.deviceRGB) else {
       return nil
     }
-    // return BackgroundColor(rgb: (rgb.redComponent, rgb.greenComponent, rgb.blueComponent),
-    //                        fullColorSupport: fullColorSupport)
-    let col = (UInt8(min(1.0, max(0.0, rgb.redComponent)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, rgb.greenComponent)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, rgb.blueComponent)) * Double(UInt8.max)))
-    return BackgroundColor(color: col,
+    return BackgroundColor(rgb: (rgb.redComponent, rgb.greenComponent, rgb.blueComponent),
                            fullColorSupport: fullColorSupport)
     #else
     var r: CGFloat = 0
@@ -209,11 +195,7 @@ public class AnsiHighlightingConfig {
     var b: CGFloat = 0
     var a: CGFloat = 0
     color.getRed(&r, green: &g, blue: &b, alpha: &a)
-    // return BackgroundColor(rgb: (r, g, b), fullColorSupport: fullColorSupport)
-    let col = (UInt8(min(1.0, max(0.0, r)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, g)) * Double(UInt8.max)),
-               UInt8(min(1.0, max(0.0, b)) * Double(UInt8.max)))
-    return BackgroundColor(color: col, fullColorSupport: fullColorSupport)
+    return BackgroundColor(rgb: (r, g, b), fullColorSupport: fullColorSupport)
     #endif
   }
 }

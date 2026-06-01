@@ -1522,8 +1522,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/objecthub/swift-commandlinekit";
 			requirement = {
-				branch = master;
-				kind = branch;
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
