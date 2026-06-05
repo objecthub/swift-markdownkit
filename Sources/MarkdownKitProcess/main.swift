@@ -18,6 +18,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Foundation
 import MarkdownKit
 import CommandLineKit
@@ -214,3 +216,5 @@ for (sourceUrl, optTargetUrl) in sourceTarget {
     print("cannot read source file '\(sourceUrl.path)'")
   }
 }
+
+#endif
