@@ -83,6 +83,7 @@ open class TerminalGenerator {
   /// The text properties for thematic break lines.
   public let breakProperties: TextProperties
   
+  #if !os(watchOS)
   public let codeBlockHighlightingConfig: AnsiHighlightingConfig?
   
   /// Should a code block with syntactic issues be highlighted?
@@ -93,6 +94,7 @@ open class TerminalGenerator {
   
   /// Should indented code blocks be highlighted?
   public let highlightIndentedCodeBlocks: Bool
+  #endif
   
   /// Plugins for rendering tables. The first renderer that returns a result
   /// determines what the output will be.
@@ -196,6 +198,7 @@ open class TerminalGenerator {
     self.breakProperties = breakProperties == nil ? TextProperties(textColor: .maroon,
                                                                    textStyles: [.dim])
                                                   : breakProperties!
+    #if !os(watchOS)
     if let syntaxHighlighting {
       self.codeBlockHighlightingConfig = SyntaxHighlighter.proxy?.getAnsiConfig(
                                            forTheme: syntaxHighlighting.theme,
@@ -209,6 +212,7 @@ open class TerminalGenerator {
       self.ignoredLanguages = []
       self.highlightIndentedCodeBlocks = false
     }
+    #endif
     self.tableRenderers = tableRenderers
   }
   
@@ -333,6 +337,7 @@ open class TerminalGenerator {
       case .indentedCode(let lines):
         var result: [AnsiText.Normalized] = []
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
+        #if !os(watchOS)
         if self.highlightIndentedCodeBlocks,
            let config = self.codeBlockHighlightingConfig,
            let hl = SyntaxHighlighter.proxy,
@@ -349,11 +354,18 @@ open class TerminalGenerator {
             result.append(AnsiText.Normalized(String(normalized)))
           }
         }
+        #else
+        for line in lines {
+          let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
+          result.append(AnsiText.Normalized(String(normalized)))
+        }
+        #endif
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
         return result
       case .fencedCode(let lang, let lines):
         var result: [AnsiText.Normalized] = []
         result.append(self.codeBlockBorder(lang: lang, maxColumns: context.maxColumns))
+        #if !os(watchOS)
         if !self.ignoredLanguages.contains(lang ?? ""),
            let config = self.codeBlockHighlightingConfig,
            let hl = SyntaxHighlighter.proxy,
@@ -370,6 +382,12 @@ open class TerminalGenerator {
             result.append(AnsiText.Normalized(String(normalized)))
           }
         }
+        #else
+        for line in lines {
+          let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
+          result.append(AnsiText.Normalized(String(normalized)))
+        }
+        #endif
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
         return result
       case .htmlBlock(_):

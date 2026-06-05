@@ -20,6 +20,7 @@
 
 import Foundation
 
+#if !os(watchOS)
 extension HRColor {
   public static func from(cssName name: String) -> HRColor? {
     switch name.lowercased() {
@@ -184,6 +185,7 @@ extension HRColor {
                    alpha: alpha)
   }
 }
+#endif
 
 #if os(iOS) || os(watchOS) || os(tvOS)
 

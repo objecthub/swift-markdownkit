@@ -22,15 +22,17 @@
 //  limitations under the License.
 //
 
+#if !os(watchOS)
+
 import Foundation
 import JavaScriptCore
 import CommandLineKit
-#if canImport(AppKit)
+#if os(macOS)
 import AppKit
 public typealias HRColor = NSColor
 public typealias HRFont  = NSFont
 public typealias TextStorageEditActions = NSTextStorageEditActions
-#elseif canImport(UIKit)
+#else
 import UIKit
 public typealias HRColor = UIColor
 public typealias HRFont  = UIFont
@@ -739,7 +741,7 @@ public final class SyntaxHighlighter {
     return result
   }
   
-  #if canImport(AppKit)
+  #if os(macOS)
   /// Returns all available font family names on macOS.
   private func availableFontFamilies() -> Set<String> {
     Set(NSFontManager.shared.availableFontFamilies)
@@ -752,7 +754,7 @@ public final class SyntaxHighlighter {
     }
     return NSFontManager.shared.font(withFamily: family, traits: [], weight: 5, size: size)
   }
-  #elseif canImport(UIKit)
+  #else
   /// Returns all available font family names on iOS.
   private func availableFontFamilies() -> Set<String> {
     Set(UIFont.familyNames)
@@ -864,3 +866,6 @@ private extension Scanner {
     self.currentIndex = self.string.index(after: self.currentIndex)
   }
 }
+
+#endif
+

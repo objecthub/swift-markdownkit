@@ -167,7 +167,7 @@ class SyntaxHighlighterTests: XCTestCase {
     XCTAssertNotNil(result, "Should parse quoted names and fall back to monospace")
   }
   
-  #if canImport(AppKit)
+  #if os(macOS)
   func testResolveFont_CommonMacFonts() {
     // Test with fonts commonly available on macOS
     let fontNames = ["Monaco", "Menlo", "Courier"]
@@ -192,9 +192,7 @@ class SyntaxHighlighterTests: XCTestCase {
       XCTAssertEqual(font.pointSize, 14.0, accuracy: 0.01)
     }
   }
-  #endif
-  
-  #if canImport(UIKit)
+  #else
   func testResolveFont_CommonIOSFonts() {
     // Test with fonts commonly available on iOS
     let fontNames = ["Courier", "Courier New", "Menlo"]

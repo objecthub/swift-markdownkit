@@ -22,10 +22,12 @@
 //  limitations under the License.
 //
 
+#if !os(watchOS)
+
 import Foundation
-#if canImport(AppKit)
+#if os(macOS)
 import AppKit
-#elseif canImport(UIKit)
+#else
 import UIKit
 #endif
 
@@ -217,3 +219,5 @@ public class HighlightingConfig {
     }
   }
 }
+
+#endif

@@ -287,6 +287,7 @@ open class AttributedStringGenerator {
           let end = "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
           var code = lines.joined(separator: "")
           var markup = "<code>"
+          #if !os(watchOS)
           if self.outer.highlightIndentedCodeBlocks,
              let hl = SyntaxHighlighter.proxy,
              let transformed = hl.highlight(code: code,
@@ -295,6 +296,7 @@ open class AttributedStringGenerator {
             code = transformed
             markup = "<code class=\"hljs\">"
           }
+          #endif
           let middle = "<pre>" + markup + code + "</code></pre>\n"
           return begin + middle + end
         case .fencedCode(let lang, let lines):
@@ -303,6 +305,7 @@ open class AttributedStringGenerator {
           let end = "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
           var code = lines.joined(separator: "")
           let middle: String
+          #if !os(watchOS)
           if self.outer.ignoredLanguages.contains(lang ?? "") {
             middle = "<pre><code>" + code + "</code></pre>\n"
           } else if let lang, lang == "mermaid" {
@@ -320,6 +323,17 @@ open class AttributedStringGenerator {
             }
             middle = "<pre>" + markup + code + "</code></pre>\n"
           }
+          #else
+          if let lang, lang == "mermaid" {
+            middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
+          } else {
+            var markup = "<code>"
+            if let lang {
+              markup = "<code class=\"language-\(lang)\">"
+            }
+            middle = "<pre>" + markup + code + "</code></pre>\n"
+          }
+          #endif
           return begin + middle + end
         default:
           return super.generate(block: block, parent: parent, tight: tight)
@@ -363,6 +377,7 @@ open class AttributedStringGenerator {
   /// The code block background color.
   public let codeBlockBackground: String
   
+  #if !os(watchOS)
   /// The theme used for syntax highlighting code blocks
   public let codeBlockHighlightingConfig: HighlightingConfig?
   
@@ -374,6 +389,7 @@ open class AttributedStringGenerator {
   
   /// Should indented code blocks be highlighted?
   public let highlightIndentedCodeBlocks: Bool
+  #endif
   
   /// The border color (used for code blocks and for thematic breaks).
   public let borderColor: String
@@ -457,6 +473,7 @@ open class AttributedStringGenerator {
     self.codeBlockFontSize = codeBlockFontSize
     self.codeBlockFontColor = codeBlockFontColor
     self.codeBlockBackground = codeBlockBackground
+    #if !os(watchOS)
     if let syntaxHighlighting {
       self.codeBlockHighlightingConfig = SyntaxHighlighter.proxy?.getConfig(
                                            forTheme: syntaxHighlighting.theme,
@@ -471,6 +488,7 @@ open class AttributedStringGenerator {
       self.ignoredLanguages = []
       self.highlightIndentedCodeBlocks = false
     }
+    #endif
     self.borderColor = borderColor
     self.blockquoteColor = blockquoteColor
     self.h1Color = h1Color
@@ -521,12 +539,16 @@ open class AttributedStringGenerator {
     let res = "<head><meta charset=\"utf-8\"/><style type=\"text/css\">\n" +
               self.docStyle +
               "\n</style>"
+    #if !os(watchOS)
     if let codeBlockHighlightingConfig {
       return res + "<style type=\"text/css\">\n" +
              codeBlockHighlightingConfig.lightTheme + "\n</style></head>\n"
     } else {
       return res + "</head>\n"
     }
+    #else
+    return res + "</head>\n"
+    #endif
   }
 
   open func htmlBody(_ body: String) -> String {

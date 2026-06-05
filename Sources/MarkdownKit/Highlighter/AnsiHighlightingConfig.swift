@@ -18,11 +18,13 @@
 //  limitations under the License.
 //
 
+#if !os(watchOS)
+
 import Foundation
 import CommandLineKit
-#if canImport(AppKit)
+#if os(macOS)
 import AppKit
-#elseif canImport(UIKit)
+#else
 import UIKit
 #endif
 
@@ -164,7 +166,7 @@ public class AnsiHighlightingConfig {
   
   /// Approximates an NSColor/UIColor to the nearest ANSI TextColor.
   private static func approximateAnsiColor(_ color: HRColor, fullColorSupport: Bool) -> TextColor? {
-    #if canImport(AppKit)
+    #if os(macOS)
     guard let rgb = color.usingColorSpace(NSColorSpace.deviceRGB) else {
       return nil
     }
@@ -183,7 +185,7 @@ public class AnsiHighlightingConfig {
   /// Approximates an NSColor/UIColor to the nearest ANSI BackgroundColor.
   private static func approximateAnsiBackgroundColor(_ color: HRColor,
                                                      fullColorSupport: Bool) -> BackgroundColor? {
-    #if canImport(AppKit)
+    #if os(macOS)
     guard let rgb = color.usingColorSpace(NSColorSpace.deviceRGB) else {
       return nil
     }
@@ -199,3 +201,6 @@ public class AnsiHighlightingConfig {
     #endif
   }
 }
+
+#endif
+
