@@ -54,7 +54,7 @@ document(heading(1, text("Header")),
          heading(2, text("Sub-header")),
          paragraph(text("And this is a "),
                    strong(text("paragraph")),
-                   text("."))))
+                   text(".")))
 ```
 
 [`Block`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Block.swift) is a recursively defined enumeration of cases with associated values (also called an _algebraic datatype_). Case `document` refers to the root of a document. It contains a sequence of blocks. In the example above, two different types of blocks appear within the document: `heading` and `paragraph`. A `heading` case consists of a heading level (as its first argument) and heading text (as the second argument). A `paragraph` case simply consists of text.
