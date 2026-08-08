@@ -65,13 +65,9 @@ public class AnsiHighlightingConfig {
   /// let config2 = AnsiHighlighterConfig(withTheme: css)
   /// ```
   public init?(withTheme nameOrContent: String, fullColorSupport: Bool) {
-    #if SWIFT_PACKAGE
-    let bundle = Bundle.module
-    #else
-    let bundle = Bundle(for: SyntaxHighlighter.self)
-    #endif
     let content: String
     if nameOrContent.count < 80,
+       let bundle = SyntaxHighlighter.resourceBundle,
        let path = bundle.path(forResource: nameOrContent, ofType: "css"),
        let loadedContent = try? String(contentsOfFile: path) {
       content = loadedContent

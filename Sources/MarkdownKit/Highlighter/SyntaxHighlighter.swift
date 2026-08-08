@@ -59,7 +59,59 @@ public typealias TextStorageEditActions = NSTextStorage.EditActions
 /// ```
 /// 
 public final class SyntaxHighlighter {
-  
+
+  /// Locates the bundle containing this package's highlighting resources
+  /// (`highlight.min.js` and the theme `.css` files).
+  ///
+  /// `Bundle.module`, SwiftPM's generated accessor, assumes the resource bundle
+  /// ships right next to the compiled binary under a fixed name and calls
+  /// `fatalError` if it isn't found there — which is unrecoverable. That
+  /// assumption breaks whenever this package is resolved through SwiftPM (which
+  /// sets `SWIFT_PACKAGE` and is what selects `Bundle.module` in the first
+  /// place) but then repackaged by a tool that doesn't preserve loose resource
+  /// bundles, e.g. Carthage producing an xcframework from a project that
+  /// depends on MarkdownKit via Xcode's own Package Dependencies. To stay
+  /// usable in that case, this searches the same candidate locations
+  /// `Bundle.module` would, then falls back to treating resources as having
+  /// been copied directly into the consuming target/framework (no nested
+  /// bundle at all), instead of crashing the host app.
+  static nonisolated let resourceBundle: Bundle? = {
+  #if SWIFT_PACKAGE
+    let bundleName = "MarkdownKit_MarkdownKit"
+    let overrides: [URL]
+    #if DEBUG
+      // The 'PACKAGE_RESOURCE_BUNDLE_PATH' name is preferred since the expected value
+      // is a path. The check for 'PACKAGE_RESOURCE_BUNDLE_URL' will be removed when all
+      // clients have switched over. This removal is tracked by rdar://107766372.
+      if let override = ProcessInfo.processInfo.environment["PACKAGE_RESOURCE_BUNDLE_PATH"]
+                     ?? ProcessInfo.processInfo.environment["PACKAGE_RESOURCE_BUNDLE_URL"] {
+        overrides = [URL(fileURLWithPath: override)]
+      } else {
+        overrides = []
+      }
+    #else
+      overrides = []
+    #endif
+    let candidates = overrides + [
+      // Bundle should be present here when the package is linked into an App.
+      Bundle.main.resourceURL,
+      // Bundle should be present here when the package is linked into a framework.
+      Bundle(for: SyntaxHighlighter.self).resourceURL,
+      // For command-line tools.
+      Bundle.main.bundleURL,
+    ]
+    for candidate in candidates {
+      let bundlePath = candidate?.appendingPathComponent(bundleName + ".bundle")
+      if let bundle = bundlePath.flatMap(Bundle.init(url:)) {
+        return bundle
+      }
+    }
+    return nil
+  #else
+    return Bundle(for: SyntaxHighlighter.self)
+  #endif
+  }()
+
   /// The shared singleton instance of `SyntaxHighlighter`.
   ///
   /// This property provides access to a pre-configured `SyntaxHighlighter` instance
@@ -67,14 +119,10 @@ public final class SyntaxHighlighter {
   /// Returns `nil` if the required resources (highlight.min.js) cannot be loaded.
   ///
   /// - Note: The proxy is lazily initialized on first access.
-  public static var proxy: SyntaxHighlighter? = {
-    #if SWIFT_PACKAGE
-    let bundle = Bundle.module
-    #else
-    let bundle = Bundle(for: SyntaxHighlighter.self)
-    #endif
+  public static let proxy: SyntaxHighlighter? = {
     // Load highlight.min.js code from this bundle
-    guard let path = bundle.path(forResource: "highlight.min", ofType: "js") else {
+    guard let bundle = SyntaxHighlighter.resourceBundle,
+          let path = bundle.path(forResource: "highlight.min", ofType: "js") else {
       return nil
     }
     // Load the JS code
@@ -194,12 +242,8 @@ public final class SyntaxHighlighter {
   /// let config = highlighter.getConfig(forTheme: "monokai", withFont: font)
   /// ```
   public func getConfig(forTheme nameOrContent: String, withFont: HRFont?) -> HighlightingConfig? {
-    #if SWIFT_PACKAGE
-    let bundle = Bundle.module
-    #else
-    let bundle = Bundle(for: SyntaxHighlighter.self)
-    #endif
     guard nameOrContent.count < 80,
+          let bundle = Self.resourceBundle,
           let path = bundle.path(forResource: nameOrContent, ofType: "css"),
           let content = try? String(contentsOfFile: path) else {
       if self.isValidCSS(nameOrContent) {
@@ -217,12 +261,8 @@ public final class SyntaxHighlighter {
   
   public func getAnsiConfig(forTheme nameOrContent: String,
                             fullColorSupport: Bool) -> AnsiHighlightingConfig? {
-    #if SWIFT_PACKAGE
-    let bundle = Bundle.module
-    #else
-    let bundle = Bundle(for: SyntaxHighlighter.self)
-    #endif
     guard nameOrContent.count < 80,
+          let bundle = Self.resourceBundle,
           let path = bundle.path(forResource: nameOrContent, ofType: "css"),
           let content = try? String(contentsOfFile: path) else {
       if self.isValidCSS(nameOrContent) {
