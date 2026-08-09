@@ -106,7 +106,7 @@ public final class SyntaxHighlighter {
         return bundle
       }
     }
-    return Bundle(identifier: "net.objecthub.MarkdownKit")
+    return Bundle(identifier: "net.objecthub.MarkdownKit") ?? Bundle(for: SyntaxHighlighter.self)
   #else
     return Bundle(for: SyntaxHighlighter.self)
   #endif
