@@ -59,7 +59,7 @@ let package = Package(
       ],
       exclude: [
         "Info.plist",
-        "Highlighter/LICENSE (highlight.js)"
+        "Highlighter/LICENSE (highlight js)"
       ],
       resources: [
         .copy("Highlighter/highlight.min.js"),

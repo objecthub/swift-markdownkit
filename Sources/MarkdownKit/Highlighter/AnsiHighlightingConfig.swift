@@ -71,7 +71,7 @@ public class AnsiHighlightingConfig {
        let path = bundle.path(forResource: nameOrContent, ofType: "css"),
        let loadedContent = try? String(contentsOfFile: path) {
       content = loadedContent
-    } else if SyntaxHighlighter.proxy?.isValidCSS(nameOrContent) == true {
+    } else if SyntaxHighlighter.isValidCSS(nameOrContent) {
       content = nameOrContent
     } else {
       return nil

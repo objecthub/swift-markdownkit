@@ -289,7 +289,7 @@ open class AttributedStringGenerator {
           var markup = "<code>"
           #if !os(watchOS)
           if self.outer.highlightIndentedCodeBlocks,
-             let hl = SyntaxHighlighter.proxy,
+             let hl = self.outer.syntaxHighlighter ?? SyntaxHighlighter.proxy,
              let transformed = hl.highlight(code: code,
                                             as: nil,
                                             ignoreIllegals: self.outer.ignoreSyntacticIssues) {
@@ -312,7 +312,7 @@ open class AttributedStringGenerator {
             middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
           } else {
             var markup = "<code>"
-            if let hl = SyntaxHighlighter.proxy,
+            if let hl = self.outer.syntaxHighlighter ?? SyntaxHighlighter.proxy,
                let transformed = hl.highlight(code: code,
                                               as: lang,
                                               ignoreIllegals: self.outer.ignoreSyntacticIssues) {
@@ -389,6 +389,10 @@ open class AttributedStringGenerator {
   
   /// Should indented code blocks be highlighted?
   public let highlightIndentedCodeBlocks: Bool
+  
+  /// The syntax highlighter instance to use for code highlighting.
+  /// If `nil`, falls back to `SyntaxHighlighter.proxy`.
+  public let syntaxHighlighter: SyntaxHighlighter?
   #endif
   
   /// The border color (used for code blocks and for thematic breaks).
@@ -434,6 +438,7 @@ open class AttributedStringGenerator {
               codeBlockFontColor: String = mdDefaultColor,
               codeBlockBackground: String = mdDefaultBackgroundColor,
               syntaxHighlighting: SyntaxHighlightingConfig? = .default,
+              syntaxHighlighter: SyntaxHighlighter? = nil,
               borderColor: String = "#cccccc",
               blockquoteColor: String = "#abe",
               h1Color: String = mdDefaultColor,
@@ -474,8 +479,10 @@ open class AttributedStringGenerator {
     self.codeBlockFontColor = codeBlockFontColor
     self.codeBlockBackground = codeBlockBackground
     #if !os(watchOS)
+    self.syntaxHighlighter = syntaxHighlighter
     if let syntaxHighlighting {
-      self.codeBlockHighlightingConfig = SyntaxHighlighter.proxy?.getConfig(
+      let highlighter = syntaxHighlighter ?? SyntaxHighlighter.proxy
+      self.codeBlockHighlightingConfig = highlighter?.getConfig(
                                            forTheme: syntaxHighlighting.theme,
                                            withFont: self.codeFontFamily,
                                            ofSize: self.codeBlockFontSize)

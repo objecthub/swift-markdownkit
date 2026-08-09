@@ -94,6 +94,10 @@ open class TerminalGenerator {
   
   /// Should indented code blocks be highlighted?
   public let highlightIndentedCodeBlocks: Bool
+  
+  /// The syntax highlighter instance to use for code highlighting.
+  /// If `nil`, falls back to `SyntaxHighlighter.proxy`.
+  public let syntaxHighlighter: SyntaxHighlighter?
   #endif
   
   /// Plugins for rendering tables. The first renderer that returns a result
@@ -165,6 +169,7 @@ open class TerminalGenerator {
               blockquoteProperties: TextProperties? = nil,
               breakProperties: TextProperties? = nil,
               syntaxHighlighting: SyntaxHighlightingConfig? = .default,
+              syntaxHighlighter: SyntaxHighlighter? = nil,
               tableRenderers: [TableRenderer] = [
                 MinimalisticTableRenderer(borderProperties: .silver,
                                           headerProperties: .italic),
@@ -199,8 +204,10 @@ open class TerminalGenerator {
                                                                    textStyles: [.dim])
                                                   : breakProperties!
     #if !os(watchOS)
+    self.syntaxHighlighter = syntaxHighlighter
     if let syntaxHighlighting {
-      self.codeBlockHighlightingConfig = SyntaxHighlighter.proxy?.getAnsiConfig(
+      let highlighter = syntaxHighlighter ?? SyntaxHighlighter.proxy
+      self.codeBlockHighlightingConfig = highlighter?.getAnsiConfig(
                                            forTheme: syntaxHighlighting.theme,
                                            fullColorSupport: syntaxHighlighting.fullColorSupport)
       self.ignoreSyntacticIssues = syntaxHighlighting.ignoreSyntacticIssues
@@ -340,7 +347,7 @@ open class TerminalGenerator {
         #if !os(watchOS)
         if self.highlightIndentedCodeBlocks,
            let config = self.codeBlockHighlightingConfig,
-           let hl = SyntaxHighlighter.proxy,
+           let hl = self.syntaxHighlighter ?? SyntaxHighlighter.proxy,
            let transformed = hl.highlight(code: lines.joined(separator: ""),
                                           as: nil,
                                           ignoreIllegals: self.ignoreSyntacticIssues) {
@@ -368,7 +375,7 @@ open class TerminalGenerator {
         #if !os(watchOS)
         if !self.ignoredLanguages.contains(lang ?? ""),
            let config = self.codeBlockHighlightingConfig,
-           let hl = SyntaxHighlighter.proxy,
+           let hl = self.syntaxHighlighter ?? SyntaxHighlighter.proxy,
            let transformed = hl.highlight(code: lines.joined(separator: ""),
                                           as: lang,
                                           ignoreIllegals: self.ignoreSyntacticIssues) {

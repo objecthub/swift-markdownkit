@@ -106,7 +106,7 @@ public final class SyntaxHighlighter {
         return bundle
       }
     }
-    return Bundle(identifier: "net.objecthub.MarkdownKit") ?? Bundle(for: SyntaxHighlighter.self)
+    return Bundle(identifier: "net.objecthub.MarkdownKit")
   #else
     return Bundle(for: SyntaxHighlighter.self)
   #endif
@@ -115,42 +115,18 @@ public final class SyntaxHighlighter {
   /// The shared singleton instance of `SyntaxHighlighter`.
   ///
   /// This property provides access to a pre-configured `SyntaxHighlighter` instance
-  /// that has loaded the Highlight.js library and discovered available themes.
+  /// that has loaded the Highlight.js library and discovered available themes from
+  /// the framework's resource bundle.
   /// Returns `nil` if the required resources (highlight.min.js) cannot be loaded.
   ///
   /// - Note: The proxy is lazily initialized on first access.
   public static let proxy: SyntaxHighlighter? = {
-    // Load highlight.min.js code from this bundle
     guard let bundle = SyntaxHighlighter.resourceBundle,
-          let path = bundle.path(forResource: "highlight.min", ofType: "js") else {
+          let jsPath = bundle.path(forResource: "highlight.min", ofType: "js") else {
       return nil
     }
-    // Load the JS code
-    do {
-      guard let context = JSContext() else {
-        return nil
-      }
-      let js = try String(contentsOfFile: path)
-      // Execute the JS
-      let _ = context.evaluateScript(js)
-      guard let hljs = context.globalObject.objectForKeyedSubscript("hljs") else {
-        return nil
-      }
-      // Extract the supported languages
-      let res: JSValue? = hljs.invokeMethod("listLanguages", withArguments: [])
-      let supportedLanguages = (res?.toArray() as? [String]) ?? []
-      // Find available themes
-      let paths = bundle.paths(forResourcesOfType: "css", inDirectory: nil) as [NSString]
-      var availableThemes = [String]()
-      for path in paths {
-        availableThemes.append(path.lastPathComponent.replacingOccurrences(of: ".css", with: ""))
-      }
-      return SyntaxHighlighter(hljs: hljs,
-                               supportedLanguages: supportedLanguages,
-                               availableThemes: availableThemes)
-    } catch {
-      return nil
-    }
+    return SyntaxHighlighter(highlightJSURL: URL(fileURLWithPath: jsPath),
+                             themeDirectory: bundle.bundleURL)
   }()
   
   /// Reference to the result of evaluating `highlight.min.js`.
@@ -175,14 +151,79 @@ public final class SyntaxHighlighter {
   /// Common themes may include "github", "monokai", "xcode", "atom-one-dark", etc.
   public let availableThemes: [String]
   
+  /// The directory URL where theme CSS files are located.
+  ///
+  /// For bundle-based instances (like `proxy`), this points to the bundle's resource directory.
+  /// For path-based instances, this points to the directory containing the theme files.
+  private let themeDirectoryURL: URL?
+  
   private let htmlEscape = try! NSRegularExpression(pattern: "&#?[a-zA-Z0-9]+?;",
                                                     options: .caseInsensitive)
   
-  /// Internal initializer.
-  private init(hljs: JSValue, supportedLanguages: [String], availableThemes: [String]) {
-    self.hljs = hljs
-    self.supportedLanguages = supportedLanguages
-    self.availableThemes = availableThemes
+  /// Creates a custom `SyntaxHighlighter` instance from external file paths.
+  ///
+  /// This initializer allows you to create a highlighter using your own Highlight.js
+  /// file and theme CSS files, rather than the bundled resources.
+  ///
+  /// - Parameters:
+  ///   - highlightJSURL: The URL to a Highlight.js JavaScript file (e.g., "highlight.min.js").
+  ///   - themeDirectory: Optional URL to a directory containing theme CSS files.
+  ///                     If provided, theme files in this directory will be discovered
+  ///                     and made available through `availableThemes`.
+  ///
+  /// - Returns: A configured `SyntaxHighlighter` instance, or `nil` if the JavaScript
+  ///            file cannot be loaded or executed.
+  ///
+  /// Example:
+  /// ```swift
+  /// let jsURL = URL(fileURLWithPath: "/path/to/custom/highlight.min.js")
+  /// let themesURL = URL(fileURLWithPath: "/path/to/themes")
+  /// if let highlighter = SyntaxHighlighter(highlightJSURL: jsURL,
+  ///                                        themeDirectory: themesURL) {
+  ///   // Use custom highlighter
+  ///   print("Supported languages: \(highlighter.supportedLanguages)")
+  ///   print("Available themes: \(highlighter.availableThemes)")
+  /// }
+  /// ```
+  ///
+  /// - Note: The theme directory is scanned for `.css` files. Each file's base name
+  ///         (without extension) becomes an available theme name.
+  public init?(highlightJSURL: URL, themeDirectory: URL? = nil) {
+    do {
+      guard let context = JSContext() else {
+        return nil
+      }
+      // Load and execute the JavaScript file
+      let js = try String(contentsOf: highlightJSURL)
+      let _ = context.evaluateScript(js)
+      guard let hljs = context.globalObject.objectForKeyedSubscript("hljs") else {
+        return nil
+      }
+      // Extract the supported languages
+      let res: JSValue? = hljs.invokeMethod("listLanguages", withArguments: [])
+      let supportedLanguages = (res?.toArray() as? [String]) ?? []
+      // Find available themes in the specified directory
+      var availableThemes = [String]()
+      if let themeDirectory {
+        let fileManager = FileManager.default
+        if let enumerator = fileManager.enumerator(at: themeDirectory,
+                                                   includingPropertiesForKeys: [.isRegularFileKey],
+                                                   options: [.skipsHiddenFiles,
+                                                             .skipsSubdirectoryDescendants]) {
+          for case let fileURL as URL in enumerator {
+            if fileURL.pathExtension.lowercased() == "css" {
+              availableThemes.append(fileURL.deletingPathExtension().lastPathComponent)
+            }
+          }
+        }
+      }
+      self.hljs = hljs
+      self.supportedLanguages = supportedLanguages
+      self.availableThemes = availableThemes.sorted()
+      self.themeDirectoryURL = themeDirectory
+    } catch {
+      return nil
+    }
   }
   
   /// Loads a highlighting theme with a custom font specified by CSS font-family string.
@@ -228,25 +269,30 @@ public final class SyntaxHighlighter {
   /// provided font object.
   ///
   /// - Parameters:
-  ///   - name: The name of the theme to load (without `.css` extension).
-  ///           Must match a theme name from `availableThemes`.
+  ///   - nameOrContent: Either the name of a theme to load (without `.css` extension)
+  ///                    from this instance's theme directory, or a string containing
+  ///                    CSS content directly. If a theme name, it must match a theme
+  ///                    from `availableThemes`.
   ///   - withFont: An optional font instance to use for rendering. If `nil`,
   ///               uses the system monospaced font at 14pt.
   ///
   /// - Returns: A configured `HighlightingConfig` instance, or `nil` if the theme
-  ///            file cannot be found or loaded.
+  ///            file cannot be found or loaded, or if the CSS content is invalid.
   ///
   /// Example:
   /// ```swift
+  /// // Load a theme by name
   /// let font = NSFont.monospacedSystemFont(ofSize: 12.0, weight: .regular)
   /// let config = highlighter.getConfig(forTheme: "monokai", withFont: font)
+  ///
+  /// // Or pass CSS directly
+  /// let css = ".hljs { color: #333; }"
+  /// let config2 = highlighter.getConfig(forTheme: css, withFont: font)
   /// ```
   public func getConfig(forTheme nameOrContent: String, withFont: HRFont?) -> HighlightingConfig? {
-    guard nameOrContent.count < 80,
-          let bundle = Self.resourceBundle,
-          let path = bundle.path(forResource: nameOrContent, ofType: "css"),
-          let content = try? String(contentsOfFile: path) else {
-      if self.isValidCSS(nameOrContent) {
+    // Check if this looks like actual CSS content rather than a theme name
+    guard nameOrContent.count < 80 else {
+      if Self.isValidCSS(nameOrContent) {
         return HighlightingConfig(
           withTheme: nameOrContent,
           usingFont: withFont ?? HRFont.monospacedSystemFont(ofSize: 14.0, weight: .regular))
@@ -254,24 +300,75 @@ public final class SyntaxHighlighter {
         return nil
       }
     }
-    return HighlightingConfig(
-             withTheme: content,
-             usingFont: withFont ?? HRFont.monospacedSystemFont(ofSize: 14.0, weight: .regular))
+    // Try to load theme from this instance's theme directory
+    if let themeDirectoryURL {
+      let themeURL = themeDirectoryURL.appendingPathComponent(nameOrContent)
+                                      .appendingPathExtension("css")
+      if let content = try? String(contentsOf: themeURL) {
+        return HighlightingConfig(
+                withTheme: content,
+                usingFont: withFont ?? HRFont.monospacedSystemFont(ofSize: 14.0, weight: .regular))
+      }
+    }
+    // If we couldn't load a theme file, check if the input itself is valid CSS
+    if Self.isValidCSS(nameOrContent) {
+      return HighlightingConfig(
+              withTheme: nameOrContent,
+              usingFont: withFont ?? HRFont.monospacedSystemFont(ofSize: 14.0, weight: .regular))
+    }
+    // Theme not found and input is not valid CSS
+    return nil
   }
   
+  /// Loads an ANSI highlighting configuration for terminal output.
+  ///
+  /// This method loads a syntax highlighting theme and configures it for ANSI
+  /// terminal output with escape sequences.
+  ///
+  /// - Parameters:
+  ///   - nameOrContent: Either the name of a theme to load (without `.css` extension)
+  ///                    from this instance's theme directory, or a string containing
+  ///                    CSS content directly. If a theme name, it must match a theme
+  ///                    from `availableThemes`.
+  ///   - fullColorSupport: If `true`, uses 24-bit RGB colors. If `false`, uses
+  ///                       16-color ANSI palette.
+  ///
+  /// - Returns: A configured `AnsiHighlightingConfig` instance, or `nil` if the theme
+  ///            file cannot be found or loaded, or if the CSS content is invalid.
+  ///
+  /// Example:
+  /// ```swift
+  /// // Load a theme by name
+  /// let config = highlighter.getAnsiConfig(forTheme: "monokai", fullColorSupport: true)
+  ///
+  /// // Or pass CSS directly
+  /// let css = ".hljs { color: #333; }"
+  /// let config2 = highlighter.getAnsiConfig(forTheme: css, fullColorSupport: false)
+  /// ```
   public func getAnsiConfig(forTheme nameOrContent: String,
                             fullColorSupport: Bool) -> AnsiHighlightingConfig? {
-    guard nameOrContent.count < 80,
-          let bundle = Self.resourceBundle,
-          let path = bundle.path(forResource: nameOrContent, ofType: "css"),
-          let content = try? String(contentsOfFile: path) else {
-      if self.isValidCSS(nameOrContent) {
+    // Check if this looks like actual CSS content rather than a theme name
+    guard nameOrContent.count < 80 else {
+      if Self.isValidCSS(nameOrContent) {
         return AnsiHighlightingConfig(withTheme: nameOrContent, fullColorSupport: fullColorSupport)
       } else {
         return nil
       }
     }
-    return AnsiHighlightingConfig(withTheme: content, fullColorSupport: fullColorSupport)
+    // Try to load theme from this instance's theme directory
+    if let themeDirectoryURL {
+      let themeURL = themeDirectoryURL.appendingPathComponent(nameOrContent)
+                                      .appendingPathExtension("css")
+      if let content = try? String(contentsOf: themeURL) {
+        return AnsiHighlightingConfig(withTheme: content, fullColorSupport: fullColorSupport)
+      }
+    }
+    // If we couldn't load a theme file, check if the input itself is valid CSS
+    if Self.isValidCSS(nameOrContent) {
+      return AnsiHighlightingConfig(withTheme: nameOrContent, fullColorSupport: fullColorSupport)
+    }
+    // Theme not found and input is not valid CSS
+    return nil
   }
   
   /// Applies syntax highlighting to source code.
@@ -486,7 +583,10 @@ public final class SyntaxHighlighter {
       } else if nextChar == "/" {
         // We have a SPAN end tag so skip over it
         _ = scanner.scanString("/span>")
-        propStack.removeLast()
+        // Deal gracefully with broken HTML
+        if !propStack.isEmpty {
+          propStack.removeLast()
+        }
       } else {
         // We have code text, so style it based on the previous SPAN classes we've stored
         result.append(config.apply(to: "<", styleList: propStack))
@@ -839,8 +939,8 @@ public final class SyntaxHighlighter {
     return nil
   }
   
-  /// Quick and dirty check to see if `css` is likely to contain CSS data. 
-  func isValidCSS(_ css: String) -> Bool {
+  /// Quick and dirty check to see if `css` is likely to contain CSS data.
+  public static func isValidCSS(_ css: String) -> Bool {
     let trimmed = css.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else {
       return true
