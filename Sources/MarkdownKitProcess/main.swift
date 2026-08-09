@@ -72,9 +72,9 @@ func markdownFiles(inDir baseUrl: URL) -> [URL] {
   return res
 }
 
-func baseUrl(for path: String, role: String) -> (URL, Bool) {
+func baseUrl(for path: String, role: String, exists: Bool) -> (URL, Bool) {
   var isDir = ObjCBool(false)
-  guard fileManager.fileExists(atPath: path, isDirectory: &isDir) else {
+  guard !exists || fileManager.fileExists(atPath: path, isDirectory: &isDir) else {
     print("\(role) '\(path)' does not exist")
     exit(1)
   }
@@ -112,7 +112,9 @@ if CommandLine.arguments.count == 5 {
 
 var sourceTarget: [(URL, URL?)] = []
 
-let (sourceBaseUrl, sourceIsDir) = baseUrl(for: CommandLine.arguments[2], role: "source")
+let (sourceBaseUrl, sourceIsDir) = baseUrl(for: CommandLine.arguments[2],
+                                           role: "source",
+                                           exists: true)
 if CommandLine.arguments.count < 4 {
   let sources = sourceIsDir ? markdownFiles(inDir: sourceBaseUrl) : [sourceBaseUrl]
   for source in sources {
@@ -126,7 +128,9 @@ if CommandLine.arguments.count < 4 {
   }
   sourceTarget.append((sourceBaseUrl, nil))
 } else {
-  let (targetBaseUrl, targetIsDir) = baseUrl(for: CommandLine.arguments[3], role: "target")
+  let (targetBaseUrl, targetIsDir) = baseUrl(for: CommandLine.arguments[3],
+                                             role: "target",
+                                             exists: false)
   guard sourceIsDir == targetIsDir else {
     print("source and target either need to be directories or individual files")
     exit(1)
