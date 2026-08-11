@@ -155,7 +155,7 @@ public final class SyntaxHighlighter {
   ///
   /// For bundle-based instances (like `proxy`), this points to the bundle's resource directory.
   /// For path-based instances, this points to the directory containing the theme files.
-  private let themeDirectoryURL: URL?
+  public let themeDirectoryURL: URL?
   
   private let htmlEscape = try! NSRegularExpression(pattern: "&#?[a-zA-Z0-9]+?;",
                                                     options: .caseInsensitive)
