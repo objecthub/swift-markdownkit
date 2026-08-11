@@ -126,7 +126,7 @@ public final class SyntaxHighlighter {
       return nil
     }
     return SyntaxHighlighter(highlightJSURL: URL(fileURLWithPath: jsPath),
-                             themeDirectory: bundle.bundleURL)
+                             themeDirectory: bundle.resourceURL)
   }()
   
   /// Reference to the result of evaluating `highlight.min.js`.
