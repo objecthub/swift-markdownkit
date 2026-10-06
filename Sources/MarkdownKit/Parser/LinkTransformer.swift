@@ -28,6 +28,18 @@ open class LinkTransformer: InlineTransformer {
 
   /// Iterates over the fragments of a text, starting at an arbitrary position, while keeping
   /// track of the position (which a `Text.Iterator` doesn't).
+  /// The current nesting depth of links and images (while transforming their text)
+  private var nesting = 0
+
+  /// Transforms the text of a link or image
+  private func transformNested(_ text: Text) -> Text {
+    self.nesting += 1
+    defer {
+      self.nesting -= 1
+    }
+    return self.transform(text)
+  }
+
   private struct Cursor {
     let text: Text
     /// Position of the fragment which `next` returns next
@@ -83,7 +95,8 @@ open class LinkTransformer: InlineTransformer {
     loop: while let fragment = element {
       if case .delimiter("[", _, let type) = fragment {
         let closing = matches[pos]
-        if closing >= 0 && self.mayCompleteLink(in: text, closingBracket: closing) {
+        if closing >= 0 && self.nesting < self.owner.maxNestingDepth &&
+           self.mayCompleteLink(in: text, closingBracket: closing) {
           var inner = Text()
           for i in (pos + 1)..<closing {
             inner.append(fragment: text[i])
@@ -195,7 +208,7 @@ open class LinkTransformer: InlineTransformer {
     let label = normalizeLinkLabel(text.description)
     if label.count < 1000,
        let (uri, title) = self.owner.linkRefDef[label] {
-      let text = transformed ?? self.transform(text)
+      let text = transformed ?? self.transformNested(text)
       transformed = text
       if link && self.containsLink(text) {
         return nil
@@ -217,7 +230,7 @@ open class LinkTransformer: InlineTransformer {
       return nil
     }
     // Transform link description
-    let text = transformed ?? self.transform(text)
+    let text = transformed ?? self.transformNested(text)
     transformed = text
     if link && self.containsLink(text) {
       return nil
@@ -415,7 +428,7 @@ open class LinkTransformer: InlineTransformer {
     // Skip whitespace
     var element = self.skipWhitespace(for: &iterator)
     // Transform link description
-    let text = transformed ?? self.transform(text)
+    let text = transformed ?? self.transformNested(text)
     transformed = text
     if link && self.containsLink(text) {
       return nil

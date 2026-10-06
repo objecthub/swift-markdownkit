@@ -26,7 +26,24 @@ import Foundation
 /// only a single document/string in Markdown format.
 ///
 open class DocumentParser {
-
+  
+  /// The part of the state of the current line which block parsers change when they start
+  /// a container. It is used for undoing this if a container is not supposed to be created.
+  private struct LineState {
+    let line: Substring
+    let contentStartIndex: Substring.Index
+    let lineIndent: Int
+    let lineEmpty: Bool
+  }
+  
+  /// The default for the maximal nesting depth of containers (block quotes and list items).
+  /// Deeper nesting is not recognized: the markup of containers beyond this depth is treated
+  /// like any other text. This protects against stack overflows when processing the (deeply
+  /// nested) resulting syntax tree, e.g. for input consisting of many `>` characters. The
+  /// value makes sure that processing works even in debug builds on threads with a small
+  /// stack (512 KB); it is far deeper than what real documents need.
+  public static let defaultMaxContainerDepth = 24
+  
   /// Sequence of block parsers which implement the document parsing functionality.
   internal private(set) var blockParsers: [BlockParser]
 
@@ -57,11 +74,14 @@ open class DocumentParser {
   
   /// Was the previous line empty?
   internal fileprivate(set) var prevLineEmpty: Bool
-
+  
   /// Was a container started on the current line? If so, the remainder of the line (which
   /// may be blank) belongs to the container's marker and is not a blank line of its own.
   private var containerStartedOnLine = false
-
+  
+  /// The maximal nesting depth of containers (block quotes and list items).
+  public var maxContainerDepth: Int = DocumentParser.defaultMaxContainerDepth
+  
   /// Initializer
   public init(blockParsers: [BlockParser.Type], input: String) {
     let docContainer = Container()
@@ -213,6 +233,20 @@ open class DocumentParser {
       return self.container !== self.currentContainer
     }
   }
+  
+  private var lineState: LineState {
+    return LineState(line: self.line,
+                     contentStartIndex: self.contentStartIndex,
+                     lineIndent: self.lineIndent,
+                     lineEmpty: self.lineEmpty)
+  }
+
+  private func restore(_ state: LineState) {
+    self.line = state.line
+    self.contentStartIndex = state.contentStartIndex
+    self.lineIndent = state.lineIndent
+    self.lineEmpty = state.lineEmpty
+  }
 
   public func parse() -> Block {
     loop: while !self.finished {
@@ -234,12 +268,17 @@ open class DocumentParser {
         self.currentContainer = self.container
         for blockParser in self.blockParsers {
           let tight = !self.prevLineEmpty
+          let saved: LineState? = self.container.depth >= self.maxContainerDepth
+                                    ? self.lineState : nil
           switch blockParser.parse() {
             case .none:
               break
             case .block(let block):
               self.container.append(block: block, tight: tight)
               continue loop
+            case .container(_) where saved != nil:
+              // Containers are nested too deeply: the line start is not a container marker
+              self.restore(saved!)
             case .container(let constr):
               self.currentContainer = constr(self.container)
               self.container = self.currentContainer
@@ -257,6 +296,9 @@ open class DocumentParser {
           let tight = !self.prevLineEmpty
           for blockParser in self.blockParsers {
             if blockParser.mayInterruptParagraph {
+              // The container which a new container would be nested in
+              let base = self.prevParagraphLines != nil ? self.currentContainer : self.container
+              let saved: LineState? = base.depth >= self.maxContainerDepth ? self.lineState : nil
               switch blockParser.parse() {
                 case .none:
                   break
@@ -265,6 +307,9 @@ open class DocumentParser {
                   self.prevParagraphLines = nil
                   self.prevParagraphLinesTight = false
                   continue loop
+                case .container(_) where saved != nil:
+                  // Containers are nested too deeply: the line start is not a container marker
+                  self.restore(saved!)
                 case .container(let constr):
                   if let plines = self.prevParagraphLines {
                     self.container.append(block: .paragraph(plines.finalized()),

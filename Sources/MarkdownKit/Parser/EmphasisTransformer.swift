@@ -123,6 +123,36 @@ open class EmphasisTransformer: InlineTransformer {
     var fragment: TextFragment
     var prev: Int
     var next: Int
+    /// Nesting depth of the fragment (1 for emphasis without nested emphasis, links or images
+    /// and so on; 0 for fragments without nested text); -1 if not yet determined
+    var depth: Int = -1
+  }
+
+  /// The number of enclosing links, images and emphasis while transforming their text
+  private var baseDepth = 0
+
+  public override func transform(_ fragment: TextFragment,
+                                 from iterator: inout Text.Iterator,
+                                 into res: inout Text) -> TextFragment? {
+    switch fragment {
+      case .emph(_), .strong(_), .link(_, _, _), .image(_, _, _):
+        self.baseDepth += 1
+        defer {
+          self.baseDepth -= 1
+        }
+        return super.transform(fragment, from: &iterator, into: &res)
+      default:
+        return super.transform(fragment, from: &iterator, into: &res)
+    }
+  }
+
+  private func depth(of fragment: TextFragment) -> Int {
+    switch fragment {
+      case .emph(let text), .strong(let text), .link(let text, _, _), .image(let text, _, _):
+        return 1 + text.reduce(0) { max($0, self.depth(of: $1)) }
+      default:
+        return 0
+    }
   }
 
   /// Key for remembering where it is pointless to search for openers
@@ -154,7 +184,7 @@ open class EmphasisTransformer: InlineTransformer {
     // The first node is a sentinel; the node of fragment `i` has the identifier `i + 1`
     var nodes = [Node]()
     nodes.reserveCapacity(res.count + 1 + delimiters.count)
-    nodes.append(Node(fragment: .softLineBreak, prev: -1, next: res.isEmpty ? -1 : 1))
+    nodes.append(Node(fragment: .softLineBreak, prev: -1, next: res.isEmpty ? -1 : 1, depth: 0))
     var i = 0
     for fragment in res {
       nodes.append(Node(fragment: fragment, prev: i, next: i + 1 < res.count ? i + 2 : -1))
@@ -188,6 +218,11 @@ open class EmphasisTransformer: InlineTransformer {
     // For a kind of closer, the identifier of the delimiter below which no opener exists
     // (as long as the openers below do not change)
     var openersBottom: [OpenersBottomKey : Int] = [:]
+    // Delimiters up to this identifier cannot be openers any more: emphasis with such an
+    // opener would be nested too deeply. This also holds for all later closers because the
+    // fragments between the opener and a later closer include everything between the opener
+    // and the closer for which this was found.
+    var tooDeepFloor = -1
     var current = 0
     loop: while current >= 0 {
       let potentialCloser = delimiters[current]
@@ -195,27 +230,40 @@ open class EmphasisTransformer: InlineTransformer {
         let key = OpenersBottomKey(ch: potentialCloser.ch,
                                    countMod3: potentialCloser.count % 3,
                                    canOpen: potentialCloser.isOpener)
-        let bottom = openersBottom[key] ?? -1
+        let bottom = max(openersBottom[key] ?? -1, tooDeepFloor)
         var i = potentialCloser.prev
+        var tooDeep = false
         while i > bottom {
           let potentialOpener = delimiters[i]
           if potentialOpener.isOpener(for: potentialCloser.ch) &&
              ((!potentialCloser.isOpener && !potentialOpener.isCloser) ||
               (potentialCloser.countMultipleOf3 && potentialOpener.countMultipleOf3) ||
               ((potentialOpener.count + potentialCloser.count) % 3 != 0)) {
-            // Deduct counts
             let delta = potentialOpener.count > 1 && potentialCloser.count > 1 ? 2 : 1
+            // Collect fragments between the two delimiters, and determine how deeply the
+            // emphasis would be nested
+            var nestedText = Text()
+            var nestedDepth = 0
+            var node = nodes[potentialOpener.node].next
+            while node != potentialCloser.node {
+              if nodes[node].depth < 0 {
+                nodes[node].depth = self.depth(of: nodes[node].fragment)
+              }
+              nestedDepth = max(nestedDepth, nodes[node].depth)
+              nestedText.append(fragment: nodes[node].fragment)
+              node = nodes[node].next
+            }
+            if self.baseDepth + nestedDepth + 1 > self.owner.maxNestingDepth {
+              // Too deeply nested. All openers further down would enclose this one as well.
+              tooDeep = true
+              tooDeepFloor = i
+              break
+            }
+            // Deduct counts
             delimiters[i].count -= delta
             delimiters[current].count -= delta
             let opener = delimiters[i]
             let closer = delimiters[current]
-            // Collect fragments between the two delimiters
-            var nestedText = Text()
-            var node = nodes[opener.node].next
-            while node != closer.node {
-              nestedText.append(fragment: nodes[node].fragment)
-              node = nodes[node].next
-            }
             // Replace the fragments of the delimiters and everything between them
             var replacement = [Int]()
             if opener.count > 0 {
@@ -223,7 +271,10 @@ open class EmphasisTransformer: InlineTransformer {
               replacement.append(opener.node)
             }
             if let factory = self.emphasis[opener.ch]?.factory {
-              nodes.append(Node(fragment: factory(delta > 1, nestedText), prev: -1, next: -1))
+              nodes.append(Node(fragment: factory(delta > 1, nestedText),
+                                prev: -1,
+                                next: -1,
+                                depth: nestedDepth + 1))
               replacement.append(nodes.count - 1)
             } else {
               for fragment in nestedText {
@@ -264,7 +315,9 @@ open class EmphasisTransformer: InlineTransformer {
           }
           i = potentialOpener.prev
         }
-        openersBottom[key] = potentialCloser.prev
+        if !tooDeep {
+          openersBottom[key] = potentialCloser.prev
+        }
         if !potentialCloser.isOpener {
           // Remove the closer from the stack
           if potentialCloser.prev >= 0 {

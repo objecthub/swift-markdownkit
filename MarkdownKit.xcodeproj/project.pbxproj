@@ -179,6 +179,7 @@
 		CCE764CA307576E8008AD5AD /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C9307576E8008AD5AD /* PerformanceTests.swift */; };
 		CCE764CC30758503008AD5AD /* ParserRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */; };
 		CCE764CE307592CA008AD5AD /* DifferentialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764CD307592CA008AD5AD /* DifferentialTests.swift */; };
+		CCE764D03075A95D008AD5AD /* NestingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764CF3075A95D008AD5AD /* NestingTests.swift */; };
 		CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -404,6 +405,7 @@
 		CCE764C9307576E8008AD5AD /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserRegressionTests.swift; sourceTree = "<group>"; };
 		CCE764CD307592CA008AD5AD /* DifferentialTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifferentialTests.swift; sourceTree = "<group>"; };
+		CCE764CF3075A95D008AD5AD /* NestingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NestingTests.swift; sourceTree = "<group>"; };
 		CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownASTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -535,6 +537,7 @@
 				CCE764C7307576E0008AD5AD /* SecurityTests.swift */,
 				CCE764C9307576E8008AD5AD /* PerformanceTests.swift */,
 				CCE764CD307592CA008AD5AD /* DifferentialTests.swift */,
+				CCE764CF3075A95D008AD5AD /* NestingTests.swift */,
 				CCC48C1425D9D81000D082AD /* LinuxMain.swift */,
 				CC2AF6F8227CD98100BEA420 /* Info.plist */,
 			);
@@ -1076,6 +1079,7 @@
 				CCE764CC30758503008AD5AD /* ParserRegressionTests.swift in Sources */,
 				CC8F27722FBA5DE5000AF851 /* TerminalGeneratorTests.swift in Sources */,
 				CC2AF6F7227CD98100BEA420 /* MarkdownBlockTests.swift in Sources */,
+				CCE764D03075A95D008AD5AD /* NestingTests.swift in Sources */,
 				CC8D559D24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift in Sources */,
 				CC8CBC192284B3F40084683B /* MarkdownFactory.swift in Sources */,
 			);

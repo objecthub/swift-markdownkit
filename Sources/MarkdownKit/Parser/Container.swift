@@ -28,6 +28,9 @@ import Foundation
 open class Container: CustomDebugStringConvertible {
   public private(set) var content: [Block] = []
   public var density: ListDensity? = nil
+
+  /// The number of containers enclosing this container (0 for the document container).
+  public internal(set) var depth: Int = 0
   
   open func append(block: Block, tight: Bool) {
     if !content.isEmpty || self.density == nil {
@@ -95,6 +98,8 @@ open class NestedContainer: Container {
 
   public init(outer: Container) {
     self.outer = outer
+    super.init()
+    self.depth = outer.depth + 1
   }
 
   open var indentRequired: Bool {

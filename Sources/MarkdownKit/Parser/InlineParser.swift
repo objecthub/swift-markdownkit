@@ -27,6 +27,13 @@ import Foundation
 ///
 open class InlineParser {
 
+  /// The default for the maximal nesting depth of inline markup (links, images, emphasis).
+  /// Markup which would be nested more deeply is not recognized and treated like any other
+  /// text. This protects against stack overflows when processing the (deeply nested)
+  /// resulting syntax tree. The value makes sure that processing works even in debug builds
+  /// on threads with a small stack (512 KB); it is far deeper than what real documents need.
+  public static let defaultMaxNestingDepth = 24
+
   /// Sequence of inline transformers which implement the inline parsing functionality.
   private var inlineTransformers: [InlineTransformer]
 
@@ -35,6 +42,9 @@ open class InlineParser {
 
   /// Link reference declarations
   public private(set) var linkRefDef: [String : (String, String?)]
+  
+  /// The maximal nesting depth of inline markup (links, images, emphasis).
+  public var maxNestingDepth: Int = InlineParser.defaultMaxNestingDepth
 
   /// Initializer
   init(inlineTransformers: [InlineTransformer.Type], input: Block) {

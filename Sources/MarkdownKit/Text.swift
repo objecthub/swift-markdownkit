@@ -135,7 +135,7 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
   public var description: String {
     var res = ""
     for fragment in self.fragments {
-      res = res + fragment.description
+      res.append(fragment.description)
     }
     return res
   }
@@ -159,7 +159,8 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
       if res.isEmpty {
         res = fragment.debugDescription
       } else {
-        res = res + ", \(fragment.debugDescription)"
+        res.append(", ")
+        res.append(fragment.debugDescription)
       }
     }
     return res

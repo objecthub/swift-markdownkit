@@ -191,4 +191,21 @@ class PerformanceTests: XCTestCase {
       String(repeating: "*a ", count: n) + "b" + String(repeating: "* ", count: n)
     }, run: parse)
   }
+
+  func testScalingDeeplyNestedContainers() {
+    scaling("containers-deep", n: 5000, { String(repeating: "> - ", count: $0) + "x" }, run: parse)
+  }
+
+  func testScalingDeeplyNestedImages() {
+    scaling("images-deep", n: 1000, { n in
+      String(repeating: "![a ", count: n) + "x" + String(repeating: "](u)", count: n)
+    }, run: parse)
+  }
+
+  func testScalingDeeplyNestedEmphasis() {
+    scaling("emphasis-deep", n: 2000, { n in
+      (0..<n).map { $0 % 2 == 0 ? "*a " : "_a " }.joined() + "x " +
+      (0..<n).reversed().map { $0 % 2 == 0 ? "a* " : "a_ " }.joined()
+    }, run: parse)
+  }
 }
