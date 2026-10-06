@@ -45,6 +45,12 @@ open class CodeLinkHtmlTransformer: InlineTransformer {
                 for _ in 1..<count {
                   code += scanner2.next()?.rawDescription ?? ""
                 }
+                // If the content both starts and ends with a space, but does not consist
+                // only of spaces, one space is removed on each side.
+                if code.count >= 2 && code.first == " " && code.last == " " &&
+                   code.contains(where: { $0 != " " }) {
+                  code = String(code.dropFirst().dropLast())
+                }
                 res.append(fragment: .code(Substring(code)))
                 iterator = scanner
                 element = iterator.next()

@@ -40,9 +40,29 @@ open class LinkTransformer: InlineTransformer {
           switch lookahead {
             case .delimiter("]", _, _):
               if open == 0 {
-                if let link = self.complete(link: type.isEmpty, inner, with: &scanner) {
+                let afterBracket = scanner
+                var transformed: Text? = nil
+                if let link = self.complete(link: type.isEmpty,
+                                            inner,
+                                            with: &scanner,
+                                            transformed: &transformed) {
                   res.append(fragment: link)
                   iterator = scanner
+                  element = iterator.next()
+                  continue loop
+                }
+                if let transformed {
+                  // `complete` already transformed the text between the brackets before it
+                  // gave up. Since the brackets inside of it are balanced, this is the same
+                  // result as processing these fragments one by one. Reusing it avoids
+                  // transforming nested brackets repeatedly (which is exponential for nested
+                  // links).
+                  res.append(fragment: fragment)
+                  for transformedFragment in transformed {
+                    res.append(fragment: transformedFragment)
+                  }
+                  res.append(fragment: lookahead)
+                  iterator = afterBracket
                   element = iterator.next()
                   continue loop
                 }
@@ -70,31 +90,47 @@ open class LinkTransformer: InlineTransformer {
     return res
   }
 
+  /// Tries to complete a link or image for the given description `text`. If the description
+  /// gets transformed in the process, the result is also stored in `transformed`; this is
+  /// also the case if no link or image could be completed.
   private func complete(link: Bool,
                         _ text: Text,
-                        with iterator: inout Text.Iterator) -> TextFragment? {
+                        with iterator: inout Text.Iterator,
+                        transformed: inout Text?) -> TextFragment? {
     let initial = iterator
-    let next = iterator.next()
-    guard let element = next else {
-      return nil
+    // Inline links and full/collapsed references; they need a following fragment
+    if let element = iterator.next() {
+      switch element {
+        case .delimiter("(", _, _):
+          if let res = self.completeInline(link: link,
+                                           text,
+                                           with: &iterator,
+                                           transformed: &transformed) {
+            return res
+          }
+        case .delimiter("[", _, _):
+          var undefinedLabel = false
+          if let res = self.completeRef(link: link,
+                                        text,
+                                        with: &iterator,
+                                        transformed: &transformed,
+                                        undefinedLabel: &undefinedLabel) {
+            return res
+          }
+          // A shortcut reference must not be followed by a link label
+          if undefinedLabel {
+            return nil
+          }
+        default:
+          break
+      }
     }
-    switch element {
-      case .delimiter("(", _, _):
-        if let res = self.completeInline(link: link, text, with: &iterator) {
-          return res
-        }
-      case .delimiter("[", _, _):
-        if let res = self.completeRef(link: link, text, with: &iterator) {
-          return res
-        }
-      default:
-        break
-    }
-    let components = text.description.components(separatedBy: .whitespacesAndNewlines)
-    let label = components.filter { !$0.isEmpty }.joined(separator: " ").lowercased()
+    // Shortcut references; they are also valid at the very end of the text
+    let label = normalizeLinkLabel(text.description)
     if label.count < 1000,
        let (uri, title) = self.owner.linkRefDef[label] {
-      let text = self.transform(text)
+      let text = transformed ?? self.transform(text)
+      transformed = text
       if link && self.containsLink(text) {
         return nil
       }
@@ -107,19 +143,23 @@ open class LinkTransformer: InlineTransformer {
 
   private func completeInline(link: Bool,
                               _ text: Text,
-                              with iterator: inout Text.Iterator) -> TextFragment? {
+                              with iterator: inout Text.Iterator,
+                              transformed: inout Text?) -> TextFragment? {
     // Skip whitespace
     var element = self.skipWhitespace(for: &iterator)
     guard let dest = element else {
       return nil
     }
     // Transform link description
-    let text = self.transform(text)
+    let text = transformed ?? self.transform(text)
+    transformed = text
     if link && self.containsLink(text) {
       return nil
     }
     // Parse destination
     var destination = ""
+    // Is the destination followed by whitespace (as needed for a title)?
+    var whitespaceAfterDestination = false
     choose: switch dest {
       // Is this a link destination surrounded by `<` and `>`
       case .delimiter("<", _, _):
@@ -159,6 +199,7 @@ open class LinkTransformer: InlineTransformer {
               return nil
             }
             destination = String(destination[destination.startIndex..<lastIndex])
+            whitespaceAfterDestination = true
             break choose
           }
           element = iterator.next()
@@ -179,9 +220,11 @@ open class LinkTransformer: InlineTransformer {
                   return nil
                 }
                 destination += str[str.startIndex..<index]
+                whitespaceAfterDestination = true
                 break loop
               }
             case .hardLineBreak, .softLineBreak:
+              whitespaceAfterDestination = true
               break loop
             default:
               break
@@ -194,16 +237,26 @@ open class LinkTransformer: InlineTransformer {
       return nil
     }
     // Parse title
-    guard let fragment = self.skipWhitespace(for: &iterator) else {
+    guard let fragment = self.skipWhitespace(for: &iterator,
+                                             skipped: &whitespaceAfterDestination) else {
       return nil
     }
     var optTitle: String?
     switch fragment {
       case .delimiter("\"", _, _):
+        guard whitespaceAfterDestination else {
+          return nil
+        }
         optTitle = self.completeTitle("\"", for: &iterator)
       case .delimiter("'", _, _):
+        guard whitespaceAfterDestination else {
+          return nil
+        }
         optTitle = self.completeTitle("'", for: &iterator)
       case .delimiter("(", _, _):
+        guard whitespaceAfterDestination else {
+          return nil
+        }
         optTitle = self.completeTitle(")", for: &iterator)
       case .delimiter(")", _, _):
         return link ? .link(text, destination.isEmpty ? nil : destination, nil)
@@ -239,13 +292,21 @@ open class LinkTransformer: InlineTransformer {
   }
 
   private func skipWhitespace(for iterator: inout Text.Iterator) -> TextFragment? {
+    var skipped = false
+    return self.skipWhitespace(for: &iterator, skipped: &skipped)
+  }
+
+  /// Skips whitespace fragments and returns the next fragment. `skipped` is set to true if
+  /// any whitespace was skipped.
+  private func skipWhitespace(for iterator: inout Text.Iterator,
+                              skipped: inout Bool) -> TextFragment? {
     var element = iterator.next()
     while let fragment = element {
       switch fragment {
         case .hardLineBreak, .softLineBreak:
-          break
+          skipped = true
         case .text(let str) where isWhitespaceString(str):
-          break
+          skipped = true
         default:
           return element
       }
@@ -282,11 +343,14 @@ open class LinkTransformer: InlineTransformer {
 
   private func completeRef(link: Bool,
                            _ text: Text,
-                           with iterator: inout Text.Iterator) -> TextFragment? {
+                           with iterator: inout Text.Iterator,
+                           transformed: inout Text?,
+                           undefinedLabel: inout Bool) -> TextFragment? {
     // Skip whitespace
     var element = self.skipWhitespace(for: &iterator)
     // Transform link description
-    let text = self.transform(text)
+    let text = transformed ?? self.transform(text)
+    transformed = text
     if link && self.containsLink(text) {
       return nil
     }
@@ -295,10 +359,12 @@ open class LinkTransformer: InlineTransformer {
     while let fragment = element {
       switch fragment {
         case .delimiter("]", _, _):
-          label = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+          // A collapsed reference (`[foo][]`) uses the link text as its label
+          label = normalizeLinkLabel(label.isEmpty ? text.description : label)
           if let (uri, title) = self.owner.linkRefDef[label] {
             return link ? .link(text, uri, title) : .image(text, uri, title)
           } else {
+            undefinedLabel = true
             return nil
           }
         case .softLineBreak, .hardLineBreak:

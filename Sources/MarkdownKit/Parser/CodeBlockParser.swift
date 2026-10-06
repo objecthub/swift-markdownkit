@@ -60,10 +60,7 @@ public final class IndentedCodeBlockParser: CodeBlockParser {
     var code: Lines = [self.formatIndentedLine()]
     var emptyLines: Lines = []
     self.readNextLine()
-    while !self.finished && self.lineEmpty {
-      self.readNextLine()
-    }
-    while !self.finished && (!self.shortLineIndent || self.lineEmpty) {
+    while !self.finished && !self.lineLeavesContainer && (!self.shortLineIndent || self.lineEmpty) {
       if self.lineEmpty {
         emptyLines.append(self.formatIndentedLine())
       } else {
@@ -109,7 +106,8 @@ public final class FencedCodeBlockParser: CodeBlockParser {
     }
     self.readNextLine()
     var code: Lines = []
-    while !self.finished {
+    var closed = false
+    while !self.finished && !self.lineLeavesContainer {
       if !self.lineEmpty && self.shortLineIndent {
         var fenceCloseLength = 0
         index = self.contentStartIndex
@@ -122,6 +120,7 @@ public final class FencedCodeBlockParser: CodeBlockParser {
             index = self.line.index(after: index)
           }
           if index == self.contentEndIndex {
+            closed = true
             break
           }
         }
@@ -129,7 +128,10 @@ public final class FencedCodeBlockParser: CodeBlockParser {
       code.append(self.formatIndentedLine(fenceIndent))
       self.readNextLine()
     }
-    self.readNextLine()
+    if closed {
+      // skip the closing fence
+      self.readNextLine()
+    }
     return .block(.fencedCode(info.isEmpty ? nil : info, code))
   }
 }

@@ -36,7 +36,8 @@ open class HtmlBlockParser: BlockParser {
             ProcessingInstructionBlockParserPlugin.self,
             DeclarationBlockParserPlugin.self,
             CdataBlockParserPlugin.self,
-            HtmlTagBlockParserPlugin.self
+            HtmlTagBlockParserPlugin.self,
+            CompleteTagBlockParserPlugin.self
     ]
   }
 
@@ -59,11 +60,17 @@ open class HtmlBlockParser: BlockParser {
     var cline = self.line[self.contentStartIndex..<self.contentEndIndex].lowercased()
     for parser in self.htmlParsers {
       if parser.startCondition(cline) {
+        // Some HTML blocks cannot interrupt a paragraph (unless the paragraph is part of an
+        // enclosing container which does not continue on this line)
+        if !parser.canInterruptParagraph && self.prevParagraphLines != nil &&
+           !self.lazyContinuation {
+          continue
+        }
         var lines: Lines = [self.line]
         while !self.finished && !parser.endCondition(cline) {
           self.readNextLine()
           if !self.finished {
-            if (parser.emptyLineTerminator && self.lineEmpty) || self.lazyContinuation {
+            if (parser.emptyLineTerminator && self.lineEmpty) || self.lineLeavesContainer {
               break
             } else {
               lines.append(self.line)
@@ -72,7 +79,7 @@ open class HtmlBlockParser: BlockParser {
           cline = self.lineEmpty
                     ? "" : self.line[self.contentStartIndex..<self.contentEndIndex].lowercased()
         }
-        if !self.finished && !self.lazyContinuation {
+        if !self.finished && !self.lineLeavesContainer {
           self.readNextLine()
         }
         if let last = lines.last, last.isEmpty {
@@ -156,6 +163,11 @@ open class HtmlBlockParserPlugin {
   open var emptyLineTerminator: Bool {
     return false
   }
+
+  /// Can this kind of HTML block interrupt a paragraph?
+  open var canInterruptParagraph: Bool {
+    return true
+  }
 }
 
 public final class ScriptBlockParserPlugin: HtmlBlockParserPlugin {
@@ -163,13 +175,15 @@ public final class ScriptBlockParserPlugin: HtmlBlockParserPlugin {
   public override func startCondition(_ line: String) -> Bool {
     return self.line(line, at: line.startIndex, startsWith: "<script") ||
            self.line(line, at: line.startIndex, startsWith: "<pre") ||
-           self.line(line, at: line.startIndex, startsWith: "<style")
+           self.line(line, at: line.startIndex, startsWith: "<style") ||
+           self.line(line, at: line.startIndex, startsWith: "<textarea")
   }
 
   public override func endCondition(_ line: String) -> Bool {
     return line.contains("</script>") ||
            line.contains("</pre>") ||
-           line.contains("</style>")
+           line.contains("</style>") ||
+           line.contains("</textarea>")
   }
 }
 
@@ -210,9 +224,9 @@ public final class DeclarationBlockParserPlugin: HtmlBlockParserPlugin {
     guard index < line.endIndex else {
       return false
     }
+    // The parser passes lowercased lines to its plugins, but this also accepts uppercase
     switch line[index] {
-      case "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
-           "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z":
+      case "a"..."z", "A"..."Z":
         return true
       default:
         return false
@@ -227,7 +241,7 @@ public final class DeclarationBlockParserPlugin: HtmlBlockParserPlugin {
 public final class CdataBlockParserPlugin: HtmlBlockParserPlugin {
 
   public override func startCondition(_ line: String) -> Bool {
-    return self.line(line, at: line.startIndex, startsWith: "<![CDATA[", htmlTagSuffix: false)
+    return self.line(line, at: line.startIndex, startsWith: "<![cdata[", htmlTagSuffix: false)
   }
 
   public override func endCondition(_ line: String) -> Bool {
@@ -241,8 +255,8 @@ public final class HtmlTagBlockParserPlugin: HtmlBlockParserPlugin {
                         "div", "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form",
                         "frame", "frameset", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header",
                         "hr", "html", "iframe", "legend", "li", "link", "main", "menu", "menuitem",
-                        "nav", "noframes", "ol", "optgroup", "option", "p", "param", "section",
-                        "source", "summary", "table", "tbody", "td", "tfoot", "th", "thead",
+                        "nav", "noframes", "ol", "optgroup", "option", "p", "param", "search",
+                        "section", "source", "summary", "table", "tbody", "td", "tfoot", "th", "thead",
                         "title", "tr", "track", "ul"]
 
   public override func startCondition(_ line: String) -> Bool {
@@ -264,5 +278,39 @@ public final class HtmlTagBlockParserPlugin: HtmlBlockParserPlugin {
 
   public override var emptyLineTerminator: Bool {
     return true
+  }
+}
+
+///
+/// HTML blocks which start with a complete open or closing tag (of any tag name) that is
+/// followed only by whitespace on the same line. Such blocks cannot interrupt a paragraph.
+///
+public final class CompleteTagBlockParserPlugin: HtmlBlockParserPlugin {
+
+  public override func startCondition(_ line: String) -> Bool {
+    guard line.hasPrefix("<") else {
+      return false
+    }
+    let body = line.dropFirst()
+    guard let first = body.first, first == "/" || (first.isASCII && first.isLetter) else {
+      return false
+    }
+    // Look for the end of the tag. `>` may also occur inside of attribute values.
+    var index = body.startIndex
+    while let close = body[index...].firstIndex(of: ">") {
+      if isHtmlTag(String(body[body.startIndex..<close])) {
+        return body[body.index(after: close)...].allSatisfy { self.isWhitespace($0) }
+      }
+      index = body.index(after: close)
+    }
+    return false
+  }
+
+  public override var emptyLineTerminator: Bool {
+    return true
+  }
+
+  public override var canInterruptParagraph: Bool {
+    return false
   }
 }

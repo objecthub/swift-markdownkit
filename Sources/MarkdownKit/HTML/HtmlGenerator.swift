@@ -97,9 +97,7 @@ open class HtmlGenerator {
         let tag = "h\(n > 0 && n < 7 ? n : 1)>"
         return "<\(tag)\(self.generate(text: text))</\(tag)\n"
       case .indentedCode(let lines):
-        return "<pre><code>" +
-               self.generate(lines: lines).encodingPredefinedXmlEntities() +
-               "</code></pre>\n"
+        return "<pre><code>" + self.codeContent(lines) + "</code></pre>\n"
       case .fencedCode(let lang, let lines):
         if let lang {
           if lang == "mermaid" {
@@ -107,21 +105,21 @@ open class HtmlGenerator {
                    self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
                    "</pre>\n"
           } else if let clazz = Sanitizer.languageClass(for: lang) {
-            return "<pre><code class=\"language-\(clazz)\">" +
-                   self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
+            return "<pre><code class=\"language-\(clazz)\">" + self.codeContent(lines) +
                    "</code></pre>\n"
           } else {
-            return "<pre><code>" +
-                   self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
-                   "</code></pre>\n"
+            return "<pre><code>" + self.codeContent(lines) + "</code></pre>\n"
           }
         } else {
-          return "<pre><code>" +
-                 self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
-                 "</code></pre>\n"
+          return "<pre><code>" + self.codeContent(lines) + "</code></pre>\n"
         }
       case .htmlBlock(let lines):
-        return self.safeMode ? "<!-- raw HTML omitted -->\n" : self.generate(lines: lines)
+        if self.safeMode {
+          return "<!-- raw HTML omitted -->\n"
+        }
+        // The lines include their line terminators
+        let html = self.generate(lines: lines, separator: "")
+        return html.isEmpty || html.hasSuffix("\n") ? html : html + "\n"
       case .referenceDef(_, _, _):
         return ""
       case .thematicBreak:
@@ -245,6 +243,17 @@ open class HtmlGenerator {
       case .custom(let customTextFragment):
         return customTextFragment.generateHtml(via: self)
     }
+  }
+
+  /// Returns the escaped content of a code block. The lines of code blocks include their line
+  /// terminators (except possibly for the last line of the input). The result always ends
+  /// with a newline unless it is empty.
+  private func codeContent(_ lines: Lines) -> String {
+    var code = self.generate(lines: lines, separator: "")
+    if !code.isEmpty && !code.hasSuffix("\n") {
+      code += "\n"
+    }
+    return code.encodingPredefinedXmlEntities()
   }
 
   /// Returns the escaped value for the `href` or `src` attribute for the given URL. In safe mode,

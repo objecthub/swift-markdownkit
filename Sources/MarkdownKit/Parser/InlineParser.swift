@@ -65,16 +65,20 @@ open class InlineParser {
         self.collectLinkRefDef(blocks)
       case .listItem(_, _, let blocks):
         self.collectLinkRefDef(blocks)
+      case .definitionList(let defs):
+        for def in defs {
+          self.collectLinkRefDef(def.descriptions)
+        }
       case .referenceDef(let label, let dest, let title):
-        if title.isEmpty {
-          let canonical = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-          self.linkRefDef[canonical] = (String(dest), nil)
-        } else {
-          var str = ""
-          for line in title {
-            str += line.description
+        let canonical = normalizeLinkLabel(label)
+        // If a label is defined multiple times, the first definition takes precedence
+        if self.linkRefDef[canonical] == nil {
+          if title.isEmpty {
+            self.linkRefDef[canonical] = (String(dest), nil)
+          } else {
+            self.linkRefDef[canonical] = (String(dest),
+                                          title.map { String($0) }.joined(separator: "\n"))
           }
-          self.linkRefDef[label] = (String(dest), str)
         }
       default:
         break

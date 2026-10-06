@@ -54,6 +54,20 @@ public func isSpace(_ ch: Character) -> Bool {
   return ch == " "
 }
 
+/// Normalizes a link label such that it can be compared with other labels: leading and
+/// trailing whitespace is removed, sequences of whitespace are collapsed into a single space,
+/// and the result is case folded (approximately, see below).
+internal func normalizeLinkLabel(_ label: String) -> String {
+  let collapsed = label.components(separatedBy: .whitespacesAndNewlines)
+                       .filter { !$0.isEmpty }
+                       .joined(separator: " ")
+  // Approximates Unicode case folding by converting to lowercase, uppercase, and back to
+  // lowercase (e.g. "ẞ" and "SS" both result in "ss"). This is not a full case fold; it only
+  // makes sure that labels that differ in case, including the special cases of "ß" and "ẞ",
+  // compare equal.
+  return collapsed.lowercased().uppercased().lowercased()
+}
+
 public func isDash(_ ch: Character) -> Bool {
   return ch == "-"
 }
@@ -191,27 +205,14 @@ public func isHtmlTag(_ str: String) -> Bool {
         return false
       }
       if fst == "-" {
+        // Comments: `<!-->`, `<!--->`, or `<!--` followed by text and `-->`
         guard let snd = iterator.next(), snd == "-" else {
           return false
         }
-        guard str.count > 4,
-              !str.hasPrefix("!-->"),
-              !str.hasPrefix("!--->"),
-              !str.hasSuffix("---")  else {
-          return false
-        }
-        return !str[str.index(str.startIndex, offsetBy: 3)..<str.index(str.endIndex,
-                                                                       offsetBy: -2)].contains("--")
+        return str == "!--" || str == "!---" || (str.count >= 5 && str.hasSuffix("--"))
       } else if fst == "[" {
-        return str.hasPrefix("![CDATA[") &&
-               str.hasSuffix("]]") &&
-               !str[str.index(str.startIndex, offsetBy: 8)..<str.index(str.endIndex,
-                                                                       offsetBy: -2)].contains("]]")
-      } else if isUppercaseAsciiLetter(fst) {
-        while let ch = next, isUppercaseAsciiLetter(ch) {
-          next = iterator.next()
-        }
-        _ = skipWhitespace(&next, &iterator)
+        return str.count >= 10 && str.hasPrefix("![CDATA[") && str.hasSuffix("]]")
+      } else if isAsciiLetter(fst) {
         while let ch = next, ch != ">" {
           next = iterator.next()
         }
@@ -275,6 +276,10 @@ fileprivate func skipAttribute(_ next: inout Character?,
       }
       next = iterator.next()
     default:
+      // Unquoted attribute values must not contain whitespace, quotes, `=`, `<`, `>`, or `` ` ``
+      guard fst != "=", fst != "<", fst != ">", fst != "`" else {
+        return false
+      }
       while let ch = next, !isWhitespace(ch),
             ch != "\"", ch != "'", ch != "=", ch != "<", ch != ">", ch != "`" {
         next = iterator.next()

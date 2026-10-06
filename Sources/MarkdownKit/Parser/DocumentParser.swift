@@ -58,6 +58,10 @@ open class DocumentParser {
   /// Was the previous line empty?
   internal fileprivate(set) var prevLineEmpty: Bool
 
+  /// Was a container started on the current line? If so, the remainder of the line (which
+  /// may be blank) belongs to the container's marker and is not a blank line of its own.
+  private var containerStartedOnLine = false
+
   /// Initializer
   public init(blockParsers: [BlockParser.Type], input: String) {
     let docContainer = Container()
@@ -92,9 +96,14 @@ open class DocumentParser {
     state.lineIndent = self.lineIndent
     state.lineEmpty = self.lineEmpty
     state.prevLineEmpty = self.prevLineEmpty
+    state.containers = self.container.snapshot()
   }
 
   internal func restoreState(_ state: DocumentParserState) {
+    // Undo changes to containers (e.g. paragraphs and nested containers which got flushed)
+    for snapshot in state.containers {
+      snapshot.restore()
+    }
     self.index = state.index
     self.container = state.container
     self.currentContainer = state.currentContainer
@@ -116,6 +125,9 @@ open class DocumentParser {
     guard self.index != nil else {
       return
     }
+    // The blank remainder of a line which started a container is not a blank line
+    let lineWasEmpty = self.lineEmpty && !self.containerStartedOnLine
+    self.containerStartedOnLine = false
     if let lines = self.prevParagraphLines {
       self.container.append(block: .paragraph(lines.finalized()), tight: self.prevParagraphLinesTight)
       self.container = self.container.return(to: self.currentContainer, for: self)
@@ -128,7 +140,7 @@ open class DocumentParser {
       self.contentStartIndex = self.line.startIndex
       self.contentEndIndex = self.line.endIndex
       self.lineIndent = 0
-      self.prevLineEmpty = self.lineEmpty
+      self.prevLineEmpty = lineWasEmpty
       self.lineEmpty = true
       return
     }
@@ -158,7 +170,7 @@ open class DocumentParser {
     } else {
       self.contentEndIndex = self.line.endIndex
     }
-    self.prevLineEmpty = self.lineEmpty
+    self.prevLineEmpty = lineWasEmpty
     self.resetLineStart(self.line.startIndex)
   }
   
@@ -191,12 +203,29 @@ open class DocumentParser {
     return self.container !== self.currentContainer
   }
 
+  /// Returns true if the current line is not part of the container that is currently open.
+  /// This is the case if the line lacks the markup required by the container (e.g. `>`), or,
+  /// for blank lines, if the container requires such markup.
+  internal var lineLeavesContainer: Bool {
+    if self.lineEmpty {
+      return self.container.outermostIndentRequired(upto: self.currentContainer) != nil
+    } else {
+      return self.container !== self.currentContainer
+    }
+  }
+
   public func parse() -> Block {
     loop: while !self.finished {
       if self.lineEmpty {
         if let encl = self.container.outermostIndentRequired(upto: self.currentContainer) {
           // print("container <- \(encl) | \(self.currentContainer)")
           self.container = self.container.return(to: encl, for: self)
+        }
+        // A list item can begin with at most one blank line
+        while !self.containerStartedOnLine,
+              self.container.endsAtBlankLineIfEmpty && self.container.content.isEmpty,
+              let outer = self.container.enclosing {
+          self.container = self.container.return(to: outer, for: self)
         }
         self.readNextLine()
       } else {
@@ -214,6 +243,7 @@ open class DocumentParser {
             case .container(let constr):
               self.currentContainer = constr(self.container)
               self.container = self.currentContainer
+              self.containerStartedOnLine = true
               continue loop
           }
         }
@@ -246,6 +276,7 @@ open class DocumentParser {
                     self.currentContainer = constr(self.container)
                     self.container = self.currentContainer
                   }
+                  self.containerStartedOnLine = true
                   self.prevParagraphLines = nil
                   self.prevParagraphLinesTight = false
                   continue loop
@@ -282,7 +313,7 @@ open class DocumentParser {
             } else {
               res.append(.list(ltype.startNumber, tight, items))
               items.removeAll()
-              tight = nested.isSingleton
+              tight = t.isTightInitially
               listType = type
               items.append(block)
             }
@@ -346,6 +377,7 @@ internal struct DocumentParserState {
   fileprivate var lineIndent: Int
   fileprivate var lineEmpty: Bool
   fileprivate var prevLineEmpty: Bool
+  fileprivate var containers: [ContainerSnapshot]
 
   internal init(_ docParser: DocumentParser) {
     self.index = docParser.index
@@ -359,5 +391,6 @@ internal struct DocumentParserState {
     self.lineIndent = docParser.lineIndent
     self.lineEmpty = docParser.lineEmpty
     self.prevLineEmpty = docParser.prevLineEmpty
+    self.containers = []
   }
 }

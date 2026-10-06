@@ -85,6 +85,12 @@ open class BlockParser {
     return self.docParser.lazyContinuation
   }
   
+  /// True if the current line is not part of the container that was open when the parser
+  /// started parsing a block (e.g. a block quote that does not continue on this line).
+  public var lineLeavesContainer: Bool {
+    return self.docParser.lineLeavesContainer
+  }
+
   open func readNextLine() {
     self.docParser.readNextLine()
   }

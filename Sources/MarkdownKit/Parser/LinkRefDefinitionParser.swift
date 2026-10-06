@@ -80,6 +80,10 @@ open class LinkRefDefinitionParser: RestorableBlockParser {
     guard index >= self.contentEndIndex || isWhitespace(self.line[index]) else {
       return .none
     }
+    // The definition is complete after the destination. If what follows on the next lines is
+    // not a valid title, parsing continues right after the line with the destination.
+    var afterDestination = DocumentParserState(self.docParser)
+    self.docParser.copyState(&afterDestination)
     let onNewLine = self.skipSpace(index: &index)
     guard onNewLine != nil else {
       return .block(.referenceDef(label, destination, []))
@@ -98,19 +102,21 @@ open class LinkRefDefinitionParser: RestorableBlockParser {
         }
         return .block(.referenceDef(label, destination, []))
     }
-    if title.isEmpty {
-      if onNewLine == true {
-        return .block(.referenceDef(label, destination, []))
-      } else {
-        return .none
+    if !title.isEmpty {
+      skipWhitespace(in: self.line, from: &index, to: self.contentEndIndex)
+      if index >= self.contentEndIndex {
+        self.readNextLine()
+        return .block(.referenceDef(label, destination, title))
       }
     }
-    skipWhitespace(in: self.line, from: &index, to: self.contentEndIndex)
-    guard index >= self.contentEndIndex else {
+    // No valid title. If the title started on a new line, the definition ends with the
+    // destination. Otherwise, this is not a link reference definition.
+    guard onNewLine == true else {
       return .none
     }
+    self.docParser.restoreState(afterDestination)
     self.readNextLine()
-    return .block(.referenceDef(label, destination, title))
+    return .block(.referenceDef(label, destination, []))
   }
 
   public static func balanced(_ str: Substring) -> Bool {

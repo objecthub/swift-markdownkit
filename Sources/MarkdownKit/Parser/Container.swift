@@ -40,6 +40,34 @@ open class Container: CustomDebugStringConvertible {
     return .document(docParser.bundle(blocks: self.content))
   }
 
+  fileprivate final func removeContent(from index: Int) {
+    self.content.removeSubrange(index...)
+  }
+
+  /// The container enclosing this container, if there is one.
+  internal var enclosing: Container? {
+    return nil
+  }
+
+  /// True if this container ends when it is empty and followed by a blank line. This is the
+  /// case for list items: an item can begin with at most one blank line.
+  internal var endsAtBlankLineIfEmpty: Bool {
+    return false
+  }
+
+  /// Records the content size and density of this container and of all enclosing containers.
+  internal func snapshot() -> [ContainerSnapshot] {
+    var res: [ContainerSnapshot] = []
+    var current: Container? = self
+    while let container = current {
+      res.append(ContainerSnapshot(container: container,
+                                   count: container.content.count,
+                                   density: container.density))
+      current = container.enclosing
+    }
+    return res
+  }
+
   internal func parseIndent(input: String,
                             startIndex: String.Index,
                             endIndex: String.Index) -> (String.Index, Container) {
@@ -83,6 +111,10 @@ open class NestedContainer: Container {
     preconditionFailure("makeBlock() not defined")
   }
 
+  internal final override var enclosing: Container? {
+    return self.outer
+  }
+
   internal final override func parseIndent(input: String,
                                            startIndex: String.Index,
                                            endIndex: String.Index) -> (String.Index, Container) {
@@ -116,5 +148,26 @@ open class NestedContainer: Container {
       self.outer.append(block: self.makeBlock(docParser), tight: self.density?.isTight ?? true)
       return self.outer.return(to: container, for: docParser)
     }
+  }
+}
+
+/// The state of a `Container` at some point in time. Used for undoing changes to containers
+/// when a `DocumentParser` state is restored.
+internal struct ContainerSnapshot {
+  let container: Container
+  let count: Int
+  let density: ListDensity?
+
+  func restore() {
+    self.container.truncate(to: self.count, density: self.density)
+  }
+}
+
+extension Container {
+  fileprivate func truncate(to count: Int, density: ListDensity?) {
+    if self.content.count > count {
+      self.removeContent(from: count)
+    }
+    self.density = density
   }
 }

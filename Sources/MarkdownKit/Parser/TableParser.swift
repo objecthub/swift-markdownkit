@@ -70,13 +70,14 @@ open class TableParser: RestorableBlockParser {
         alignments.append(.undefined)
         check = str
       }
-      guard check.allSatisfy(isDash) else {
+      guard !check.isEmpty && check.allSatisfy(isDash) else {
         return .none
       }
     }
     self.readNextLine()
     var rows = Rows()
-    while let r = self.parseRow() {
+    while !self.finished && !self.lineLeavesContainer && !self.startsOtherBlock(),
+          let r = self.parseRow() {
       var row = r
       // Remove cells if parsed row has too many
       if row.count > header.count {
@@ -120,9 +121,9 @@ open class TableParser: RestorableBlockParser {
       }
       if j < self.contentEndIndex {
         if text == nil {
-          res.append(Text(self.line[i..<k]))
+          res.append(Text(self.unescapePipes(self.line[i..<k])))
         } else {
-          text!.append(fragment: .text(self.line[i..<k]))
+          text!.append(fragment: .text(self.unescapePipes(self.line[i..<k])))
           res.append(text!)
           text = nil
         }
@@ -130,19 +131,37 @@ open class TableParser: RestorableBlockParser {
         i = self.line.index(after: j)
         skipWhitespace(in: self.line, from: &i, to: self.contentEndIndex)
       } else if prev == "\\" {
-        if text == nil {
-          text = Text(self.line[i..<self.line.index(before: k)])
-        } else {
-          text!.append(fragment: .text(self.line[i..<self.line.index(before: k)]))
-        }
+        // The row continues on the next line (if there is one which is part of the table)
+        var saved = DocumentParserState(self.docParser)
+        self.docParser.copyState(&saved)
+        let cell = self.line[i..<k]
+        let cellWithoutBackslash = self.line[i..<self.line.index(before: k)]
         self.readNextLine()
+        if self.finished || self.lineEmpty || self.lineLeavesContainer ||
+           self.startsOtherBlock() {
+          // No continuation: the backslash is a literal backslash at the end of the last cell
+          self.docParser.restoreState(saved)
+          if text == nil {
+            res.append(Text(self.unescapePipes(cell)))
+          } else {
+            text!.append(fragment: .text(self.unescapePipes(cell)))
+            res.append(text!)
+            text = nil
+          }
+          break
+        }
+        if text == nil {
+          text = Text(self.unescapePipes(cellWithoutBackslash))
+        } else {
+          text!.append(fragment: .text(self.unescapePipes(cellWithoutBackslash)))
+        }
         i = self.contentStartIndex
         skipWhitespace(in: self.line, from: &i, to: self.contentEndIndex)
       } else {
         if text == nil {
-          res.append(Text(self.line[i..<k]))
+          res.append(Text(self.unescapePipes(self.line[i..<k])))
         } else {
-          text!.append(fragment: .text(self.line[i..<k]))
+          text!.append(fragment: .text(self.unescapePipes(self.line[i..<k])))
           res.append(text!)
           text = nil
         }
@@ -150,5 +169,32 @@ open class TableParser: RestorableBlockParser {
       }
     }
     return validRow && !res.isEmpty ? res : nil
+  }
+
+  /// Removes the backslash in front of pipe characters in table cells (also in code spans).
+  private func unescapePipes(_ str: Substring) -> Substring {
+    guard str.contains("\\") else {
+      return str
+    }
+    return Substring(str.replacingOccurrences(of: "\\|", with: "|"))
+  }
+
+  /// Returns true if the current line starts a different kind of block (other than a table).
+  /// The state of the document parser is not changed.
+  private func startsOtherBlock() -> Bool {
+    var saved = DocumentParserState(self.docParser)
+    self.docParser.copyState(&saved)
+    defer {
+      self.docParser.restoreState(saved)
+    }
+    for parser in self.docParser.blockParsers {
+      if parser !== self && parser.mayInterruptParagraph {
+        if case .none = parser.parse() {
+          continue
+        }
+        return true
+      }
+    }
+    return false
   }
 }

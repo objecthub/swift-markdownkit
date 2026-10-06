@@ -66,7 +66,7 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
                                "||||\n"),
                    document(table(["col A", "col B", "col C"],
                                   [.undefined, .left, .right],
-                                  ["this is $a very long line", "very \\| cool", "right?"],
+                                  ["this is $a very long line", "very | cool", "right?"],
                                   ["and *now*", "__with__", "markup"],
                                   ["", "", ""])))
     XCTAssertEqual(parseBlocks(" | col A | col B | col C | \n" +

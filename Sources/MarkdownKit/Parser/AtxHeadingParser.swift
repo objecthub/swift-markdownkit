@@ -35,35 +35,38 @@ open class AtxHeadingParser: BlockParser {
       i = self.line.index(after: i)
       level += 1
     }
-    guard level > 0 && level < 7 && (i >= self.contentEndIndex || self.line[i] == " ") else {
+    func isSpaceOrTab(_ ch: Character) -> Bool {
+      return ch == " " || ch == "\t"
+    }
+    guard level > 0 && level < 7 &&
+          (i >= self.contentEndIndex || isSpaceOrTab(self.line[i])) else {
       return .none
     }
-    while i < self.contentEndIndex && self.line[i] == " " {
+    while i < self.contentEndIndex && isSpaceOrTab(self.line[i]) {
       i = self.line.index(after: i)
     }
-    guard i < self.contentEndIndex else {
-      let res: Block = .heading(level, Text(self.line[i..<i]))
-      self.readNextLine()
-      return .block(res)
+    // `end` is the (exclusive) end of the heading text; first drop trailing whitespace
+    var end = self.contentEndIndex
+    while end > i && isSpaceOrTab(self.line[self.line.index(before: end)]) {
+      end = self.line.index(before: end)
     }
-    var e = self.line.index(before: self.contentEndIndex)
-    while e > i && self.line[e] == " " {
-      e = self.line.index(before: e)
+    // An optional closing sequence of `#` characters has to be preceded by whitespace
+    // (or, if it makes up the whole text, it results in an empty heading).
+    var closing = end
+    while closing > i && self.line[self.line.index(before: closing)] == "#" {
+      closing = self.line.index(before: closing)
     }
-    if e > i && self.line[e] == "#" {
-      let e0 = e
-      while e > i && self.line[e] == "#" {
-        e = self.line.index(before: e)
-      }
-      if e >= i && self.line[e] == " " {
-        while e >= i && self.line[e] == " " {
-          e = self.line.index(before: e)
+    if closing < end {
+      if closing == i {
+        end = i
+      } else if isSpaceOrTab(self.line[self.line.index(before: closing)]) {
+        end = closing
+        while end > i && isSpaceOrTab(self.line[self.line.index(before: end)]) {
+          end = self.line.index(before: end)
         }
-      } else {
-        e = e0
       }
     }
-    let res: Block = .heading(level, Text(self.line[i...e]))
+    let res: Block = .heading(level, Text(self.line[i..<end]))
     self.readNextLine()
     return .block(res)
   }

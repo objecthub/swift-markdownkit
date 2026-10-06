@@ -59,7 +59,18 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
   mutating public func append(line: Substring, withHardLineBreak: Bool) {
     let n = self.fragments.count
     if n > 0, case .text(let str) = self.fragments[n - 1] {
-      if str.last == "\\" {
+      // A backslash at the end of the line is a hard line break unless it is itself escaped
+      // by another backslash.
+      var backslashes = 0
+      var i = str.endIndex
+      while i > str.startIndex {
+        i = str.index(before: i)
+        guard str[i] == "\\" else {
+          break
+        }
+        backslashes += 1
+      }
+      if backslashes % 2 == 1 {
         let newline = str[str.startIndex..<str.index(before: str.endIndex)]
         if newline.isEmpty {
           self.fragments[n - 1] = .hardLineBreak

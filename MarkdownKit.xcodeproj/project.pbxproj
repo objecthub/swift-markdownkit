@@ -177,6 +177,7 @@
 		CCE764C6307576BE008AD5AD /* Sanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C5307576BE008AD5AD /* Sanitizer.swift */; };
 		CCE764C8307576E0008AD5AD /* SecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C7307576E0008AD5AD /* SecurityTests.swift */; };
 		CCE764CA307576E8008AD5AD /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C9307576E8008AD5AD /* PerformanceTests.swift */; };
+		CCE764CC30758503008AD5AD /* ParserRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */; };
 		CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -400,6 +401,7 @@
 		CCE764C5307576BE008AD5AD /* Sanitizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sanitizer.swift; sourceTree = "<group>"; };
 		CCE764C7307576E0008AD5AD /* SecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityTests.swift; sourceTree = "<group>"; };
 		CCE764C9307576E8008AD5AD /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
+		CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserRegressionTests.swift; sourceTree = "<group>"; };
 		CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownASTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -524,6 +526,7 @@
 				CC8D559C24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift */,
 				CC55DD87264B19D8001AAD10 /* MarkdownExtension.swift */,
 				CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */,
+				CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */,
 				CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */,
 				CC8F27712FBA5DE5000AF851 /* TerminalGeneratorTests.swift */,
 				CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */,
@@ -1066,6 +1069,7 @@
 				CC55DD88264B19D8001AAD10 /* MarkdownExtension.swift in Sources */,
 				CC088C2422E337BD0059460E /* MarkdownHtmlTests.swift in Sources */,
 				CCC48C0425D98FCB00D082AD /* MarkdownStringTests.swift in Sources */,
+				CCE764CC30758503008AD5AD /* ParserRegressionTests.swift in Sources */,
 				CC8F27722FBA5DE5000AF851 /* TerminalGeneratorTests.swift in Sources */,
 				CC2AF6F7227CD98100BEA420 /* MarkdownBlockTests.swift in Sources */,
 				CC8D559D24C3560700E11F96 /* ExtendedMarkdownHtmlTests.swift in Sources */,

@@ -121,8 +121,9 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                    document(paragraph(.html("a  /"), .html("b2 data=\"foo\" "))))
     XCTAssertEqual(parse("<a foo=\"bar>\"> foo"),
                    document(paragraph(.html("a foo=\"bar>\""), .text(" foo"))))
-    XCTAssertEqual(parse("<a foo=\"bar\" b = 'baz <em>\"</em>' x mk:72=m:7 />"),
-                   document(paragraph(.html("a foo=\"bar\" b = 'baz <em>\"</em>' x mk:72=m:7 /"))))
+    XCTAssertEqual(parse("x <a foo=\"bar\" b = 'baz <em>\"</em>' x mk:72=m:7 />"),
+                   document(paragraph(.text("x "),
+                                      .html("a foo=\"bar\" b = 'baz <em>\"</em>' x mk:72=m:7 /"))))
     XCTAssertEqual(parse("<a foo=\"bar\" bam = 'baz <em>\"</em>'\n_b zoop:33=zoop:33 />"),
                    document(paragraph(.html("a foo=\"bar\" bam = 'baz <em>\"</em>' " +
                                             "_b zoop:33=zoop:33 /"))))
@@ -204,31 +205,32 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
     XCTAssertEqual(parse("foo <!-- this is a\ncomment - with hyphen -->"),
                    document(paragraph(.text("foo "),
                                       .html("!-- this is a comment - with hyphen --"))))
-    XCTAssertEqual(parse("foo <!-- not a comment -- two hyphens -->"),
+    // CommonMark 0.30: comments can contain `--`, and `<!-->` and `<!--->` are comments
+    XCTAssertEqual(parse("foo <!-- comment -- with two hyphens -->"),
                    document(paragraph(.text("foo "),
-                                      .delimiter("<", 1, []),
-                                      .text("!-- not a comment -- two hyphens --"),
-                                      .delimiter(">", 1, []))))
+                                      .html("!-- comment -- with two hyphens --"))))
     XCTAssertEqual(parse("foo <!--> foo -->\n\nfoo <!-- foo--->"),
                    document(paragraph(.text("foo "),
-                                      .delimiter("<", 1, []),
-                                      .text("!--"),
-                                      .delimiter(">", 1, []),
+                                      .html("!--"),
                                       .text(" foo --"),
                                       .delimiter(">", 1, [])),
                             paragraph(.text("foo "),
+                                      .html("!-- foo---"))))
+    XCTAssertEqual(parse("foo <!-- not a comment ->"),
+                   document(paragraph(.text("foo "),
                                       .delimiter("<", 1, []),
-                                      .text("!-- foo---"),
+                                      .text("!-- not a comment -"),
                                       .delimiter(">", 1, []))))
     XCTAssertEqual(parse("foo <?scheme print $x $y ?>"),
                    document(paragraph(.text("foo "), .html("?scheme print $x $y ?"))))
-    XCTAssertEqual(parse("<!ABCDEF foo bar 1>0 >b"),
-                   document(paragraph(.html("!ABCDEF foo bar 1"),
+    XCTAssertEqual(parse("x <!ABCDEF foo bar 1>0 >b"),
+                   document(paragraph(.text("x "),
+                                      .html("!ABCDEF foo bar 1"),
                                       .text("0 "),
                                       .delimiter(">", 1, []),
                                       .text("b"))))
-    XCTAssertEqual(parse("<!SCALA foo bar 1<0  >b"),
-                   document(paragraph(.html("!SCALA foo bar 1<0  "), .text("b"))))
+    XCTAssertEqual(parse("x <!SCALA foo bar 1<0  >b"),
+                   document(paragraph(.text("x "), .html("!SCALA foo bar 1<0  "), .text("b"))))
     XCTAssertEqual(parse("  b<![CDATA[>&<]]>"),
                    document(paragraph(.text("b"), .html("![CDATA[>&<]]"))))
   }
@@ -483,15 +485,15 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                                       .text("foo>"),
                                       .delimiter(")", 1, []))))
     XCTAssertEqual(parse("[link](\\(foo\\))"),
-                   document(paragraph(link("\\(foo\\)", nil, .text("link")))))
+                   document(paragraph(link("(foo)", nil, .text("link")))))
     XCTAssertEqual(parse("[link](foo(and(bar)))"),
                    document(paragraph(link("foo(and(bar))", nil, .text("link")))))
     XCTAssertEqual(parse("[link](foo\\(and\\(bar\\))"),
-                   document(paragraph(link("foo\\(and\\(bar\\)", nil, .text("link")))))
+                   document(paragraph(link("foo(and(bar)", nil, .text("link")))))
     XCTAssertEqual(parse("[link](<foo(and(bar)>)"),
                    document(paragraph(link("foo(and(bar)", nil, .text("link")))))
     XCTAssertEqual(parse("[link](foo\\)\\:)"),
-                   document(paragraph(link("foo\\)\\:", nil, .text("link")))))
+                   document(paragraph(link("foo):", nil, .text("link")))))
     XCTAssertEqual(parse("[link](http://example.com?foo=3#frag)"),
                    document(paragraph(link("http://example.com?foo=3#frag", nil, .text("link")))))
     XCTAssertEqual(parse("[link](\"title\")"),
@@ -646,23 +648,25 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
   }
 
   func testEscaping() {
+    // A backslash only escapes ASCII punctuation characters
     XCTAssertEqual(parse("foo\\bar"),
-                   document(paragraph(.text("foobar"))))
+                   document(paragraph(.text("foo\\bar"))))
     XCTAssertEqual(parse("foo\\\\bar"),
                    document(paragraph(.text("foo\\bar"))))
     XCTAssertEqual(parse("foo\\\\\\bar"),
-                   document(paragraph(.text("foo\\bar"))))
+                   document(paragraph(.text("foo\\\\bar"))))
     XCTAssertEqual(parse("foo\\\\\\\\bar"),
                    document(paragraph(.text("foo\\\\bar"))))
     XCTAssertEqual(parse("foo bar\\"),
-                   document(paragraph(.text("foo bar"))))
+                   document(paragraph(.text("foo bar\\"))))
     XCTAssertEqual(parse("foo bar\\\nbaz"),
                    document(paragraph(.text("foo bar"),
                                       .hardLineBreak,
                                       .text("baz"))))
+    // An escaped backslash at the end of a line is not a hard line break
     XCTAssertEqual(parse("foo bar\\\\\nbaz"),
-                   document(paragraph(.text("foo bar"),
-                                      .hardLineBreak,
+                   document(paragraph(.text("foo bar\\"),
+                                      .softLineBreak,
                                       .text("baz"))))
   }
 
