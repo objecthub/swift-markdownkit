@@ -607,14 +607,22 @@ open class TerminalGenerator {
     let words = self.tokenize(text)
     var lines: [String] = []
     var currentLine = ""
+    // The display width of `currentLine`, which is the sum of the widths of its characters.
+    // It is tracked incrementally because computing it for every word is quadratic in the
+    // length of the line.
+    var currentWidth = 0
     for word in words {
+      let wordWidth = word.terminalDisplayWidth
       if currentLine.isEmpty {
         currentLine = word
-      } else if currentLine.terminalDisplayWidth + 1 + word.terminalDisplayWidth <= maxColumns {
+        currentWidth = wordWidth
+      } else if currentWidth + 1 + wordWidth <= maxColumns {
         currentLine += " " + word
+        currentWidth += 1 + wordWidth
       } else {
         lines.append(currentLine)
         currentLine = word
+        currentWidth = wordWidth
       }
     }
     if !currentLine.isEmpty {

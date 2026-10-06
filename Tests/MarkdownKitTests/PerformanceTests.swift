@@ -208,4 +208,72 @@ class PerformanceTests: XCTestCase {
       (0..<n).reversed().map { $0 % 2 == 0 ? "a* " : "a_ " }.joined()
     }, run: parse)
   }
+
+  // MARK: Generators on long text
+
+  /// Prints timings of the generators for documents of increasing size (parsing is not
+  /// included in the times).
+  private func scalingGenerators(_ name: String, n: Int, _ make: (Int) -> String,
+                                 parser: MarkdownParser = MarkdownParser.standard,
+                                 columns: Int = 80) {
+    let small = parser.parse(make(n))
+    let large = parser.parse(make(2 * n))
+    let stringGenerator = StringGenerator(numColumns: columns)
+    let terminalGenerator = TerminalGenerator(numColumns: columns)
+    let generators: [(String, (Block) -> Void)] = [
+      ("html", { _ = HtmlGenerator.standard.generate(doc: $0) }),
+      ("string", { _ = stringGenerator.generate(doc: $0) }),
+      ("terminal", { _ = terminalGenerator.generate(doc: $0) })
+    ]
+    for (generatorName, generate) in generators {
+      generate(small) // warm up
+      let t1 = time { generate(small) }
+      let t2 = time { generate(large) }
+      print(String(format: "SCALING gen-%@ %@: n=%d %.1fms, n=%d %.1fms, ratio %.2f",
+                   generatorName, name, n, t1, 2 * n, t2, t2 / max(t1, 0.001)))
+    }
+  }
+
+  func testScalingGeneratorsOnLongText() {
+    let words = "The quick brown fox jumps over the lazy dog, again and again. "
+    scalingGenerators("long-paragraph", n: 500) { Self.repeated(words, count: $0) }
+    scalingGenerators("fragments", n: 500) { Self.repeated("a *b* `c` [d](e) ", count: $0) }
+    scalingGenerators("soft-breaks", n: 500) { Self.repeated("word word word\n", count: $0) }
+    scalingGenerators("hard-breaks", n: 500) { Self.repeated("word word  \n", count: $0) }
+    scalingGenerators("long-word", n: 2000) { String(repeating: "a", count: $0) }
+    scalingGenerators("many-paragraphs", n: 500) { Self.repeated("Some words here.\n\n", count: $0) }
+    scalingGenerators("list-items", n: 500) { Self.repeated("- item one two three\n", count: $0) }
+    scalingGenerators("code-lines", n: 500) { "```\n" + Self.repeated("let x = 1 + 2\n", count: $0) + "```" }
+    scalingGenerators("code-long-line", n: 500) { "```\n" + Self.repeated("let x = 1 + 2; ", count: $0) + "\n```" }
+    scalingGenerators("headings", n: 500) { Self.repeated("# Heading one\n\n", count: $0) }
+    scalingGenerators("quote-long", n: 500) { "> " + Self.repeated(words, count: $0) }
+  }
+
+  func testScalingGeneratorsWithManyColumns() {
+    // A large number of columns is used to avoid wrapping lines
+    let words = "The quick brown fox jumps over the lazy dog, again and again. "
+    scalingGenerators("wide-paragraph", n: 500, { Self.repeated(words, count: $0) }, columns: 1_000_000)
+    scalingGenerators("wide-fragments", n: 500, { Self.repeated("a *b* `c` [d](e) ", count: $0) },
+                      columns: 1_000_000)
+  }
+
+  func testScalingGeneratorsOnDeeplyNestedLongText() {
+    let words = "The quick brown fox jumps over the lazy dog, again and again. "
+    let prefix = String(repeating: "> - ", count: 12)
+    scalingGenerators("deep-narrow", n: 100, { prefix + Self.repeated(words, count: $0) })
+    let shallow = "> - "
+    scalingGenerators("shallow-narrow", n: 100, { shallow + Self.repeated(words, count: $0) })
+  }
+
+  func testScalingGeneratorsOnTables() {
+    func table(_ rows: Int) -> String {
+      "| a | b | c |\n|---|:-:|--:|\n" + Self.repeated("| one two | three four five | 6 |\n", count: rows)
+    }
+    func wideTable(_ words: Int) -> String {
+      "| a | b |\n|---|---|\n| " + Self.repeated("word ", count: words) + " | " +
+      Self.repeated("other ", count: words) + " |\n"
+    }
+    scalingGenerators("table-rows", n: 200, table, parser: ExtendedMarkdownParser.standard)
+    scalingGenerators("table-wide-cells", n: 200, wideTable, parser: ExtendedMarkdownParser.standard)
+  }
 }

@@ -201,6 +201,123 @@ class DifferentialTests: XCTestCase {
     }
   }
 
+  // MARK: Word wrapping
+
+  /// The original (quadratic) implementation of word wrapping
+  private func legacyWordWrap(_ text: String, maxColumns: Int, tokenize: (String) -> [String],
+                              width: (String) -> Int) -> [String] {
+    let words = tokenize(text)
+    var lines: [String] = []
+    var currentLine = ""
+    for word in words {
+      if currentLine.isEmpty {
+        currentLine = word
+      } else if width(currentLine) + 1 + width(word) <= maxColumns {
+        currentLine += " " + word
+      } else {
+        lines.append(currentLine)
+        currentLine = word
+      }
+    }
+    if !currentLine.isEmpty {
+      lines.append(currentLine)
+    }
+    return lines
+  }
+
+  func testWordWrapMatchesLegacyImplementation() {
+    // Words, wide characters, combining marks (which join with the preceding space), prepended
+    // characters, zero-width joiners, emoji with modifiers, flags (two regional indicator
+    // symbols form a single character with 8 bytes in UTF-8), other emoji sequences, and
+    // different kinds of whitespace
+    let pieces = ["a", "bb", "word", "日本", "😀", "é", "e\u{301}", "\u{301}", "\u{200D}", "\u{600}",
+                  "\u{903}", "👍🏽", "\u{1F3FD}", " ", " ", "  ", "\t", "\u{A0}", "\u{3000}", "-", "x",
+                  "🇩🇪", "🇩🇪🇫🇷", "\u{1F1E9}", "\u{1F1EA}", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "👨\u{200D}👩\u{200D}👧",
+                  "1\u{FE0F}\u{20E3}", "🏳️\u{200D}🌈"]
+    // A flag is a single character that consists of two scalars with 8 bytes in total
+    XCTAssertEqual("🇩🇪".count, 1)
+    XCTAssertEqual("🇩🇪".unicodeScalars.count, 2)
+    XCTAssertEqual("🇩🇪".utf8.count, 8)
+    let stringGenerators = [StringGenerator(numColumns: 80, alignDisplayWidth: true),
+                            StringGenerator(numColumns: 80, alignDisplayWidth: false)]
+    let terminalGenerator = TerminalGenerator(numColumns: 80)
+    var rng = SeededGenerator(seed: 51)
+    for i in 0..<30000 {
+      var text = ""
+      for _ in 0..<(1 + Int(rng.next() % 40)) {
+        text += pieces[Int(rng.next() % UInt64(pieces.count))]
+      }
+      let columns = [1, 2, 3, 5, 8, 13, 21, 80, 1_000_000][Int(rng.next() % 9)]
+      for generator in stringGenerators {
+        XCTAssertEqual(generator.wordWrap(text, maxColumns: columns),
+                       legacyWordWrap(text, maxColumns: columns, tokenize: generator.tokenize,
+                                      width: { generator.displayWidth(of: $0) }),
+                       "StringGenerator(aligned: \(generator.alignDisplayWidth)) #\(i): " +
+                       "\(text.debugDescription) columns=\(columns)")
+      }
+      XCTAssertEqual(terminalGenerator.wordWrap(text, maxColumns: columns),
+                     legacyWordWrap(text, maxColumns: columns, tokenize: terminalGenerator.tokenize,
+                                    width: { $0.terminalDisplayWidth }),
+                     "TerminalGenerator #\(i): \(text.debugDescription) columns=\(columns)")
+    }
+  }
+
+  /// Word wrapping joins words with a space, and (when counting characters) the width of a
+  /// line is only the sum of the widths of its words and spaces if no character at a boundary
+  /// joins with the space: a combining mark at the start of a word attaches to the preceding
+  /// space, and a prepended character at the end of a word attaches to the following space.
+  /// Control characters like tab or newline do not absorb such a mark, so that words can start
+  /// with one. This test builds such words on purpose.
+  func testWordWrapMatchesLegacyImplementationAtCharacterBoundaries() {
+    let starts = ["\u{301}", "\u{200D}", "\u{903}", "\u{1F3FD}", "\u{FE0F}", "x", "日", "\u{1F1E9}"]
+    let ends = ["\u{600}", "\u{601}", "\u{6DD}", "\u{110BD}", "x", "e", "\u{1F1EA}"]
+    let middles = ["", "", "a", "bc", "日", "é", "🇩🇪", "👍🏽", "\u{301}"]
+    let separators = ["\t", "\n", "\r", "\r\n", "\u{B}", "\u{C}", "\u{85}", "\u{2028}", "\u{2029}", " ",
+                      "\t\t", " \t"]
+    // Make sure that the test exercises what it is supposed to: these characters attach to a
+    // space, which makes counting characters non-additive
+    for start in ["\u{301}", "\u{200D}", "\u{903}", "\u{1F3FD}"] {
+      XCTAssertEqual((" " + start).count, 1, "\(start.debugDescription) should attach to a space")
+    }
+    for end in ["\u{600}", "\u{601}", "\u{6DD}"] {
+      XCTAssertEqual((end + " ").count, 1, "\(end.debugDescription) should attach to a space")
+    }
+    XCTAssertEqual(("a\u{600}" + " " + "b").count, 3, "not additive: a\u{600}, space, b")
+    // ... while the separators do not absorb them
+    XCTAssertEqual("a\t\u{301}b".split(whereSeparator: \.isWhitespace).map(String.init),
+                   ["a", "\u{301}b"])
+    XCTAssertEqual("a\u{600}\tb".split(whereSeparator: \.isWhitespace).map(String.init),
+                   ["a\u{600}", "b"])
+    let stringGenerators = [StringGenerator(numColumns: 80, alignDisplayWidth: true),
+                            StringGenerator(numColumns: 80, alignDisplayWidth: false)]
+    let terminalGenerator = TerminalGenerator(numColumns: 80)
+    var rng = SeededGenerator(seed: 61)
+    func pick(_ array: [String]) -> String {
+      return array[Int(rng.next() % UInt64(array.count))]
+    }
+    for i in 0..<30000 {
+      var text = ""
+      for j in 0..<(2 + Int(rng.next() % 10)) {
+        if j > 0 {
+          text += pick(separators)
+        }
+        text += pick(starts) + pick(middles) + pick(middles) + pick(ends)
+      }
+      let columns = [2, 3, 4, 5, 6, 7, 9, 12, 20, 80][Int(rng.next() % 10)]
+      for generator in stringGenerators {
+        XCTAssertEqual(generator.wordWrap(text, maxColumns: columns),
+                       legacyWordWrap(text, maxColumns: columns, tokenize: generator.tokenize,
+                                      width: { generator.displayWidth(of: $0) }),
+                       "StringGenerator(aligned: \(generator.alignDisplayWidth)) #\(i): " +
+                       "\(text.debugDescription) columns=\(columns)")
+      }
+      XCTAssertEqual(terminalGenerator.wordWrap(text, maxColumns: columns),
+                     legacyWordWrap(text, maxColumns: columns, tokenize: terminalGenerator.tokenize,
+                                    width: { $0.terminalDisplayWidth }),
+                     "TerminalGenerator #\(i): \(text.debugDescription) columns=\(columns)")
+    }
+  }
+
   // MARK: Entities
 
   private static let entityAlphabet: [Character] = ["&", ";", "#", "x", "X", "a", "m", "p", "l",

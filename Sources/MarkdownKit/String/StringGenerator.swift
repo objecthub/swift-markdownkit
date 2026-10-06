@@ -395,20 +395,49 @@ open class StringGenerator {
     let words = self.tokenize(text)
     var lines: [String] = []
     var currentLine = ""
+    // The display width of `currentLine`; it is tracked incrementally because computing it
+    // for every word is quadratic in the length of the line (which is large if `maxColumns` is)
+    var currentWidth = 0
     for word in words {
+      let wordWidth = self.displayWidth(of: word)
       if currentLine.isEmpty {
         currentLine = word
-      } else if self.displayWidth(of: currentLine) + 1 + self.displayWidth(of: word) <= maxColumns {
+        currentWidth = wordWidth
+      } else if currentWidth + 1 + wordWidth <= maxColumns {
+        let joinsWithPrevious = self.mayJoinCharacters(currentLine, word)
         currentLine += " " + word
+        currentWidth = joinsWithPrevious ? self.displayWidth(of: currentLine)
+                                         : currentWidth + 1 + wordWidth
       } else {
         lines.append(currentLine)
         currentLine = word
+        currentWidth = wordWidth
       }
     }
     if !currentLine.isEmpty {
       lines.append(currentLine)
     }
     return lines
+  }
+
+  /// Returns true if the display width of `line + " " + word` might not be the sum of the
+  /// widths of `line`, a space and `word`. This is only possible if widths are determined by
+  /// counting characters (grapheme clusters), and a character at the boundary (such as a
+  /// combining mark) joins with the space.
+  private func mayJoinCharacters(_ line: String, _ word: String) -> Bool {
+    guard !self.alignDisplayWidth else {
+      return false
+    }
+    func joins(_ str: String) -> Bool {
+      return str.count != str.unicodeScalars.count
+    }
+    if let first = word.unicodeScalars.first, first.value >= 0x300, joins(" " + String(first)) {
+      return true
+    }
+    if let last = line.unicodeScalars.last, last.value >= 0x300, joins(String(last) + " ") {
+      return true
+    }
+    return false
   }
   
   open func newContext(doc: Block, maxColumns: Int) -> GeneratorContext {
