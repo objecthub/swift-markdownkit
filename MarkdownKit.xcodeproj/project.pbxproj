@@ -174,6 +174,9 @@
 		CCD07466229FDFB90053B73C /* InlineParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD07465229FDFB90053B73C /* InlineParser.swift */; };
 		CCD0746822A060CF0053B73C /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746722A060CF0053B73C /* Text.swift */; };
 		CCD0746A22A324400053B73C /* InlineTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746922A324400053B73C /* InlineTransformer.swift */; };
+		CCE764C6307576BE008AD5AD /* Sanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C5307576BE008AD5AD /* Sanitizer.swift */; };
+		CCE764C8307576E0008AD5AD /* SecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C7307576E0008AD5AD /* SecurityTests.swift */; };
+		CCE764CA307576E8008AD5AD /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C9307576E8008AD5AD /* PerformanceTests.swift */; };
 		CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -394,6 +397,9 @@
 		CCD07465229FDFB90053B73C /* InlineParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineParser.swift; sourceTree = "<group>"; };
 		CCD0746722A060CF0053B73C /* Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Text.swift; sourceTree = "<group>"; };
 		CCD0746922A324400053B73C /* InlineTransformer.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = InlineTransformer.swift; sourceTree = "<group>"; };
+		CCE764C5307576BE008AD5AD /* Sanitizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sanitizer.swift; sourceTree = "<group>"; };
+		CCE764C7307576E0008AD5AD /* SecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityTests.swift; sourceTree = "<group>"; };
+		CCE764C9307576E8008AD5AD /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownASTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -441,6 +447,7 @@
 			isa = PBXGroup;
 			children = (
 				CC088C0E22DD2BCD0059460E /* HtmlGenerator.swift */,
+				CCE764C5307576BE008AD5AD /* Sanitizer.swift */,
 				CCC48BF425D880FA00D082AD /* String+Entities.swift */,
 				CCC48C0925D9AF7500D082AD /* NamedCharacters.swift */,
 			);
@@ -520,6 +527,8 @@
 				CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */,
 				CC8F27712FBA5DE5000AF851 /* TerminalGeneratorTests.swift */,
 				CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */,
+				CCE764C7307576E0008AD5AD /* SecurityTests.swift */,
+				CCE764C9307576E8008AD5AD /* PerformanceTests.swift */,
 				CCC48C1425D9D81000D082AD /* LinuxMain.swift */,
 				CC2AF6F8227CD98100BEA420 /* Info.plist */,
 			);
@@ -818,7 +827,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2660;
+				LastUpgradeCheck = 2700;
 				ORGANIZATIONNAME = "Matthias Zenger";
 				TargetAttributes = {
 					CC2AF6E7227CD98100BEA420 = {
@@ -1011,6 +1020,7 @@
 				CC321E012F69C20B0094C57A /* AttributedTextView_macOS.swift in Sources */,
 				CCD07466229FDFB90053B73C /* InlineParser.swift in Sources */,
 				CCA2A4BF2FB3CB5500A8B92E /* TableDescriptor.swift in Sources */,
+				CCE764C6307576BE008AD5AD /* Sanitizer.swift in Sources */,
 				CCB033D4227CDB2F00E1C4DC /* Block.swift in Sources */,
 				CC8CBC25228898B00084683B /* HtmlBlockParser.swift in Sources */,
 				CC088C0F22DD2BCD0059460E /* HtmlGenerator.swift in Sources */,
@@ -1046,10 +1056,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCE764CA307576E8008AD5AD /* PerformanceTests.swift in Sources */,
 				CC7B603922AC67DC0092188C /* MarkdownInlineTests.swift in Sources */,
 				CC24757324C1EBB600678C59 /* ExtendedMarkdownBlockTests.swift in Sources */,
 				CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */,
 				CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */,
+				CCE764C8307576E0008AD5AD /* SecurityTests.swift in Sources */,
 				CC83081D2FC27E3800FDD777 /* SyntaxHighlighterTests.swift in Sources */,
 				CC55DD88264B19D8001AAD10 /* MarkdownExtension.swift in Sources */,
 				CC088C2422E337BD0059460E /* MarkdownHtmlTests.swift in Sources */,
@@ -1244,12 +1256,13 @@
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "$(SRCROOT)/Sources/MarkdownKit/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.0.4;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
@@ -1262,8 +1275,8 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,4";
-				TVOS_DEPLOYMENT_TARGET = 15.6;
-				WATCHOS_DEPLOYMENT_TARGET = 8.7;
+				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
+				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
 			};
 			name = Debug;
 		};
@@ -1284,12 +1297,13 @@
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "$(SRCROOT)/Sources/MarkdownKit/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.0.4;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
@@ -1301,8 +1315,8 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,4";
-				TVOS_DEPLOYMENT_TARGET = 15.6;
-				WATCHOS_DEPLOYMENT_TARGET = 8.7;
+				TVOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_TVOS_DEPLOYMENT_TARGET)";
+				WATCHOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_WATCHOS_DEPLOYMENT_TARGET)";
 			};
 			name = Release;
 		};
@@ -1313,6 +1327,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				INFOPLIST_FILE = Tests/MarkdownKitTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1332,6 +1347,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				INFOPLIST_FILE = Tests/MarkdownKitTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1451,6 +1467,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 			};
@@ -1462,6 +1480,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 			};

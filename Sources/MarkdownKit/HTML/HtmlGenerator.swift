@@ -35,7 +35,14 @@ open class HtmlGenerator {
   /// Default `HtmlGenerator` implementation
   public static let standard = HtmlGenerator()
 
-  public init() {}
+  /// If `safeMode` is true, raw HTML is omitted from the output and links and images with URLs
+  /// that use unsafe schemes, such as `javascript:`, are rendered with an empty URL. Use this
+  /// when generating HTML from untrusted Markdown.
+  public let safeMode: Bool
+  
+  public init(safeMode: Bool = false) {
+    self.safeMode = safeMode
+  }
 
   /// `generate` takes a block representing a Markdown document and returns a corresponding
   /// representation in HTML as a string.
@@ -99,8 +106,12 @@ open class HtmlGenerator {
             return "<pre class=\"mermaid\">" +
                    self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
                    "</pre>\n"
+          } else if let clazz = Sanitizer.languageClass(for: lang) {
+            return "<pre><code class=\"language-\(clazz)\">" +
+                   self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
+                   "</code></pre>\n"
           } else {
-            return "<pre><code class=\"language-\(lang)\">" +
+            return "<pre><code>" +
                    self.generate(lines: lines, separator: "").encodingPredefinedXmlEntities() +
                    "</code></pre>\n"
           }
@@ -110,7 +121,7 @@ open class HtmlGenerator {
                  "</code></pre>\n"
         }
       case .htmlBlock(let lines):
-        return self.generate(lines: lines)
+        return self.safeMode ? "<!-- raw HTML omitted -->\n" : self.generate(lines: lines)
       case .referenceDef(_, _, _):
         return ""
       case .thematicBreak:
@@ -190,24 +201,28 @@ open class HtmlGenerator {
       case .strong(let text):
         return "<strong>" + self.generate(text: text) + "</strong>"
       case .link(let text, let uri, let title):
-        let titleAttr = title == nil ? "" : " title=\"\(title!)\""
-        return "<a href=\"\(uri ?? "")\"\(titleAttr)>" + self.generate(text: text) + "</a>"
-      case .autolink(let type, let str):
+        return "<a href=\"\(self.hrefAttribute(uri ?? ""))\"\(self.titleAttribute(title))>" +
+               self.generate(text: text) + "</a>"
+      case .autolink(let type, let substr):
+        let str = String(substr)
         switch type {
           case .uri:
-            return "<a href=\"\(str)\">\(str)</a>"
+            return "<a href=\"\(self.hrefAttribute(str, decode: false))\">" +
+                   "\(str.encodingPredefinedXmlEntities())</a>"
           case .email:
-            return "<a href=\"mailto:\(str)\">\(str)</a>"
+            return "<a href=\"mailto:\(str.encodingPredefinedXmlEntities())\">" +
+                   "\(str.encodingPredefinedXmlEntities())</a>"
         }
       case .image(let text, let uri, let title):
-        let titleAttr = title == nil ? "" : " title=\"\(title!)\""
         if let uri = uri {
-          return "<img src=\"\(uri)\" alt=\"\(text.rawDescription)\"\(titleAttr)/>"
+          return "<img src=\"\(self.hrefAttribute(uri, image: true))\" " +
+                 "alt=\"\(Sanitizer.attribute(text.rawDescription))\"" +
+                 "\(self.titleAttribute(title))/>"
         } else {
           return self.generate(text: text)
         }
       case .html(let tag):
-        return "<\(tag.description)>"
+        return self.safeMode ? "<!-- raw HTML omitted -->" : "<\(tag.description)>"
       case .delimiter(let ch, let n, _):
         let char: String
         switch ch {
@@ -230,6 +245,25 @@ open class HtmlGenerator {
       case .custom(let customTextFragment):
         return customTextFragment.generateHtml(via: self)
     }
+  }
+
+  /// Returns the escaped value for the `href` or `src` attribute for the given URL. In safe mode,
+  /// URLs with unsafe schemes are replaced with the empty string. If `decode` is true, entities
+  /// in `url` get decoded first.
+  open func hrefAttribute(_ url: String, decode: Bool = true, image: Bool = false) -> String {
+    let decoded = decode ? url.decodingNamedCharacters() : url
+    if self.safeMode && !Sanitizer.isSafeURL(decoded, image: image) {
+      return ""
+    }
+    return decoded.encodingPredefinedXmlEntities()
+  }
+
+  /// Returns the title attribute (including a leading space) or the empty string.
+  open func titleAttribute(_ title: String?) -> String {
+    guard let title else {
+      return ""
+    }
+    return " title=\"\(Sanitizer.attribute(title))\""
   }
 
   open func generate(lines: Lines, separator: String = "\n") -> String {

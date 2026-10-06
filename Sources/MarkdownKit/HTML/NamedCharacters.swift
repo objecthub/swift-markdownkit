@@ -36,12 +36,30 @@ public struct NamedCharacters {
     }
   }
   
+  /// Decodes the digits of a numeric character reference following CommonMark: references
+  /// consist of 1-7 decimal or 1-6 hexadecimal digits (and nothing else); invalid code points,
+  /// such as surrogates, out-of-range values and 0, decode to U+FFFD.
   private static func character(from string: String, base: Int) -> Character? {
-    guard let code = UInt32(string, radix: base),
-          let unicodeScalar = UnicodeScalar(code) else {
+    let maxDigits = base == 16 ? 6 : 7
+    guard !string.isEmpty,
+          string.utf8.count <= maxDigits,
+          string.utf8.allSatisfy({ byte in
+            switch byte {
+              case UInt8(ascii: "0")...UInt8(ascii: "9"):
+                return true
+              case UInt8(ascii: "a")...UInt8(ascii: "f"), UInt8(ascii: "A")...UInt8(ascii: "F"):
+                return base == 16
+              default:
+                return false
+            }
+          }),
+          let code = UInt32(string, radix: base) else {
       return nil
     }
-    return Character(unicodeScalar)
+    if code == 0 {
+      return "\u{FFFD}"
+    }
+    return Character(UnicodeScalar(code) ?? "\u{FFFD}")
   }
   
   public static let namedCharacterMap: [String: Character] = [

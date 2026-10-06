@@ -348,7 +348,7 @@ open class TerminalGenerator {
         if self.highlightIndentedCodeBlocks,
            let config = self.codeBlockHighlightingConfig,
            let hl = self.syntaxHighlighter ?? SyntaxHighlighter.proxy,
-           let transformed = hl.highlight(code: lines.joined(separator: ""),
+           let transformed = hl.highlight(code: lines.joined(separator: "").sanitizingControlCharacters(),
                                           as: nil,
                                           ignoreIllegals: self.ignoreSyntacticIssues) {
           let encoded = hl.asAnsiTerminalString(transformed.decodingNamedCharacters(),
@@ -358,13 +358,13 @@ open class TerminalGenerator {
         } else {
           for line in lines {
             let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-            result.append(AnsiText.Normalized(String(normalized)))
+            result.append(AnsiText.Normalized(String(normalized).sanitizingControlCharacters()))
           }
         }
         #else
         for line in lines {
           let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-          result.append(AnsiText.Normalized(String(normalized)))
+          result.append(AnsiText.Normalized(String(normalized).sanitizingControlCharacters()))
         }
         #endif
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
@@ -376,7 +376,7 @@ open class TerminalGenerator {
         if !self.ignoredLanguages.contains(lang ?? ""),
            let config = self.codeBlockHighlightingConfig,
            let hl = self.syntaxHighlighter ?? SyntaxHighlighter.proxy,
-           let transformed = hl.highlight(code: lines.joined(separator: ""),
+           let transformed = hl.highlight(code: lines.joined(separator: "").sanitizingControlCharacters(),
                                           as: lang,
                                           ignoreIllegals: self.ignoreSyntacticIssues) {
           let encoded = hl.asAnsiTerminalString(transformed.decodingNamedCharacters(),
@@ -386,13 +386,13 @@ open class TerminalGenerator {
         } else {
           for line in lines {
             let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-            result.append(AnsiText.Normalized(String(normalized)))
+            result.append(AnsiText.Normalized(String(normalized).sanitizingControlCharacters()))
           }
         }
         #else
         for line in lines {
           let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-          result.append(AnsiText.Normalized(String(normalized)))
+          result.append(AnsiText.Normalized(String(normalized).sanitizingControlCharacters()))
         }
         #endif
         result.append(self.codeBlockBorder(maxColumns: context.maxColumns))
@@ -490,9 +490,11 @@ open class TerminalGenerator {
     switch fragment {
       case .text(let str):
         return AnsiText.Normalized(str.replacingOccurrences(of: "\n", with: " ")
-                                      .decodingNamedCharacters())
+                                      .decodingNamedCharacters()
+                                      .sanitizingControlCharacters())
       case .code(let str):
-        return AnsiText.Normalized(str.replacingOccurrences(of: "\n", with: " "),
+        return AnsiText.Normalized(str.replacingOccurrences(of: "\n", with: " ")
+                                      .sanitizingControlCharacters(),
                                    properties: self.codeProperties)
       case .emph(let text):
         var nested = self.generate(text: text).joined(separator: " ")
@@ -506,17 +508,19 @@ open class TerminalGenerator {
         let linkText = self.generate(text: text).joined(separator: " ")
         if let uri = uri {
           return AnsiText.Normalized("\(linkText) ") +
-                 AnsiText.Normalized("[\(uri)]", properties: self.linkProperties)
+                 AnsiText.Normalized("[\(uri.sanitizingControlCharacters())]",
+                                    properties: self.linkProperties)
         } else {
           return linkText
         }
       case .autolink(_, let str):
-        return AnsiText.Normalized(str.replacingOccurrences(of: "\n", with: " "),
+        return AnsiText.Normalized(str.replacingOccurrences(of: "\n", with: " ")
+                                      .sanitizingControlCharacters(),
                                    properties: self.linkProperties)
       case .image(let text, let uri, _):
         let altText = self.generate(text: text).joined(separator: " ")
         if let uri = uri {
-          return AnsiText.Normalized("[Image: \(altText) | \(uri)]",
+          return AnsiText.Normalized("[Image: \(altText) | \(uri.sanitizingControlCharacters())]",
                                      properties: self.linkProperties)
         } else {
           return AnsiText.Normalized("[Image: \(altText)]", properties: self.linkProperties)
@@ -530,7 +534,7 @@ open class TerminalGenerator {
       case .hardLineBreak:
         return nil
       case .custom(let customTextFragment):
-        return AnsiText.Normalized(customTextFragment.rawDescription)
+        return AnsiText.Normalized(customTextFragment.rawDescription.sanitizingControlCharacters())
     }
   }
   
@@ -648,7 +652,8 @@ open class TerminalGenerator {
   
   open func codeBlockBorder(lang: String? = nil, maxColumns: Int) -> AnsiText.Normalized {
     if let lang {
-      var suffix = AnsiText.Normalized(" \(lang) ", properties: self.codeBlockLangProperties)
+      var suffix = AnsiText.Normalized(" \(lang.sanitizingControlCharacters()) ",
+                                      properties: self.codeBlockLangProperties)
       suffix.append(AnsiText.Normalized("╌╌╌", properties: self.codeBlockBorderProperties))
       var result = AnsiText.Normalized(repeating: "╌",
                                        count: max(maxColumns - suffix.terminalDisplayWidth, 0),

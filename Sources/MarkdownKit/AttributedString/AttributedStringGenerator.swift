@@ -128,6 +128,7 @@ open class AttributedStringGenerator {
     
     public init(outer: AttributedStringGenerator) {
       self.outer = outer
+      super.init(safeMode: false)
     }
 
     open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
@@ -216,18 +217,19 @@ open class AttributedStringGenerator {
     open override func generate(textFragment fragment: TextFragment) -> String {
       switch fragment {
         case .image(let text, let uri, let title):
-          let titleAttr = title == nil ? "" : " title=\"\(title!)\""
+          let titleAttr = self.titleAttribute(title)
+          let alt = Sanitizer.attribute(text.rawDescription)
           if let uriStr = uri {
             let url = URL(string: uriStr)
             if (url?.scheme == nil) || (url?.isFileURL ?? false),
                let baseUrl = self.outer.imageBaseUrl {
               let url = URL(fileURLWithPath: uriStr, relativeTo: baseUrl)
               if url.isFileURL {
-                return "<img src=\"\(url.absoluteString)\"" +
-                       " alt=\"\(text.rawDescription)\"\(titleAttr)/>"
+                return "<img src=\"\(url.absoluteString.encodingPredefinedXmlEntities())\"" +
+                       " alt=\"\(alt)\"\(titleAttr)/>"
               }
             }
-            return "<img src=\"\(uriStr)\" alt=\"\(text.rawDescription)\"\(titleAttr)/>"
+            return "<img src=\"\(self.hrefAttribute(uriStr, image: true))\" alt=\"\(alt)\"\(titleAttr)/>"
           } else {
             return self.generate(text: text)
           }
@@ -295,7 +297,11 @@ open class AttributedStringGenerator {
                                             ignoreIllegals: self.outer.ignoreSyntacticIssues) {
             code = transformed
             markup = "<code class=\"hljs\">"
+          } else {
+            code = code.encodingPredefinedXmlEntities()
           }
+          #else
+          code = code.encodingPredefinedXmlEntities()
           #endif
           let middle = "<pre>" + markup + code + "</code></pre>\n"
           return begin + middle + end
@@ -307,7 +313,7 @@ open class AttributedStringGenerator {
           let middle: String
           #if !os(watchOS)
           if self.outer.ignoredLanguages.contains(lang ?? "") {
-            middle = "<pre><code>" + code + "</code></pre>\n"
+            middle = "<pre><code>" + code.encodingPredefinedXmlEntities() + "</code></pre>\n"
           } else if let lang, lang == "mermaid" {
             middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
           } else {
@@ -318,8 +324,11 @@ open class AttributedStringGenerator {
                                               ignoreIllegals: self.outer.ignoreSyntacticIssues) {
               code = transformed
               markup = "<code class=\"hljs\">"
-            } else if let lang {
-              markup = "<code class=\"language-\(lang)\">"
+            } else {
+              code = code.encodingPredefinedXmlEntities()
+              if let lang, let clazz = Sanitizer.languageClass(for: lang) {
+                markup = "<code class=\"language-\(clazz)\">"
+              }
             }
             middle = "<pre>" + markup + code + "</code></pre>\n"
           }
@@ -328,10 +337,10 @@ open class AttributedStringGenerator {
             middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
           } else {
             var markup = "<code>"
-            if let lang {
-              markup = "<code class=\"language-\(lang)\">"
+            if let lang, let clazz = Sanitizer.languageClass(for: lang) {
+              markup = "<code class=\"language-\(clazz)\">"
             }
-            middle = "<pre>" + markup + code + "</code></pre>\n"
+            middle = "<pre>" + markup + code.encodingPredefinedXmlEntities() + "</code></pre>\n"
           }
           #endif
           return begin + middle + end

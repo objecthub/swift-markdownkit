@@ -271,18 +271,18 @@ class SyntaxHighlighterTests: XCTestCase {
   // MARK: - isValidCSS Tests
   
   func testIsValidCSS_EmptyString() {
-    let result = highlighter.isValidCSS("")
+    let result = SyntaxHighlighter.isValidCSS("")
     XCTAssertTrue(result, "Empty string should be considered valid CSS")
   }
   
   func testIsValidCSS_WhitespaceOnly() {
-    let result = highlighter.isValidCSS("   \n  \t  ")
+    let result = SyntaxHighlighter.isValidCSS("   \n  \t  ")
     XCTAssertTrue(result, "Whitespace-only string should be considered valid CSS")
   }
   
   func testIsValidCSS_SimpleRule() {
     let css = ".hljs { color: #333; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Simple CSS rule should be valid")
   }
   
@@ -292,7 +292,7 @@ class SyntaxHighlighterTests: XCTestCase {
     .hljs-keyword { font-weight: bold; }
     .hljs-string { color: green; }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Multiple CSS rules should be valid")
   }
   
@@ -304,25 +304,25 @@ class SyntaxHighlighterTests: XCTestCase {
       opacity: 0.8;
     }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Rule with multiple properties should be valid")
   }
   
   func testIsValidCSS_EmptyRule() {
     let css = ".hljs {}"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Empty rule should be valid")
   }
   
   func testIsValidCSS_RuleWithoutSemicolon() {
     let css = ".hljs { color: #333 }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Rule without trailing semicolon should be valid")
   }
   
   func testIsValidCSS_AtRule() {
     let css = "@media screen { .hljs { color: black; } }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "@media rule should be valid")
   }
   
@@ -333,19 +333,19 @@ class SyntaxHighlighterTests: XCTestCase {
       100% { opacity: 1; }
     }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "@keyframes rule should be valid")
   }
   
   func testIsValidCSS_ComplexSelector() {
     let css = ".hljs .hljs-keyword.bold, .hljs-strong { font-weight: bold; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Complex selector should be valid")
   }
   
   func testIsValidCSS_PseudoClass() {
     let css = ".hljs-link:hover { text-decoration: underline; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Pseudo-class selector should be valid")
   }
   
@@ -356,7 +356,7 @@ class SyntaxHighlighterTests: XCTestCase {
       .hljs-keyword { color: #569cd6; }
     }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Nested rules should be valid")
   }
   
@@ -383,7 +383,7 @@ class SyntaxHighlighterTests: XCTestCase {
       font-weight: bold;
     }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Real-world CSS example should be valid")
   }
   
@@ -391,55 +391,55 @@ class SyntaxHighlighterTests: XCTestCase {
   
   func testIsValidCSS_UnbalancedBracesExtra() {
     let css = ".hljs { color: red; } }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "CSS with extra closing brace should be invalid")
   }
   
   func testIsValidCSS_UnbalancedBracesMissing() {
     let css = ".hljs { color: red;"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "CSS with missing closing brace should be invalid")
   }
   
   func testIsValidCSS_HTMLTag() {
     let css = "<div>Not CSS</div>"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "HTML tags should make CSS invalid")
   }
   
   func testIsValidCSS_AngleBracketsInContent() {
     let css = ".hljs { content: '<div>'; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "Angle brackets in content should make CSS invalid")
   }
   
   func testIsValidCSS_NoRules() {
     let css = "This is just text without any CSS rules"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "Text without CSS rules should be invalid")
   }
   
   func testIsValidCSS_OnlySelector() {
     let css = ".hljs"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "Selector without rule block should be invalid")
   }
   
   func testIsValidCSS_MalformedPropertyNoColon() {
     let css = ".hljs { color red; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "Property without colon should be invalid")
   }
   
   func testIsValidCSS_OnlyBraces() {
     let css = "{ }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "Only braces without selector should be invalid")
   }
   
   func testIsValidCSS_JavaScriptCode() {
     let css = "function test() { return true; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertFalse(result, "JavaScript code should be invalid CSS")
   }
   
@@ -447,7 +447,7 @@ class SyntaxHighlighterTests: XCTestCase {
   
   func testIsValidCSS_CommentOnly() {
     let css = "/* This is a comment */"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     // Comments without rules - implementation dependent
     // The function checks for at least one rule pattern
     XCTAssertFalse(result, "Comment-only CSS should be invalid (no actual rules)")
@@ -458,13 +458,13 @@ class SyntaxHighlighterTests: XCTestCase {
     /* Header styles */
     .hljs { color: #333; }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "CSS with comments should be valid")
   }
   
   func testIsValidCSS_ImportStatement() {
     let css = "@import url('other.css');"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     // @import without a rule block
     XCTAssertFalse(result, "@import alone should be invalid (no rule pattern)")
   }
@@ -474,7 +474,7 @@ class SyntaxHighlighterTests: XCTestCase {
     @import url('other.css');
     .hljs { color: red; }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "@import with rules should be valid")
   }
   
@@ -484,20 +484,20 @@ class SyntaxHighlighterTests: XCTestCase {
       properties += "property\(i): value\(i); "
     }
     let css = ".hljs { \(properties) }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Very long rule should be valid")
   }
   
   func testIsValidCSS_UnicodeCharacters() {
     let css = ".hljs-中文 { color: red; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     // CSS allows unicode in selectors
     XCTAssertTrue(result, "Unicode characters in selector should be valid")
   }
   
   func testIsValidCSS_EscapedCharacters() {
     let css = ".hljs\\:hover { color: blue; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Escaped characters should be valid")
   }
   
@@ -508,31 +508,31 @@ class SyntaxHighlighterTests: XCTestCase {
       Line 2";
     }
     """
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "Multiline value should be valid")
   }
   
   func testIsValidCSS_URLValue() {
     let css = ".hljs { background: url(data:image/png;base64,ABC123); }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "URL values should be valid")
   }
   
   func testIsValidCSS_CalcFunction() {
     let css = ".hljs { width: calc(100% - 20px); }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "calc() function should be valid")
   }
   
   func testIsValidCSS_VarFunction() {
     let css = ".hljs { color: var(--main-color); }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "var() function should be valid")
   }
   
   func testIsValidCSS_ImportantFlag() {
     let css = ".hljs { color: red !important; }"
-    let result = highlighter.isValidCSS(css)
+    let result = SyntaxHighlighter.isValidCSS(css)
     XCTAssertTrue(result, "!important flag should be valid")
   }
   

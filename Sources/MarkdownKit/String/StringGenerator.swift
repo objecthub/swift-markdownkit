@@ -194,14 +194,14 @@ open class StringGenerator {
         result.append(String(repeating: "╌", count: max(context.maxColumns, 0)))
         for line in lines {
           let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-          result.append(String(normalized))
+          result.append(String(normalized).sanitizingControlCharacters())
         }
         result.append(String(repeating: "╌", count: max(context.maxColumns, 0)))
         return result
       case .fencedCode(let lang, let lines):
         var result: [String] = []
         if let lang {
-          let suffix = " \(lang) ╌╌╌"
+          let suffix = " \(lang.sanitizingControlCharacters()) ╌╌╌"
           result.append(String(repeating: "╌",
                                count: max(context.maxColumns - self.displayWidth(of: suffix), 0))
                         + suffix)
@@ -210,7 +210,7 @@ open class StringGenerator {
         }
         for line in lines {
           let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
-          result.append(String(normalized))
+          result.append(String(normalized).sanitizingControlCharacters())
         }
         result.append(String(repeating: "╌", count: max(context.maxColumns, 0)))
         return result
@@ -297,8 +297,9 @@ open class StringGenerator {
     switch fragment {
       case .text(let str):
         return str.replacingOccurrences(of: "\n", with: " ").decodingNamedCharacters()
+                  .sanitizingControlCharacters()
       case .code(let str):
-        return "`\(str.replacingOccurrences(of: "\n", with: " "))`"
+        return "`\(str.replacingOccurrences(of: "\n", with: " ").sanitizingControlCharacters())`"
       case .emph(let text):
         return "*\(self.generate(text: text).joined(separator: " "))*"
       case .strong(let text):
@@ -306,16 +307,16 @@ open class StringGenerator {
       case .link(let text, let uri, _):
         let linkText = self.generate(text: text).joined(separator: " ")
         if let uri = uri {
-          return "\(linkText) [\(uri)]"
+          return "\(linkText) [\(uri.sanitizingControlCharacters())]"
         } else {
           return linkText
         }
       case .autolink(_, let str):
-        return str.replacingOccurrences(of: "\n", with: " ")
+        return str.replacingOccurrences(of: "\n", with: " ").sanitizingControlCharacters()
       case .image(let text, let uri, _):
         let altText = self.generate(text: text).joined(separator: " ")
         if let uri = uri {
-          return "[Image: \(altText) | \(uri)]"
+          return "[Image: \(altText) | \(uri.sanitizingControlCharacters())]"
         } else {
           return "[Image: \(altText)]"
         }
@@ -328,7 +329,7 @@ open class StringGenerator {
       case .hardLineBreak:
         return nil
       case .custom(let customTextFragment):
-        return customTextFragment.rawDescription
+        return customTextFragment.rawDescription.sanitizingControlCharacters()
     }
   }
   
