@@ -68,14 +68,19 @@ open class EmphasisTransformer: InlineTransformer {
     let special: Bool
     let runType: DelimiterRunType
     var count: Int
-    var index: Int
+    /// Identifies the node of the fragment list (see `Node`) that this delimiter refers to
+    var node: Int
+    /// Links of the stack of delimiters (identifiers are indices into the delimiter array;
+    /// -1 is used if there is no previous/next delimiter)
+    var prev: Int = -1
+    var next: Int = -1
 
-    init(_ ch: Character, _ special: Bool, _ rtype: DelimiterRunType, _ count: Int, _ index: Int) {
+    init(_ ch: Character, _ special: Bool, _ rtype: DelimiterRunType, _ count: Int, _ node: Int) {
       self.ch = ch
       self.special = special
       self.runType = rtype
       self.count = count
-      self.index = index
+      self.node = node
     }
 
     var isOpener: Bool {
@@ -105,11 +110,27 @@ open class EmphasisTransformer: InlineTransformer {
     }
 
     var description: String {
-      return "Delimiter(\(self.ch), \(self.special), \(self.runType), \(self.count), \(self.index))"
+      return "Delimiter(\(self.ch), \(self.special), \(self.runType), \(self.count), \(self.node))"
     }
   }
 
   private typealias DelimiterStack = [Delimiter]
+
+  /// The fragments of the text which gets transformed are kept in a doubly linked list. This
+  /// way, replacing fragments with emphasis does not move the remaining fragments around and
+  /// delimiters can refer to their fragments via stable identifiers (indices of this list).
+  private struct Node {
+    var fragment: TextFragment
+    var prev: Int
+    var next: Int
+  }
+
+  /// Key for remembering where it is pointless to search for openers
+  private struct OpenersBottomKey: Hashable {
+    let ch: Character
+    let countMod3: Int
+    let canOpen: Bool
+  }
 
   public override func transform(_ text: Text) -> Text {
     // Compute delimiter stack
@@ -127,8 +148,31 @@ open class EmphasisTransformer: InlineTransformer {
           element = self.transform(fragment, from: &iterator, into: &res)
       }
     }
-    self.processEmphasis(&res, &delimiters)
-    return res
+    guard !delimiters.isEmpty else {
+      return res
+    }
+    // The first node is a sentinel; the node of fragment `i` has the identifier `i + 1`
+    var nodes = [Node]()
+    nodes.reserveCapacity(res.count + 1 + delimiters.count)
+    nodes.append(Node(fragment: .softLineBreak, prev: -1, next: res.isEmpty ? -1 : 1))
+    var i = 0
+    for fragment in res {
+      nodes.append(Node(fragment: fragment, prev: i, next: i + 1 < res.count ? i + 2 : -1))
+      i += 1
+    }
+    for i in 0..<delimiters.count {
+      delimiters[i].node += 1
+      delimiters[i].prev = i - 1
+      delimiters[i].next = i + 1 < delimiters.count ? i + 1 : -1
+    }
+    self.processEmphasis(&nodes, &delimiters)
+    var result = Text()
+    var node = nodes[0].next
+    while node >= 0 {
+      result.append(fragment: nodes[node].fragment)
+      node = nodes[node].next
+    }
+    return result
   }
 
   private func isSupportedEmphasisCloser(_ delimiter: Delimiter) -> Bool {
@@ -140,14 +184,21 @@ open class EmphasisTransformer: InlineTransformer {
     return false
   }
 
-  private func processEmphasis(_ res: inout Text, _ delimiters: inout DelimiterStack) {
-    var currentPos = 0
-    loop: while currentPos < delimiters.count {
-      var potentialCloser = delimiters[currentPos]
+  private func processEmphasis(_ nodes: inout [Node], _ delimiters: inout DelimiterStack) {
+    // For a kind of closer, the identifier of the delimiter below which no opener exists
+    // (as long as the openers below do not change)
+    var openersBottom: [OpenersBottomKey : Int] = [:]
+    var current = 0
+    loop: while current >= 0 {
+      let potentialCloser = delimiters[current]
       if self.isSupportedEmphasisCloser(potentialCloser) {
-        var i = currentPos - 1
-        while i >= 0 {
-          var potentialOpener = delimiters[i]
+        let key = OpenersBottomKey(ch: potentialCloser.ch,
+                                   countMod3: potentialCloser.count % 3,
+                                   canOpen: potentialCloser.isOpener)
+        let bottom = openersBottom[key] ?? -1
+        var i = potentialCloser.prev
+        while i > bottom {
+          let potentialOpener = delimiters[i]
           if potentialOpener.isOpener(for: potentialCloser.ch) &&
              ((!potentialCloser.isOpener && !potentialOpener.isCloser) ||
               (potentialCloser.countMultipleOf3 && potentialOpener.countMultipleOf3) ||
@@ -155,65 +206,78 @@ open class EmphasisTransformer: InlineTransformer {
             // Deduct counts
             let delta = potentialOpener.count > 1 && potentialCloser.count > 1 ? 2 : 1
             delimiters[i].count -= delta
-            delimiters[currentPos].count -= delta
-            potentialOpener = delimiters[i]
-            potentialCloser = delimiters[currentPos]
-            // Collect fragments
+            delimiters[current].count -= delta
+            let opener = delimiters[i]
+            let closer = delimiters[current]
+            // Collect fragments between the two delimiters
             var nestedText = Text()
-            for fragment in res[potentialOpener.index+1..<potentialCloser.index] {
-              nestedText.append(fragment: fragment)
+            var node = nodes[opener.node].next
+            while node != closer.node {
+              nestedText.append(fragment: nodes[node].fragment)
+              node = nodes[node].next
             }
-            // Replace existing fragments
-            var range = [TextFragment]()
-            if potentialOpener.count > 0 {
-              range.append(.delimiter(potentialOpener.ch,
-                                      potentialOpener.count,
-                                      potentialOpener.runType))
+            // Replace the fragments of the delimiters and everything between them
+            var replacement = [Int]()
+            if opener.count > 0 {
+              nodes[opener.node].fragment = .delimiter(opener.ch, opener.count, opener.runType)
+              replacement.append(opener.node)
             }
-            if let factory = self.emphasis[potentialOpener.ch]?.factory {
-              range.append(factory(delta > 1, nestedText))
+            if let factory = self.emphasis[opener.ch]?.factory {
+              nodes.append(Node(fragment: factory(delta > 1, nestedText), prev: -1, next: -1))
+              replacement.append(nodes.count - 1)
             } else {
               for fragment in nestedText {
-                range.append(fragment)
+                nodes.append(Node(fragment: fragment, prev: -1, next: -1))
+                replacement.append(nodes.count - 1)
               }
             }
-            if potentialCloser.count > 0 {
-              range.append(.delimiter(potentialCloser.ch,
-                                      potentialCloser.count,
-                                      potentialCloser.runType))
+            if closer.count > 0 {
+              nodes[closer.node].fragment = .delimiter(closer.ch, closer.count, closer.runType)
+              replacement.append(closer.node)
             }
-            let shift = range.count - potentialCloser.index + potentialOpener.index - 1
-            res.replace(from: potentialOpener.index, to: potentialCloser.index, with: range)
-            // Update delimiter stack
-            if potentialCloser.count == 0 {
-              delimiters.remove(at: currentPos)
+            var previous = nodes[opener.node].prev
+            let after = nodes[closer.node].next
+            for node in replacement {
+              nodes[previous].next = node
+              nodes[node].prev = previous
+              previous = node
             }
-            if potentialOpener.count == 0 {
-              delimiters.remove(at: i)
-              currentPos -= 1
-            } else {
-              i += 1
+            nodes[previous].next = after
+            if after >= 0 {
+              nodes[after].prev = previous
             }
-            var j = i
-            while j < currentPos {
-              delimiters.remove(at: i)
-              j += 1
+            // Update the stack: remove the delimiters between opener and closer as well as
+            // opener and closer if they have no characters left
+            let stackBefore = opener.count > 0 ? i : delimiters[i].prev
+            let stackAfter = closer.count > 0 ? current : delimiters[current].next
+            if stackBefore >= 0 {
+              delimiters[stackBefore].next = stackAfter
             }
-            currentPos = i
-            while i < delimiters.count {
-              delimiters[i].index += shift
-              i += 1
+            if stackAfter >= 0 {
+              delimiters[stackAfter].prev = stackBefore
             }
+            // The count of the opener changed, which might make it match closers which did
+            // not match before
+            openersBottom = openersBottom.filter { $0.value < i }
+            current = stackAfter
             continue loop
           }
-          i -= 1
+          i = potentialOpener.prev
         }
+        openersBottom[key] = potentialCloser.prev
         if !potentialCloser.isOpener {
-          delimiters.remove(at: currentPos)
+          // Remove the closer from the stack
+          if potentialCloser.prev >= 0 {
+            delimiters[potentialCloser.prev].next = potentialCloser.next
+          }
+          if potentialCloser.next >= 0 {
+            delimiters[potentialCloser.next].prev = potentialCloser.prev
+          }
+          current = potentialCloser.next
           continue loop
         }
       }
-      currentPos += 1
+      current = potentialCloser.next
     }
   }
 }

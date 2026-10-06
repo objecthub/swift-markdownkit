@@ -303,7 +303,7 @@ open class DocumentParser {
     var tight: Bool = true
     for block in blocks {
       switch block {
-        case .listItem(let type, let t, let nested):
+        case .listItem(let type, let t, _):
           if let ltype = listType {
             if type.compatible(with: ltype) {
               items.append(block)

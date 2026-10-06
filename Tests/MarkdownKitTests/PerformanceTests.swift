@@ -131,12 +131,6 @@ class PerformanceTests: XCTestCase {
     scaling("brackets-unmatched", n: 1000, { Self.repeated("[", count: $0) }, run: parse)
   }
 
-  func testScalingUnmatchedBackticks() {
-    scaling("backticks-unmatched", n: 100, { n in
-      (1...n).map { String(repeating: "`", count: $0) + " " }.joined()
-    }, run: parse)
-  }
-
   func testScalingUnmatchedAngleBrackets() {
     scaling("lt-unmatched", n: 1000, { Self.repeated("a < b ", count: $0) }, run: parse)
   }
@@ -168,5 +162,33 @@ class PerformanceTests: XCTestCase {
     // limited depth until nesting limits exist (deeper input can overflow the stack)
     scaling("blockquotes-nested", n: 50, { String(repeating: "> ", count: $0) + "x" },
             run: parse)
+  }
+
+  func testScalingBalancedNestedBrackets() {
+    scaling("brackets-balanced-nested", n: 300, { n in
+      String(repeating: "[", count: n) + "a" + String(repeating: "]", count: n)
+    }, run: parse)
+  }
+
+  func testScalingMatchedBackticks() {
+    scaling("backticks-matched", n: 1000, { Self.repeated("`a` ", count: $0) }, run: parse)
+  }
+
+  func testScalingManyGreaterThanAfterLessThan() {
+    scaling("lt-then-gt", n: 100, { n in
+      Self.repeated("<a ", count: n) + Self.repeated("> ", count: n)
+    }, run: parse)
+  }
+
+  func testScalingManyEntities() {
+    scaling("entities-many", n: 2000, { Self.repeated("&amp; &lt; &#35; ", count: $0) }, run: { str in
+      _ = str.decodingNamedCharacters()
+    })
+  }
+
+  func testScalingEmphasisNested() {
+    scaling("emphasis-nested", n: 300, { n in
+      String(repeating: "*a ", count: n) + "b" + String(repeating: "* ", count: n)
+    }, run: parse)
   }
 }

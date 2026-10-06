@@ -62,17 +62,20 @@ enum Sanitizer {
     let cleaned = String(String.UnicodeScalarView(
                            url.unicodeScalars.filter { $0.value > 0x20 && $0.value != 0x7F }))
                     .lowercased()
-    var scheme = ""
-    for ch in cleaned {
-      if ch == ":" {
+    // Iterate over unicode scalars; a `:` followed by a combining mark would otherwise be part
+    // of a single `Character` that is not equal to ":".
+    var scheme = String.UnicodeScalarView()
+    for scalar in cleaned.unicodeScalars {
+      if scalar == ":" {
         if image && Sanitizer.allowedImageDataPrefixes.contains(where: { cleaned.hasPrefix($0) }) {
           return true
         }
-        return (image ? Sanitizer.allowedImageSchemes : Sanitizer.allowedSchemes).contains(scheme)
-      } else if ch == "/" || ch == "?" || ch == "#" {
+        return (image ? Sanitizer.allowedImageSchemes
+                      : Sanitizer.allowedSchemes).contains(String(scheme))
+      } else if scalar == "/" || scalar == "?" || scalar == "#" {
         return true
       } else {
-        scheme.append(ch)
+        scheme.append(scalar)
       }
     }
     return true

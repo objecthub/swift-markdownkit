@@ -112,6 +112,36 @@ class SecurityTests: XCTestCase {
                    "<p><img src=\"data:image/png;base64,AAAA\" alt=\"a\"/></p>")
   }
 
+  // MARK: Combining characters
+
+  func testEscapingHandlesSpecialCharactersFollowedByCombiningMarks() {
+    // A combining mark forms a single `Character` together with the preceding character
+    for ch in ["\"", "&", "'", "<", ">"] {
+      let escaped = (ch + "\u{301}").encodingPredefinedXmlEntities()
+      XCTAssertFalse(escaped.unicodeScalars.contains(where: { "\"&'<>".unicodeScalars.contains($0) && $0 != "&" }),
+                     "\(ch) not escaped: \(escaped.debugDescription)")
+      XCTAssertEqual(escaped.unicodeScalars.last, "\u{301}", escaped.debugDescription)
+    }
+    XCTAssertEqual("\"\u{301}<\u{301}>\u{301}&\u{301}'\u{301}".encodingPredefinedXmlEntities(),
+                   "&quot;\u{301}&lt;\u{301}&gt;\u{301}&amp;\u{301}&#39;\u{301}")
+  }
+
+  func testAttributeValuesCannotBreakOutUsingCombiningMarks() {
+    let out = html("[a](/x\"\u{301}onmouseover=alert(1))")
+    XCTAssertFalse(out.contains("\"\u{301}"), out.debugDescription)
+    XCTAssertEqual(out, "<p><a href=\"/x&quot;\u{301}onmouseover=alert(1)\">a</a></p>")
+    let img = html("![x\"\u{301} onerror=alert(1)](a.png)")
+    XCTAssertFalse(img.contains("\"\u{301}"), img.debugDescription)
+  }
+
+  func testSafeModeBlocksSchemesFollowedByCombiningMarks() {
+    for url in ["javascript:\u{301}alert(1)", "JAVASCRIPT:\u{301}x", "data:\u{301}text/html,x",
+                "vbscript:\u{301}x"] {
+      XCTAssertEqual(html("[a](<\(url)>)", safeMode: true), "<p><a href=\"\">a</a></p>",
+                     url.debugDescription)
+    }
+  }
+
   // MARK: Attributed string pipeline
 
   #if os(macOS) || os(iOS) || os(tvOS)

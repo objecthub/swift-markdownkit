@@ -45,6 +45,12 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
     return self.fragments.isEmpty
   }
 
+  /// Returns the number of text fragments. (Without this, `Collection` would compute the
+  /// count by traversing the whole text, which makes loops that use it quadratic.)
+  public var count: Int {
+    return self.fragments.count
+  }
+
   /// Returns the first text fragment if available.
   public var first: TextFragment? {
     return self.fragments.first

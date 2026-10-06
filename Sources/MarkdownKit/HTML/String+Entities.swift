@@ -23,37 +23,32 @@ import Foundation
 extension String {
   
   public func encodingPredefinedXmlEntities() -> String {
-    var res = ""
-    var pos = self.startIndex
-    // find the first character that requires encoding
-    while pos < self.endIndex,
-          let index = self.rangeOfCharacter(from: Self.predefinedEntities,
-                                            range: pos..<self.endIndex) {
-      // append the range of unproblematic characters
-      res.append(contentsOf: self[pos..<index.lowerBound])
-      // encode the character
-      switch self[index.lowerBound] {
-        case "\"":
-          res.append(contentsOf: "&quot;")
-        case "&":
-          res.append(contentsOf: "&amp;")
-        case "'":
-          res.append(contentsOf: "&#39;")
-        case "<":
-          res.append(contentsOf: "&lt;")
-        case ">":
-          res.append(contentsOf: "&gt;")
-        default:
-          res.append(self[index.lowerBound])
-      }
-      pos = self.index(after: index.lowerBound)
-    }
-    if res.isEmpty {
+    // Work on UTF-8 bytes: the special characters are ASCII, which never occurs inside of
+    // multi-byte sequences. In particular, this also escapes special characters which are
+    // followed by combining marks (they form a single `Character` together).
+    let utf8 = self.utf8
+    guard utf8.contains(where: String.isPredefinedEntityByte) else {
       return self
-    } else {
-      res.append(contentsOf: self[pos..<self.endIndex])
-      return res
     }
+    var res = [UInt8]()
+    res.reserveCapacity(utf8.count + utf8.count / 8 + 16)
+    for byte in utf8 {
+      switch byte {
+        case UInt8(ascii: "\""):
+          res.append(contentsOf: String.quotEntity)
+        case UInt8(ascii: "&"):
+          res.append(contentsOf: String.ampEntity)
+        case UInt8(ascii: "'"):
+          res.append(contentsOf: String.aposEntity)
+        case UInt8(ascii: "<"):
+          res.append(contentsOf: String.ltEntity)
+        case UInt8(ascii: ">"):
+          res.append(contentsOf: String.gtEntity)
+        default:
+          res.append(byte)
+      }
+    }
+    return String(decoding: res, as: UTF8.self)
   }
   
   public func encodingNamedCharacters() -> String {
@@ -68,44 +63,70 @@ extension String {
     return res
   }
   
+  /// Longest sequence of bytes between `&` and `;` that can be an entity (the longest named
+  /// entity is `&CounterClockwiseContourIntegral;`, which has 33 bytes in total).
+  private static let maxEntityLength = 40
+
   public func decodingNamedCharacters() -> String {
-    var res = ""
-    var pos = self.startIndex
-    // find the next `&`
-    while let ampPos = self.range(of: "&", range: pos..<self.endIndex) {
-      res.append(contentsOf: self[pos..<ampPos.lowerBound])
-      pos = ampPos.lowerBound
-      // find the next ';'
-      if let semiPos = self.range(of: ";", range: pos..<self.endIndex) {
-        if let nextAmpPos = self.range(of: "&", range: self.index(after: pos)..<self.endIndex),
-           nextAmpPos.upperBound < semiPos.upperBound {
-          res.append("&")
-          pos = self.index(after: ampPos.lowerBound)
-        } else {
-          let charRef = String(self[pos..<semiPos.upperBound])
-          if let decoded = NamedCharacters.decode(entity: charRef) {
-            res.append(decoded)
-          } else {
-            res.append(charRef)
-          }
-          pos = semiPos.upperBound
+    let utf8 = self.utf8
+    guard utf8.contains(UInt8(ascii: "&")) else {
+      return self
+    }
+    var res = [UInt8]()
+    res.reserveCapacity(utf8.count)
+    var i = utf8.startIndex
+    var literalStart = i
+    while i < utf8.endIndex {
+      guard utf8[i] == UInt8(ascii: "&") else {
+        i = utf8.index(after: i)
+        continue
+      }
+      // Look for the `;` terminating an entity; a `&` before it makes this `&` a literal
+      var j = utf8.index(after: i)
+      var length = 1
+      var end: String.Index? = nil
+      while j < utf8.endIndex && length <= String.maxEntityLength {
+        let byte = utf8[j]
+        if byte == UInt8(ascii: ";") {
+          end = utf8.index(after: j)
+          break
+        } else if byte == UInt8(ascii: "&") {
+          break
         }
-      // no more ';'
+        j = utf8.index(after: j)
+        length += 1
+      }
+      if let end = end,
+         let decoded = NamedCharacters.decode(entity: String(self[i..<end])) {
+        res.append(contentsOf: utf8[literalStart..<i])
+        res.append(contentsOf: String(decoded).utf8)
+        i = end
+        literalStart = end
       } else {
-        break
+        // Not an entity: this `&` is literal; continue scanning right after it
+        i = utf8.index(after: i)
       }
     }
-    if res.isEmpty {
+    if literalStart == utf8.startIndex {
       return self
-    } else {
-      res.append(contentsOf: self[pos..<self.endIndex])
-      return res
     }
+    res.append(contentsOf: utf8[literalStart..<utf8.endIndex])
+    return String(decoding: res, as: UTF8.self)
   }
   
-  private static let predefinedEntities: CharacterSet = {
-    var set = CharacterSet()
-    set.insert(charactersIn: "\"&'<>")
-    return set
-  }()
+  private static let quotEntity: [UInt8] = Array("&quot;".utf8)
+  private static let ampEntity: [UInt8] = Array("&amp;".utf8)
+  private static let aposEntity: [UInt8] = Array("&#39;".utf8)
+  private static let ltEntity: [UInt8] = Array("&lt;".utf8)
+  private static let gtEntity: [UInt8] = Array("&gt;".utf8)
+
+  private static func isPredefinedEntityByte(_ byte: UInt8) -> Bool {
+    switch byte {
+      case UInt8(ascii: "\""), UInt8(ascii: "&"), UInt8(ascii: "'"), UInt8(ascii: "<"),
+           UInt8(ascii: ">"):
+        return true
+      default:
+        return false
+    }
+  }
 }
