@@ -38,6 +38,19 @@
 ///
 open class AttributedStringGenerator {
 
+  /// Describes which images of one kind (stored locally or loaded from the web) may be loaded.
+  public enum ImageAccess: Equatable {
+    /// Images of this kind are never loaded; their alternative text is shown instead.
+    case none
+    /// Images of this kind are loaded without any restriction.
+    case any
+    /// For local images, only image files inside of this directory (including subdirectories,
+    /// after resolving symbolic links) are loaded. For remote images, only images with an
+    /// `http` or `https` URL that has the same scheme, host and port as this URL, and a path
+    /// below the path of this URL, are loaded.
+    case within(URL)
+  }
+
   /// Options for rendering the HTML that `AttributedStringGenerator` generates into an
   /// `NSAttributedString`. They are used by the synchronous methods (`generate(doc:)` etc.) as
   /// well as by the asynchronous ones (`generateAsync(doc:)` etc.).
@@ -54,7 +67,7 @@ open class AttributedStringGenerator {
     /// To use a directory as base URL, use a URL with a trailing slash, for example one that
     /// was created with `URL(fileURLWithPath:isDirectory:)`; otherwise the last path
     /// component gets replaced when resolving relative URLs.
-    public var baseURL: URL?
+    public let baseURL: URL?
     
     /// The maximal time in seconds that rendering HTML asynchronously may take (including
     /// loading everything which the HTML refers to). `generateAsync` throws
@@ -62,13 +75,241 @@ open class AttributedStringGenerator {
     /// which may wait for a long time for resources that do not respond. The synchronous
     /// methods ignore this option. Note that the first render in a process also has to
     /// start up WebKit, which can take a couple of seconds (e.g. in the iOS simulator).
-    public var timeout: TimeInterval?
+    public let timeout: TimeInterval?
     
-    public init(baseURL: URL? = nil, timeout: TimeInterval? = RenderingOptions.defaultTimeout) {
+    /// Controls which images that are stored in the local file system may be loaded. This is
+    /// enforced while generating the HTML: images that are not allowed are replaced by their
+    /// alternative text. See `ImageAccess` for the meaning of the cases. The default is `.any`.
+    ///
+    /// Relative image paths are resolved against `AttributedStringGenerator.imageBaseUrl`, or,
+    /// if that is `nil`, against `baseURL`; resolution is independent of this option, which
+    /// only checks the resolved URL. Relative paths are rejected if there is no base, and so
+    /// are paths that resolve to a location that is not permitted by the options.
+    ///
+    /// - Important: The restrictions apply to the images of the Markdown text. They do not
+    ///   cover images or other resources that raw HTML in the Markdown refers to, resources that
+    ///   the application itself refers to (for example via
+    ///   `AttributedStringGenerator.customStyle`), or redirects of web servers.
+    public let localImages: ImageAccess
+
+    /// Controls which images may be loaded from `http` and `https` URLs. The default is `.any`.
+    /// See `localImages` and `ImageAccess`.
+    ///
+    /// Only the asynchronous methods (`generateAsync`) load remote images; the synchronous
+    /// methods never do, no matter what this option says. Redirects of the web server cannot
+    /// be restricted.
+    public let remoteImages: ImageAccess
+
+    /// The default for `imageExtensions`.
+    public static let defaultImageExtensions: Set<String> =
+      ["png", "jpg", "jpeg", "gif", "tif", "tiff", "bmp", "ico", "heic", "heif", "webp"]
+
+    /// The path extensions (without the dot, compared case-insensitively) that local and remote
+    /// image URLs need to have. This check is independent of the checks of the location of an
+    /// image (`localImages` and `remoteImages`): it applies to every local and remote image
+    /// that is checked, whichever `ImageAccess` (`.any` or `.within(_)`) permitted its
+    /// location. It prevents that other files (such as text files) are loaded via an image URL.
+    ///
+    /// The default is `defaultImageExtensions`; a different set replaces it, it is not added to
+    /// it. The empty string stands for URLs without a path extension, which are rejected
+    /// otherwise. Only the path of a URL is considered, not its query. The check applies to
+    /// the images of the Markdown text; it also applies if `localImages` and `remoteImages` are
+    /// both `.any`. Images in raw HTML are not checked.
+    public let imageExtensions: Set<String>
+
+    /// If true, the HTML is generated in safe mode (see `HtmlGenerator.safeMode`): raw HTML in
+    /// the Markdown is omitted and links use only the schemes `http`, `https` and `mailto`
+    /// (relative links stay allowed). The default is `false`. This is independent of the
+    /// access control of images (`localImages`, `remoteImages`, `imageExtensions`), which
+    /// only applies to images in the Markdown text; use it, for example, to also keep raw HTML
+    /// from loading images and other resources.
+    public let safeMode: Bool
+
+    /// A scale factor for font sizes (1 is the default size). If `nil`, the system default is
+    /// used. Works for the synchronous and the asynchronous methods.
+    public let textSizeMultiplier: Double?
+
+    public init(baseURL: URL? = nil,
+                timeout: TimeInterval? = RenderingOptions.defaultTimeout,
+                localImages: ImageAccess = .any,
+                remoteImages: ImageAccess = .any,
+                imageExtensions: Set<String> = RenderingOptions.defaultImageExtensions,
+                safeMode: Bool = false,
+                textSizeMultiplier: Double? = nil) {
       self.baseURL = baseURL
       self.timeout = timeout
+      self.localImages = localImages
+      self.remoteImages = remoteImages
+      self.imageExtensions = imageExtensions
+      self.safeMode = safeMode
+      self.textSizeMultiplier = textSizeMultiplier
     }
     
+    /// True if images are restricted in any way.
+    internal var restrictsImages: Bool {
+      return self.localImages != .any || self.remoteImages != .any
+    }
+
+    /// The outcome of checking an image URL against `localImages` and `remoteImages`.
+    internal enum ImageDecision {
+      /// Load the image from this (standardized) file URL.
+      case local(URL)
+      /// Load the image from this (standardized) `http(s)` URL.
+      case remote(URL)
+      /// An image with another scheme; only possible if locations are not restricted.
+      case other(URL)
+      /// A `data:` URL; it is escaped, and if locations are restricted also checked, by the
+      /// `HtmlGenerator`.
+      case inline
+      /// Do not load the image.
+      case rejected
+    }
+
+    /// True if the path extension of `url` is one of `imageExtensions`.
+    private func hasImageExtension(_ url: URL) -> Bool {
+      let ext = url.pathExtension.lowercased()
+      return self.imageExtensions.contains { allowed in
+        var normalized = allowed.lowercased()
+        if normalized.hasPrefix(".") {
+          normalized.removeFirst()
+        }
+        return normalized == ext
+      }
+    }
+
+    /// Decides whether the image with the given (entity-decoded) URL or path may be loaded.
+    /// `imageBaseUrl` is the generator's `imageBaseUrl`. The decision combines two independent
+    /// checks: whether the location of the image is permitted (`localImages`, `remoteImages`),
+    /// and whether the path extension of the image is permitted (`imageExtensions`).
+    internal func imageDecision(for uri: String, imageBaseUrl: URL?) -> ImageDecision {
+      let decision = self.locationDecision(for: uri, imageBaseUrl: imageBaseUrl)
+      switch decision {
+        case .local(let url), .remote(let url), .other(let url):
+          return self.hasImageExtension(url) ? decision : .rejected
+        case .inline, .rejected:
+          return decision
+      }
+    }
+
+    /// Checks only the location of the image against `localImages` and `remoteImages`.
+    private func locationDecision(for uri: String, imageBaseUrl: URL?) -> ImageDecision {
+      if self.localImages == .none && self.remoteImages == .none {
+        return .rejected
+      }
+      let trimmed = uri.trimmingCharacters(in: .whitespacesAndNewlines)
+      if trimmed.isEmpty {
+        return .rejected
+      }
+      let url = URL(string: trimmed)
+      switch url?.scheme?.lowercased() {
+        case "data":
+          return (!self.restrictsImages || Sanitizer.isSafeURL(trimmed, image: true)) ? .inline : .rejected
+        case "http", "https":
+          return self.checkRemote(url!)
+        case "file":
+          return self.checkLocal(url!)
+        case .some(_):
+          // Other schemes are only permitted if locations are not restricted
+          if self.restrictsImages {
+            return .rejected
+          }
+          return url.map { .other($0) } ?? .rejected
+        case .none:
+          // A relative path (or something that is not a valid URL). It is resolved against
+          // `imageBaseUrl` or `baseURL`; the access options only check the result.
+          guard let base = imageBaseUrl ?? self.baseURL else {
+            // Without a base, a relative URL stays as it is, unless locations are restricted
+            if !self.restrictsImages, let url {
+              return .other(url)
+            }
+            return .rejected
+          }
+          if base.isFileURL {
+            return self.checkLocal(URL(fileURLWithPath: trimmed, relativeTo: base).absoluteURL)
+          } else if let resolved = URL(string: trimmed, relativeTo: base)?.absoluteURL {
+            return self.checkRemote(resolved)
+          } else {
+            return .rejected
+          }
+      }
+    }
+
+    private func checkLocal(_ url: URL) -> ImageDecision {
+      guard url.isFileURL else {
+        return .rejected
+      }
+      switch self.localImages {
+        case .none:
+          return .rejected
+        case .any:
+          return .local(url)
+        case .within(let directory):
+          let resolved = url.standardizedFileURL.resolvingSymlinksInPath()
+          let allowed = directory.standardizedFileURL.resolvingSymlinksInPath().path
+          let prefix = allowed.hasSuffix("/") ? allowed : allowed + "/"
+          guard resolved.path.hasPrefix(prefix) else {
+            return .rejected
+          }
+          return .local(resolved)
+      }
+    }
+
+    private func checkRemote(_ url: URL) -> ImageDecision {
+      switch self.remoteImages {
+        case .none:
+          return .rejected
+        case .any:
+          return .remote(url)
+        case .within(let base):
+          guard let candidate = URLComponents(url: url, resolvingAgainstBaseURL: true),
+                let allowed = URLComponents(url: base, resolvingAgainstBaseURL: true),
+                let scheme = candidate.scheme?.lowercased(),
+                scheme == allowed.scheme?.lowercased(),
+                let host = candidate.host?.lowercased(),
+                host == allowed.host?.lowercased(),
+                candidate.user == nil, candidate.password == nil,
+                (candidate.port ?? (scheme == "https" ? 443 : 80)) ==
+                  (allowed.port ?? (scheme == "https" ? 443 : 80)),
+                let segments = RenderingOptions.normalizedSegments(of: candidate.percentEncodedPath),
+                let prefix = RenderingOptions.normalizedSegments(of: allowed.percentEncodedPath),
+                segments.count > prefix.count,
+                Array(segments.prefix(prefix.count)) == prefix else {
+            return .rejected
+          }
+          // Use the normalized path for loading the image
+          var result = candidate
+          result.percentEncodedPath = "/" + segments.joined(separator: "/")
+          guard let normalized = result.url else {
+            return .rejected
+          }
+          return .remote(normalized)
+      }
+    }
+
+    /// Splits an escaped path into its segments (the escaped form is kept) and removes `.` and
+    /// `..` segments, also if they are written with escapes (e.g. `%2e%2e`). Returns `nil` if
+    /// the path tries to leave the root or contains an escaped slash or backslash, which
+    /// servers and browsers may treat as a separator.
+    private static func normalizedSegments(of escapedPath: String) -> [String]? {
+      var result: [String] = []
+      for segment in escapedPath.split(separator: "/", omittingEmptySubsequences: true) {
+        let decoded = String(segment).removingPercentEncoding ?? String(segment)
+        if decoded.contains("/") || decoded.contains("\\") {
+          return nil
+        } else if decoded == "." {
+          continue
+        } else if decoded == ".." {
+          if result.isEmpty {
+            return nil
+          }
+          result.removeLast()
+        } else {
+          result.append(String(segment))
+        }
+      }
+      return result
+    }
+
     /// Returns the options dictionary for rendering HTML into an `NSAttributedString`.
     /// `forLoadFromHTML` is set to `true` for the asynchronous render via
     /// `NSAttributedString.loadFromHTML(string:options:completionHandler:)`, which supports
@@ -88,6 +329,9 @@ open class AttributedStringGenerator {
       if forLoadFromHTML, let timeout = self.timeout, timeout > 0 {
         result[NSAttributedString.DocumentReadingOptionKey(rawValue: "Timeout")] = timeout
       }
+      if let multiplier = self.textSizeMultiplier, multiplier > 0 {
+        result[NSAttributedString.DocumentReadingOptionKey(rawValue: "TextSizeMultiplier")] = multiplier
+      }
       return result
     }
   }
@@ -102,7 +346,7 @@ open class AttributedStringGenerator {
     /// The HTML could not be rendered within `RenderingOptions.timeout` seconds.
     case timedOut
     /// The system reported an error while rendering the HTML.
-    case importFailed(Error)
+    case renderingFailed(Error)
     /// The system did not report an error, but did not return a result either.
     case emptyResult
   }
@@ -140,6 +384,16 @@ open class AttributedStringGenerator {
     case preOS26
     case OS26
     
+    public func makeHtmlGenerator(for generator: AttributedStringGenerator,
+                                  renderingOptions: RenderingOptions) -> HtmlGenerator {
+      switch self {
+        case .preOS26:
+          return InternalHtmlGenerator(outer: generator, renderingOptions: renderingOptions)
+        case .OS26:
+          return OS26HtmlGenerator(outer: generator, renderingOptions: renderingOptions)
+      }
+    }
+
     public func makeHtmlGenerator(for generator: AttributedStringGenerator) -> HtmlGenerator {
       switch self {
         case .preOS26:
@@ -199,9 +453,15 @@ open class AttributedStringGenerator {
   open class InternalHtmlGenerator: HtmlGenerator {
     var outer: AttributedStringGenerator
     
-    public init(outer: AttributedStringGenerator) {
+    /// The options used for restricting images. By default, those of `outer`.
+    let renderingOptions: RenderingOptions
+    
+    public init(outer: AttributedStringGenerator, renderingOptions: RenderingOptions? = nil) {
+      let options = renderingOptions ?? outer.renderingOptions
       self.outer = outer
-      super.init(safeMode: false)
+      self.renderingOptions = options
+      // Safe mode is independent of the access control of images
+      super.init(safeMode: options.safeMode)
     }
 
     open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
@@ -293,16 +553,18 @@ open class AttributedStringGenerator {
           let titleAttr = self.titleAttribute(title)
           let alt = Sanitizer.attribute(text.rawDescription)
           if let uriStr = uri {
-            let url = URL(string: uriStr)
-            if (url?.scheme == nil) || (url?.isFileURL ?? false),
-               let baseUrl = self.outer.imageBaseUrl {
-              let url = URL(fileURLWithPath: uriStr, relativeTo: baseUrl)
-              if url.isFileURL {
+            let decoded = uriStr.decodingNamedCharacters()
+            switch self.renderingOptions.imageDecision(for: decoded,
+                                                       imageBaseUrl: self.outer.imageBaseUrl) {
+              case .local(let url), .remote(let url), .other(let url):
                 return "<img src=\"\(url.absoluteString.encodingPredefinedXmlEntities())\"" +
                        " alt=\"\(alt)\"\(titleAttr)/>"
-              }
+              case .inline:
+                return "<img src=\"\(self.hrefAttribute(uriStr, image: true))\"" +
+                       " alt=\"\(alt)\"\(titleAttr)/>"
+              case .rejected:
+                return self.generate(text: text)
             }
-            return "<img src=\"\(self.hrefAttribute(uriStr, image: true))\" alt=\"\(alt)\"\(titleAttr)/>"
           } else {
             return self.generate(text: text)
           }
@@ -623,6 +885,15 @@ open class AttributedStringGenerator {
   
   open var htmlGenerator: HtmlGenerator {
     return self.version.makeHtmlGenerator(for: self)
+  }
+  
+  /// The HTML generator for the given options (which replace `renderingOptions`); `htmlGenerator`
+  /// if `options` is `nil`.
+  internal func htmlGenerator(options: RenderingOptions?) -> HtmlGenerator {
+    if let options {
+      return self.version.makeHtmlGenerator(for: self, renderingOptions: options)
+    }
+    return self.htmlGenerator
   }
   
   open func generateHtml(_ htmlBody: String) -> String {
@@ -999,8 +1270,8 @@ extension AttributedStringGenerator {
   ///
   /// - Important: Unlike the synchronous rendering, `loadFromHTML` also loads remote resources
   ///   (such as images and style sheets) which the HTML refers to, and it may wait for them
-  ///   until `RenderingOptions.timeout` has passed. Do not use this with untrusted Markdown
-  ///   yet.
+  ///   until `RenderingOptions.timeout` has passed. For untrusted Markdown, set
+  ///   `RenderingOptions.remoteImages` and `RenderingOptions.localImages` to restrict this.
   ///
   /// - Parameters:
   ///   - doc: The Markdown document.
@@ -1008,7 +1279,7 @@ extension AttributedStringGenerator {
   /// - Throws: An `RenderingError`.
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil) async throws -> NSAttributedString {
-    return try await self.renderHTML(self.generateHtml(self.htmlGenerator.generate(doc: doc)),
+    return try await self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(doc: doc)),
                                      options: options ?? self.renderingOptions)
   }
 
@@ -1017,7 +1288,7 @@ extension AttributedStringGenerator {
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil) async throws -> NSAttributedString {
     return try await self.renderHTML(
-                       self.generateHtml(self.htmlGenerator.generate(block: block, parent: .none)),
+                       self.generateHtml(self.htmlGenerator(options: options).generate(block: block, parent: .none)),
                        options: options ?? self.renderingOptions)
   }
 
@@ -1026,7 +1297,7 @@ extension AttributedStringGenerator {
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil) async throws -> NSAttributedString {
     return try await self.renderHTML(
-                       self.generateHtml(self.htmlGenerator.generate(blocks: blocks, parent: .none)),
+                       self.generateHtml(self.htmlGenerator(options: options).generate(blocks: blocks, parent: .none)),
                        options: options ?? self.renderingOptions)
   }
 
@@ -1049,7 +1320,7 @@ extension AttributedStringGenerator {
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
                             completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
-    self.renderHTML(self.generateHtml(self.htmlGenerator.generate(doc: doc)),
+    self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(doc: doc)),
                     options: options ?? self.renderingOptions,
                     completionHandler: completionHandler)
   }
@@ -1060,7 +1331,7 @@ extension AttributedStringGenerator {
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
                             completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
-    self.renderHTML(self.generateHtml(self.htmlGenerator.generate(block: block, parent: .none)),
+    self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(block: block, parent: .none)),
                     options: options ?? self.renderingOptions,
                     completionHandler: completionHandler)
   }
@@ -1071,7 +1342,7 @@ extension AttributedStringGenerator {
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
                             completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
-    self.renderHTML(self.generateHtml(self.htmlGenerator.generate(blocks: blocks, parent: .none)),
+    self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(blocks: blocks, parent: .none)),
                     options: options ?? self.renderingOptions,
                     completionHandler: completionHandler)
   }
@@ -1176,7 +1447,7 @@ extension AttributedStringGenerator {
             if let wkError = error as? WKError, wkError.code == .attributedStringContentLoadTimedOut {
               self.finish(.failure(.timedOut))
             } else {
-              self.finish(.failure(.importFailed(error)))
+              self.finish(.failure(.renderingFailed(error)))
             }
           } else if let string = string {
             self.finish(.success(string))

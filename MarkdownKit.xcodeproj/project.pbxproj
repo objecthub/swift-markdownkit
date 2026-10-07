@@ -13,7 +13,7 @@
 		CC24757324C1EBB600678C59 /* ExtendedMarkdownBlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC24757224C1EBB600678C59 /* ExtendedMarkdownBlockTests.swift */; };
 		CC24757524C1EC3600678C59 /* TableParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC24757424C1EC3600678C59 /* TableParser.swift */; };
 		CC24757724C1ED7E00678C59 /* ExtendedMarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC24757624C1ED7E00678C59 /* ExtendedMarkdownParser.swift */; };
-		CC2AF6F2227CD98100BEA420 /* MarkdownKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; };
+		CC2AF6F2227CD98100BEA420 /* MarkdownKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; platformFilters = (ios, macos, ); };
 		CC2AF6F7227CD98100BEA420 /* MarkdownBlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2AF6F6227CD98100BEA420 /* MarkdownBlockTests.swift */; };
 		CC321DC02F53B3FF0094C57A /* MarkdownKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; platformFilters = (ios, macos, ); };
 		CC321DC12F53B3FF0094C57A /* MarkdownKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; platformFilters = (ios, macos, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -184,6 +184,9 @@
 		CCE764D630764E96008AD5AD /* HTMLImportProbeIOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D330764E96008AD5AD /* HTMLImportProbeIOSTests.swift */; };
 		CCE764D730764E96008AD5AD /* HTMLImportProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D430764E96008AD5AD /* HTMLImportProbeTests.swift */; };
 		CCE764D830764E96008AD5AD /* ImageLoadingProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D530764E96008AD5AD /* ImageLoadingProbeTests.swift */; };
+		CCE764DA307682D9008AD5AD /* ImageLoadingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D9307682D9008AD5AD /* ImageLoadingTests.swift */; };
+		CCE764DC307682E9008AD5AD /* ImageTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764DB307682E9008AD5AD /* ImageTestSupport.swift */; };
+		CCE764DE307682F7008AD5AD /* Step2ProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764DD307682F7008AD5AD /* Step2ProbeTests.swift */; };
 		CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -414,6 +417,9 @@
 		CCE764D330764E96008AD5AD /* HTMLImportProbeIOSTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLImportProbeIOSTests.swift; sourceTree = "<group>"; };
 		CCE764D430764E96008AD5AD /* HTMLImportProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLImportProbeTests.swift; sourceTree = "<group>"; };
 		CCE764D530764E96008AD5AD /* ImageLoadingProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoadingProbeTests.swift; sourceTree = "<group>"; };
+		CCE764D9307682D9008AD5AD /* ImageLoadingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoadingTests.swift; sourceTree = "<group>"; };
+		CCE764DB307682E9008AD5AD /* ImageTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTestSupport.swift; sourceTree = "<group>"; };
+		CCE764DD307682F7008AD5AD /* Step2ProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Step2ProbeTests.swift; sourceTree = "<group>"; };
 		CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownASTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -550,6 +556,9 @@
 				CCE764D330764E96008AD5AD /* HTMLImportProbeIOSTests.swift */,
 				CCE764D430764E96008AD5AD /* HTMLImportProbeTests.swift */,
 				CCE764D530764E96008AD5AD /* ImageLoadingProbeTests.swift */,
+				CCE764D9307682D9008AD5AD /* ImageLoadingTests.swift */,
+				CCE764DB307682E9008AD5AD /* ImageTestSupport.swift */,
+				CCE764DD307682F7008AD5AD /* Step2ProbeTests.swift */,
 				CCC48C1425D9D81000D082AD /* LinuxMain.swift */,
 				CC2AF6F8227CD98100BEA420 /* Info.plist */,
 			);
@@ -1080,10 +1089,13 @@
 				CCE764CA307576E8008AD5AD /* PerformanceTests.swift in Sources */,
 				CC7B603922AC67DC0092188C /* MarkdownInlineTests.swift in Sources */,
 				CCE764CE307592CA008AD5AD /* DifferentialTests.swift in Sources */,
+				CCE764DC307682E9008AD5AD /* ImageTestSupport.swift in Sources */,
 				CC24757324C1EBB600678C59 /* ExtendedMarkdownBlockTests.swift in Sources */,
+				CCE764DA307682D9008AD5AD /* ImageLoadingTests.swift in Sources */,
 				CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */,
 				CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */,
 				CCE764C8307576E0008AD5AD /* SecurityTests.swift in Sources */,
+				CCE764DE307682F7008AD5AD /* Step2ProbeTests.swift in Sources */,
 				CCE764D630764E96008AD5AD /* HTMLImportProbeIOSTests.swift in Sources */,
 				CCE764D730764E96008AD5AD /* HTMLImportProbeTests.swift in Sources */,
 				CCE764D830764E96008AD5AD /* ImageLoadingProbeTests.swift in Sources */,
@@ -1121,6 +1133,10 @@
 /* Begin PBXTargetDependency section */
 		CC2AF6F4227CD98100BEA420 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilters = (
+				ios,
+				macos,
+			);
 			target = CC2AF6E7227CD98100BEA420 /* MarkdownKit */;
 			targetProxy = CC2AF6F3227CD98100BEA420 /* PBXContainerItemProxy */;
 		};
@@ -1364,7 +1380,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				PRODUCT_BUNDLE_IDENTIFIER = net.objecthub.MarkdownKitTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -1384,7 +1403,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				PRODUCT_BUNDLE_IDENTIFIER = net.objecthub.MarkdownKitTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

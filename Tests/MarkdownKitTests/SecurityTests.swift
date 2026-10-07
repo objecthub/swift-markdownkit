@@ -110,6 +110,15 @@ class SecurityTests: XCTestCase {
                    "<p><a href=\"mailto:me@example.com\">a</a></p>")
     XCTAssertEqual(html("![a](data:image/png;base64,AAAA)", safeMode: true),
                    "<p><img src=\"data:image/png;base64,AAAA\" alt=\"a\"/></p>")
+    for type in ["png", "gif", "jpeg", "webp", "tiff", "bmp", "x-icon", "vnd.microsoft.icon",
+                 "heic", "heif"] {
+      XCTAssertEqual(html("![a](data:image/\(type);base64,AAAA)", safeMode: true),
+                     "<p><img src=\"data:image/\(type);base64,AAAA\" alt=\"a\"/></p>", type)
+    }
+    for type in ["svg+xml", "html", "x-unknown"] {
+      XCTAssertEqual(html("![a](data:image/\(type);base64,AAAA)", safeMode: true),
+                     "<p><img src=\"\" alt=\"a\"/></p>", type)
+    }
   }
 
   // MARK: Combining characters

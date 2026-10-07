@@ -52,7 +52,11 @@ enum Sanitizer {
   private static let allowedSchemes: Set<String> = ["http", "https", "mailto"]
   private static let allowedImageSchemes: Set<String> = ["http", "https"]
   private static let allowedImageDataPrefixes = ["data:image/png", "data:image/gif",
-                                                 "data:image/jpeg", "data:image/webp"]
+                                                 "data:image/jpeg", "data:image/webp",
+                                                 "data:image/tiff", "data:image/bmp",
+                                                 "data:image/x-icon",
+                                                 "data:image/vnd.microsoft.icon",
+                                                 "data:image/heic", "data:image/heif"]
 
   /// Returns true if the given (entity-decoded) URL is considered safe to link to or, if
   /// `image` is true, to load as image. Relative URLs are safe; absolute URLs need to use
