@@ -294,6 +294,32 @@ let generator = AttributedStringGenerator(fontSize: 12,
 let attributedStr = generator.generate(doc: markdown)
 ```
 
+The generated HTML is rendered into an `NSAttributedString` by the system. Use `RenderingOptions` to configure it. `baseURL` is the base for resolving relative URLs (e.g. relative image paths) in the generated HTML. `AttributedStringGenerator.generate(doc:)` renders synchronously on the calling thread; `generateAsync(doc:)` is an alternative based on `NSAttributedString.loadFromHTML` which does not block the calling thread. It throws an `AttributedStringGenerator.RenderingError` (e.g. `.timedOut` if the render takes longer than `timeout` seconds, or `.cancelled`). It is available on macOS and iOS; on other platforms it throws `.unsupportedPlatform`.
+
+```swift
+let options = AttributedStringGenerator.RenderingOptions(
+                baseURL: URL(fileURLWithPath: "/path/to/images", isDirectory: true),
+                timeout: 10)
+let generator = AttributedStringGenerator(renderingOptions: options)
+let attributedStr = generator.generate(doc: markdown)               // synchronous
+let asyncStr = try await generator.generateAsync(doc: markdown)     // asynchronous
+```
+
+For code that does not use Swift concurrency, there are variants with a completion handler. The handler is called exactly once, asynchronously, and always on the main thread; it receives a `Result` with either the attributed string or a `RenderingError`:
+
+```swift
+generator.generateAsync(doc: markdown) { result in
+  switch result {
+    case .success(let attributedStr):
+      textView.textStorage.setAttributedString(attributedStr)
+    case .failure(let error):
+      print("cannot convert: \(error)")
+  }
+}
+```
+
+_Note:_ `loadFromHTML` also loads remote resources (images, style sheets) that the HTML refers to, which the synchronous rendering does not do. Do not use `generateAsync` with untrusted Markdown yet.
+
 There are two generators for outputting formatted text. [`StringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/StringGenerator.swift) formats text based on the given Markdown and returns text that can be, e.g. edited in a text editor. [`TerminalGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/TerminalGenerator.swift) formats text for output in an ANSI-compliant terminal, using control sequences to mark up the text.
 
 ### Using the command-line tool

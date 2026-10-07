@@ -24,6 +24,10 @@
   import Cocoa
 #endif
 
+#if canImport(WebKit) && (os(macOS) || os(iOS))
+  import WebKit
+#endif
+
 #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
 
 ///
@@ -33,6 +37,75 @@
 /// override how individual Markdown structures are converted into attributed strings.
 ///
 open class AttributedStringGenerator {
+
+  /// Options for rendering the HTML that `AttributedStringGenerator` generates into an
+  /// `NSAttributedString`. They are used by the synchronous methods (`generate(doc:)` etc.) as
+  /// well as by the asynchronous ones (`generateAsync(doc:)` etc.).
+  public struct RenderingOptions {
+    
+    /// The default for `timeout`: 30 seconds.
+    public static let defaultTimeout: TimeInterval = 30
+    
+    /// The base URL for resolving relative URLs inside of the rendered HTML (for example for
+    /// images and links). This is different from `AttributedStringGenerator.imageBaseUrl`,
+    /// which is used while generating the HTML for turning relative image paths into file
+    /// URLs. If `nil`, no base URL is used.
+    ///
+    /// To use a directory as base URL, use a URL with a trailing slash, for example one that
+    /// was created with `URL(fileURLWithPath:isDirectory:)`; otherwise the last path
+    /// component gets replaced when resolving relative URLs.
+    public var baseURL: URL?
+    
+    /// The maximal time in seconds that rendering HTML asynchronously may take (including
+    /// loading everything which the HTML refers to). `generateAsync` throws
+    /// `RenderingError.timedOut` if it takes longer. If `nil`, the system's default is used,
+    /// which may wait for a long time for resources that do not respond. The synchronous
+    /// methods ignore this option. Note that the first render in a process also has to
+    /// start up WebKit, which can take a couple of seconds (e.g. in the iOS simulator).
+    public var timeout: TimeInterval?
+    
+    public init(baseURL: URL? = nil, timeout: TimeInterval? = RenderingOptions.defaultTimeout) {
+      self.baseURL = baseURL
+      self.timeout = timeout
+    }
+    
+    /// Returns the options dictionary for rendering HTML into an `NSAttributedString`.
+    /// `forLoadFromHTML` is set to `true` for the asynchronous render via
+    /// `NSAttributedString.loadFromHTML(string:options:completionHandler:)`, which supports
+    /// different options.
+    internal func renderingOptions(forLoadFromHTML: Bool)
+                    -> [NSAttributedString.DocumentReadingOptionKey: Any] {
+      var result: [NSAttributedString.DocumentReadingOptionKey: Any] = [:]
+      if !forLoadFromHTML {
+        result[.documentType] = NSAttributedString.DocumentType.html
+        result[.characterEncoding] = String.Encoding.utf8.rawValue
+      }
+      // The keys for the base URL and the timeout are only declared on macOS; they have the
+      // same raw values everywhere.
+      if let baseURL = self.baseURL {
+        result[NSAttributedString.DocumentReadingOptionKey(rawValue: "BaseURL")] = baseURL
+      }
+      if forLoadFromHTML, let timeout = self.timeout, timeout > 0 {
+        result[NSAttributedString.DocumentReadingOptionKey(rawValue: "Timeout")] = timeout
+      }
+      return result
+    }
+  }
+
+  /// Errors thrown by `generateAsync`.
+  public enum RenderingError: Error {
+    /// Rendering HTML asynchronously is not available on this platform (e.g. tvOS and watchOS,
+    /// which do not provide WebKit).
+    case unsupportedPlatform
+    /// The task was cancelled.
+    case cancelled
+    /// The HTML could not be rendered within `RenderingOptions.timeout` seconds.
+    case timedOut
+    /// The system reported an error while rendering the HTML.
+    case importFailed(Error)
+    /// The system did not report an error, but did not return a result either.
+    case emptyResult
+  }
   
   /// Options for the attributed string generator
   public struct Options: OptionSet {
@@ -434,6 +507,10 @@ open class AttributedStringGenerator {
   /// If provided, this URL is used as a base URL for relative image links
   public let imageBaseUrl: URL?
   
+  /// Configures how the generated HTML gets rendered into an `NSAttributedString`; see
+  /// `RenderingOptions`.
+  public let renderingOptions: RenderingOptions
+  
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
   public init(version: Version = .OS26,
               options: Options = [],
@@ -457,7 +534,8 @@ open class AttributedStringGenerator {
               maxImageWidth: String? = nil,
               maxImageHeight: String? = nil,
               customStyle: String = "",
-              imageBaseUrl: URL? = nil) {
+              imageBaseUrl: URL? = nil,
+              renderingOptions: RenderingOptions = RenderingOptions()) {
     self.version = version
     self.options = options
     self.fontSize = fontSize
@@ -515,6 +593,7 @@ open class AttributedStringGenerator {
     self.maxImageHeight = maxImageHeight
     self.customStyle = customStyle
     self.imageBaseUrl = imageBaseUrl
+    self.renderingOptions = renderingOptions
   }
 
   /// Generates an attributed string from the given Markdown document
@@ -535,8 +614,7 @@ open class AttributedStringGenerator {
   private func generateAttributedString(_ htmlBody: String) -> NSAttributedString? {
     if let httpData = self.generateHtml(htmlBody).data(using: .utf8) {
       return try? NSAttributedString(data: httpData,
-                                     options: [.documentType: NSAttributedString.DocumentType.html,
-                                               .characterEncoding: String.Encoding.utf8.rawValue],
+                                     options: self.renderingOptions.renderingOptions(forLoadFromHTML: false),
                                      documentAttributes: nil)
     } else {
       return nil
@@ -904,5 +982,278 @@ open class AttributedStringGenerator {
     }
   }
 }
+
+#if canImport(WebKit) && (os(macOS) || os(iOS))
+
+extension AttributedStringGenerator {
+
+  // MARK: Asynchronous API
+
+  /// Generates an attributed string from the given Markdown document without blocking the
+  /// calling thread. In contrast to `generate(doc:)`, this renders the HTML via
+  /// `NSAttributedString.loadFromHTML`.
+  ///
+  /// This is an alternative to `generate(doc:)`; overrides of `generate(doc:)` in subclasses
+  /// are not used by this method. The same HTML is generated (see `htmlGenerator` and
+  /// `generateHtml(_:)`).
+  ///
+  /// - Important: Unlike the synchronous rendering, `loadFromHTML` also loads remote resources
+  ///   (such as images and style sheets) which the HTML refers to, and it may wait for them
+  ///   until `RenderingOptions.timeout` has passed. Do not use this with untrusted Markdown
+  ///   yet.
+  ///
+  /// - Parameters:
+  ///   - doc: The Markdown document.
+  ///   - options: Render options; if `nil`, `renderingOptions` is used.
+  /// - Throws: An `RenderingError`.
+  public func generateAsync(doc: Block,
+                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+    return try await self.renderHTML(self.generateHtml(self.htmlGenerator.generate(doc: doc)),
+                                     options: options ?? self.renderingOptions)
+  }
+
+  /// Generates an attributed string from the given Markdown block without blocking the calling
+  /// thread. See `generateAsync(doc:options:)`.
+  public func generateAsync(block: Block,
+                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+    return try await self.renderHTML(
+                       self.generateHtml(self.htmlGenerator.generate(block: block, parent: .none)),
+                       options: options ?? self.renderingOptions)
+  }
+
+  /// Generates an attributed string from the given Markdown blocks without blocking the calling
+  /// thread. See `generateAsync(doc:options:)`.
+  public func generateAsync(blocks: Blocks,
+                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+    return try await self.renderHTML(
+                       self.generateHtml(self.htmlGenerator.generate(blocks: blocks, parent: .none)),
+                       options: options ?? self.renderingOptions)
+  }
+
+  // MARK: Asynchronous API with completion handlers
+
+  /// Generates an attributed string from the given Markdown document without blocking the
+  /// calling thread and reports the result via a completion handler. This is the variant of
+  /// `generateAsync(doc:options:)` for code which does not use Swift concurrency; see there
+  /// for details and for the restrictions regarding untrusted Markdown.
+  ///
+  /// The HTML gets generated synchronously on the calling thread. Rendering it happens
+  /// asynchronously. `completionHandler` is called exactly once, asynchronously, and always on
+  /// the main thread, so it is safe to update the user interface or state which is confined
+  /// to the main thread from it.
+  ///
+  /// - Parameters:
+  ///   - doc: The Markdown document.
+  ///   - options: Render options; if `nil`, `renderingOptions` is used.
+  ///   - completionHandler: Called with the attributed string or with an `RenderingError`.
+  public func generateAsync(doc: Block,
+                            options: RenderingOptions? = nil,
+                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+    self.renderHTML(self.generateHtml(self.htmlGenerator.generate(doc: doc)),
+                    options: options ?? self.renderingOptions,
+                    completionHandler: completionHandler)
+  }
+
+  /// Generates an attributed string from the given Markdown block without blocking the calling
+  /// thread and reports the result via a completion handler. See
+  /// `generateAsync(doc:options:completionHandler:)`.
+  public func generateAsync(block: Block,
+                            options: RenderingOptions? = nil,
+                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+    self.renderHTML(self.generateHtml(self.htmlGenerator.generate(block: block, parent: .none)),
+                    options: options ?? self.renderingOptions,
+                    completionHandler: completionHandler)
+  }
+
+  /// Generates an attributed string from the given Markdown blocks without blocking the calling
+  /// thread and reports the result via a completion handler. See
+  /// `generateAsync(doc:options:completionHandler:)`.
+  public func generateAsync(blocks: Blocks,
+                            options: RenderingOptions? = nil,
+                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+    self.renderHTML(self.generateHtml(self.htmlGenerator.generate(blocks: blocks, parent: .none)),
+                    options: options ?? self.renderingOptions,
+                    completionHandler: completionHandler)
+  }
+
+  // MARK: Rendering
+
+  /// Renders `html` and calls `completionHandler` (asynchronously, on the main thread) with
+  /// the result.
+  internal func renderHTML(_ html: String,
+                           options: RenderingOptions,
+                           watchdogGrace: TimeInterval = 5,
+                           ignore: Bool = false,
+                           completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+    let state = RenderingState()
+    state.install { result in
+      DispatchQueue.main.async {
+        completionHandler(result)
+      }
+    }
+    state.start(html, options: options, watchdogGrace: watchdogGrace, ignore: ignore)
+  }
+
+  /// Renders `html` and returns the result. Cancelling the task makes this throw
+  /// `RenderingError.cancelled` at once.
+  internal func renderHTML(_ html: String,
+                           options: RenderingOptions,
+                           watchdogGrace: TimeInterval = 5,
+                           ignore: Bool = false) async throws -> NSAttributedString {
+    if Task.isCancelled {
+      throw RenderingError.cancelled
+    }
+    let state = RenderingState()
+    return try await withTaskCancellationHandler(operation: {
+      try await withCheckedThrowingContinuation {
+        (continuation: CheckedContinuation<NSAttributedString, Error>) in
+        state.install { result in
+          continuation.resume(with: result.mapError { $0 as Error })
+        }
+        state.start(html, options: options, watchdogGrace: watchdogGrace, ignore: ignore)
+      }
+    }, onCancel: {
+      state.cancel()
+    })
+  }
+  
+  /// The state of an render which is shared between the completion handler of the loader, the
+  /// watchdog, and cancellation. The first result which arrives is delivered (exactly once) to
+  /// the completion that was installed; all later results are ignored.
+  internal final class RenderingState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var completion: ((Result<NSAttributedString, RenderingError>) -> Void)?
+    private var finished = false
+    private var earlyResult: Result<NSAttributedString, RenderingError>?
+
+    /// Installs the completion. If a result is already available, it is delivered at once.
+    func install(_ completion: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+      self.lock.lock()
+      if let result = self.earlyResult {
+        self.earlyResult = nil
+        self.lock.unlock()
+        completion(result)
+      } else {
+        self.completion = completion
+        self.lock.unlock()
+      }
+    }
+
+    func finish(_ result: Result<NSAttributedString, RenderingError>) {
+      self.lock.lock()
+      guard !self.finished else {
+        self.lock.unlock()
+        return
+      }
+      self.finished = true
+      guard let completion = self.completion else {
+        self.earlyResult = result
+        self.lock.unlock()
+        return
+      }
+      self.completion = nil
+      self.lock.unlock()
+      completion(result)
+    }
+
+    func cancel() {
+      self.finish(.failure(.cancelled))
+    }
+    
+    /// Starts rendering `html`; the result is delivered to the completion installed in `state`
+    /// (on an arbitrary thread). For testing, `watchdogGrace` shortens the watchdog and `ignore`
+    /// skips the system's HTML loader, so that no result ever arrives except from the watchdog
+    /// or cancellation.
+    internal func start(_ html: String,
+                        options: RenderingOptions,
+                        watchdogGrace: TimeInterval,
+                        ignore: Bool = false) {
+      if !ignore {
+        NSAttributedString.loadFromHTML(
+            string: html,
+            options: options.renderingOptions(forLoadFromHTML: true)) { string, _, error in
+          if let error = error {
+            if let wkError = error as? WKError, wkError.code == .attributedStringContentLoadTimedOut {
+              self.finish(.failure(.timedOut))
+            } else {
+              self.finish(.failure(.importFailed(error)))
+            }
+          } else if let string = string {
+            self.finish(.success(string))
+          } else {
+            self.finish(.failure(.emptyResult))
+          }
+        }
+      }
+      // The system's timeout is not reliable if the completion handler is never called
+      // (e.g. in a process which does not run the main run loop).
+      if let timeout = options.timeout, timeout > 0 {
+        DispatchQueue.global().asyncAfter(deadline: .now() + timeout + watchdogGrace) {
+          self.finish(.failure(.timedOut))
+        }
+      }
+    }
+  }
+}
+
+#else
+
+extension AttributedStringGenerator {
+
+  // MARK: Asynchronous API (not available on this platform)
+
+  /// Not available on this platform since it requires WebKit; always throws
+  /// `RenderingError.unsupportedPlatform`. Use `generate(doc:)` instead.
+  public func generateAsync(doc: Block,
+                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+    throw RenderingError.unsupportedPlatform
+  }
+
+  /// Not available on this platform since it requires WebKit; always throws
+  /// `RenderingError.unsupportedPlatform`. Use `generate(block:)` instead.
+  public func generateAsync(block: Block,
+                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+    throw RenderingError.unsupportedPlatform
+  }
+
+  /// Not available on this platform since it requires WebKit; always throws
+  /// `RenderingError.unsupportedPlatform`. Use `generate(blocks:)` instead.
+  public func generateAsync(blocks: Blocks,
+                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+    throw RenderingError.unsupportedPlatform
+  }
+
+  /// Not available on this platform since it requires WebKit; always reports
+  /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(doc:)` instead.
+  public func generateAsync(doc: Block,
+                            options: RenderingOptions? = nil,
+                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+    DispatchQueue.main.async {
+      completionHandler(.failure(.unsupportedPlatform))
+    }
+  }
+
+  /// Not available on this platform since it requires WebKit; always reports
+  /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(block:)` instead.
+  public func generateAsync(block: Block,
+                            options: RenderingOptions? = nil,
+                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+    DispatchQueue.main.async {
+      completionHandler(.failure(.unsupportedPlatform))
+    }
+  }
+
+  /// Not available on this platform since it requires WebKit; always reports
+  /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(blocks:)` instead.
+  public func generateAsync(blocks: Blocks,
+                            options: RenderingOptions? = nil,
+                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+    DispatchQueue.main.async {
+      completionHandler(.failure(.unsupportedPlatform))
+    }
+  }
+}
+
+#endif
 
 #endif

@@ -180,6 +180,10 @@
 		CCE764CC30758503008AD5AD /* ParserRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */; };
 		CCE764CE307592CA008AD5AD /* DifferentialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764CD307592CA008AD5AD /* DifferentialTests.swift */; };
 		CCE764D03075A95D008AD5AD /* NestingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764CF3075A95D008AD5AD /* NestingTests.swift */; };
+		CCE764D230763575008AD5AD /* AttributedStringAsyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D130763575008AD5AD /* AttributedStringAsyncTests.swift */; };
+		CCE764D630764E96008AD5AD /* HTMLImportProbeIOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D330764E96008AD5AD /* HTMLImportProbeIOSTests.swift */; };
+		CCE764D730764E96008AD5AD /* HTMLImportProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D430764E96008AD5AD /* HTMLImportProbeTests.swift */; };
+		CCE764D830764E96008AD5AD /* ImageLoadingProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764D530764E96008AD5AD /* ImageLoadingProbeTests.swift */; };
 		CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -406,6 +410,10 @@
 		CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserRegressionTests.swift; sourceTree = "<group>"; };
 		CCE764CD307592CA008AD5AD /* DifferentialTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifferentialTests.swift; sourceTree = "<group>"; };
 		CCE764CF3075A95D008AD5AD /* NestingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NestingTests.swift; sourceTree = "<group>"; };
+		CCE764D130763575008AD5AD /* AttributedStringAsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringAsyncTests.swift; sourceTree = "<group>"; };
+		CCE764D330764E96008AD5AD /* HTMLImportProbeIOSTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLImportProbeIOSTests.swift; sourceTree = "<group>"; };
+		CCE764D430764E96008AD5AD /* HTMLImportProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLImportProbeTests.swift; sourceTree = "<group>"; };
+		CCE764D530764E96008AD5AD /* ImageLoadingProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoadingProbeTests.swift; sourceTree = "<group>"; };
 		CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownASTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -533,11 +541,15 @@
 				CCE764CB30758503008AD5AD /* ParserRegressionTests.swift */,
 				CC7CCB902FA7450100C05C77 /* StringGeneratorTests.swift */,
 				CC8F27712FBA5DE5000AF851 /* TerminalGeneratorTests.swift */,
+				CCE764D130763575008AD5AD /* AttributedStringAsyncTests.swift */,
 				CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */,
 				CCE764C7307576E0008AD5AD /* SecurityTests.swift */,
 				CCE764C9307576E8008AD5AD /* PerformanceTests.swift */,
 				CCE764CD307592CA008AD5AD /* DifferentialTests.swift */,
 				CCE764CF3075A95D008AD5AD /* NestingTests.swift */,
+				CCE764D330764E96008AD5AD /* HTMLImportProbeIOSTests.swift */,
+				CCE764D430764E96008AD5AD /* HTMLImportProbeTests.swift */,
+				CCE764D530764E96008AD5AD /* ImageLoadingProbeTests.swift */,
 				CCC48C1425D9D81000D082AD /* LinuxMain.swift */,
 				CC2AF6F8227CD98100BEA420 /* Info.plist */,
 			);
@@ -1072,9 +1084,13 @@
 				CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */,
 				CC7CCB912FA7450100C05C77 /* StringGeneratorTests.swift in Sources */,
 				CCE764C8307576E0008AD5AD /* SecurityTests.swift in Sources */,
+				CCE764D630764E96008AD5AD /* HTMLImportProbeIOSTests.swift in Sources */,
+				CCE764D730764E96008AD5AD /* HTMLImportProbeTests.swift in Sources */,
+				CCE764D830764E96008AD5AD /* ImageLoadingProbeTests.swift in Sources */,
 				CC83081D2FC27E3800FDD777 /* SyntaxHighlighterTests.swift in Sources */,
 				CC55DD88264B19D8001AAD10 /* MarkdownExtension.swift in Sources */,
 				CC088C2422E337BD0059460E /* MarkdownHtmlTests.swift in Sources */,
+				CCE764D230763575008AD5AD /* AttributedStringAsyncTests.swift in Sources */,
 				CCC48C0425D98FCB00D082AD /* MarkdownStringTests.swift in Sources */,
 				CCE764CC30758503008AD5AD /* ParserRegressionTests.swift in Sources */,
 				CC8F27722FBA5DE5000AF851 /* TerminalGeneratorTests.swift in Sources */,
