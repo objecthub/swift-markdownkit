@@ -66,7 +66,7 @@ open class DocumentParser {
   /// End index on `line` where the content is
   internal fileprivate(set) var contentEndIndex: Substring.Index
   
-  /// Number of identation characters at beginning of line
+  /// Number of indentation characters at beginning of line
   internal fileprivate(set) var lineIndent: Int
   
   /// Is the line empty?

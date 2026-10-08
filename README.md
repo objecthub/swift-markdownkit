@@ -1,8 +1,8 @@
 # Swift MarkdownKit
 
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fobjecthub%2Fswift-markdownkit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/objecthub/swift-markdownkit) [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fobjecthub%2Fswift-markdownkit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/objecthub/swift-markdownkit) [![IDE: Xcode 16](https://img.shields.io/badge/IDE-Xcode%2026-orange.svg?style=flat)](https://developer.apple.com/xcode/) [![Package managers: SwiftPM, Carthage](https://img.shields.io/badge/Package%20managers-SwiftPM,%20Carthage-green.svg?style=flat)](https://github.com/Carthage/Carthage) [![License: Apache](http://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat)](https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/LICENSE)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fobjecthub%2Fswift-markdownkit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/objecthub/swift-markdownkit) [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fobjecthub%2Fswift-markdownkit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/objecthub/swift-markdownkit) [![IDE: Xcode 26](https://img.shields.io/badge/IDE-Xcode%2026-orange.svg?style=flat)](https://developer.apple.com/xcode/) [![Package managers: SwiftPM, Carthage](https://img.shields.io/badge/Package%20managers-SwiftPM,%20Carthage-green.svg?style=flat)](https://github.com/Carthage/Carthage) [![License: Apache](http://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat)](https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/LICENSE)
 
-_Swift MarkdownKit_ is a framework for parsing, processing and displaying text in [Markdown](https://daringfireball.net/projects/markdown/) format. The supported syntax is based on the [CommonMark Markdown specification](https://commonmark.org). _Swift MarkdownKit_ also provides an extended version of the parser that is able to handle Markdown tables.
+_Swift MarkdownKit_ is a framework for parsing, processing and displaying text in [Markdown](https://daringfireball.net/projects/markdown/) format. The supported syntax is based on the [CommonMark Markdown specification](https://commonmark.org) (version 0.31.2; see [Known issues](#known-issues) for the few deviations). _Swift MarkdownKit_ also provides an extended version of the parser that is able to handle Markdown tables.
 
 _Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it provides a parser for parsing strings into abstract syntax trees, and comes with generators for creating output in plain text, HTML and [attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring). There is also a generator which can be used to display Markdown documents in ANSI-compliant terminals.
 
@@ -14,7 +14,7 @@ _Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it p
 &nbsp;&nbsp; 1.1 &nbsp;<a href="#using-the-framework">Using the framework</a><br />
 &nbsp;&nbsp; 1.2 &nbsp;<a href="#markdown-extensions">Markdown extensions</a><br />
 &nbsp;&nbsp; 1.3 &nbsp;<a href="#configuring-the-parser">Configuring the parser</a><br />
-&nbsp;&nbsp; 1.3 &nbsp;<a href="#extending-the-parser">Extending the parser</a><br />
+&nbsp;&nbsp; 1.4 &nbsp;<a href="#extending-the-parser">Extending the parser</a><br />
 2. &nbsp;<a href="#processing-markdown">Processing Markdown</a><br />
 </td>
 <td width="50%" valign="top">
@@ -47,7 +47,7 @@ let markdown = MarkdownParser.standard.parse("""
 print(markdown)
 ```
 
-Executing this code will result in the follwing data structure of type `Block` getting printed:
+Executing this code will result in the following data structure of type `Block` getting printed:
 
 ```swift
 document(heading(1, text("Header")),
@@ -90,19 +90,30 @@ The Markdown dialect supported by `MarkdownParser` is defined by two parameters:
 
 Since `MarkdownParser` objects are stateless (beyond the configuration of block parsers and inline transformers), there is a predefined default `MarkdownParser` object accessible via the static property `MarkdownParser.standard`. This default parsing object is used in the example above.
 
-New markdown parsers with different configurations can also be created by subclassing [`MarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/MarkdownParser.swift) and by overriding the class properties `defaultBlockParsers` and `defaultInlineTransformers`. Here is an example of how class [`ExtendedMarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/ExtendedMarkdownParser.swift) is derived from `MarkdownParser` simply by overriding `defaultBlockParsers` and by specializing `standard` in a covariant fashion.
+New markdown parsers with different configurations can also be created by subclassing [`MarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/MarkdownParser.swift) and by overriding the class properties `defaultBlockParsers` and `defaultInlineTransformers`. Here is an example of how class [`ExtendedMarkdownParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/ExtendedMarkdownParser.swift) is derived from `MarkdownParser` by overriding `defaultBlockParsers`, by specializing `standard` in a covariant fashion, and by overriding the factory method `documentParser(blockParsers:input:)`, which is needed for supporting definition lists.
 
 ```swift
 open class ExtendedMarkdownParser: MarkdownParser {
   override open class var defaultBlockParsers: [BlockParser.Type] {
     return self.blockParsers
   }
-  private static let blockParsers: [BlockParser.Type] =
-    MarkdownParser.defaultBlockParsers + [TableParser.self]
+  private static let blockParsers: [BlockParser.Type] = MarkdownParser.headingParsers + [
+    IndentedCodeBlockParser.self,
+    FencedCodeBlockParser.self,
+    HtmlBlockParser.self,
+    LinkRefDefinitionParser.self,
+    BlockquoteParser.self,
+    ExtendedListItemParser.self,
+    TableParser.self
+  ]
   override open class var standard: ExtendedMarkdownParser {
     return self.singleton
   }
   private static let singleton: ExtendedMarkdownParser = ExtendedMarkdownParser()
+  open override func documentParser(blockParsers: [BlockParser.Type],
+                                    input: String) -> DocumentParser {
+    return ExtendedDocumentParser(blockParsers: blockParsers, input: input)
+  }
 }
 ```
 
@@ -265,19 +276,19 @@ output, for a given Markdown document, a corresponding representation in a diffe
 let html = HtmlGenerator.standard.generate(doc: markdown)
 ```
 
-There are currently no means to customize `HtmlGenerator` beyond subclassing. Here is an example that defines a customized HTML generator which formats `blockquote` Markdown blocks using HTML tables:
+Beyond the `safeMode` option (see the `HtmlGenerator` initializer), there are currently no means to customize `HtmlGenerator` other than subclassing. Here is an example that defines a customized HTML generator which formats `blockquote` Markdown blocks using HTML tables:
 
 ```swift
 open class CustomizedHtmlGenerator: HtmlGenerator {
-  open override func generate(block: Block, tight: Bool = false) -> String {
+  open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
     switch block {
       case .blockquote(let blocks):
         return "<table><tbody><tr><td style=\"background: #bbb; width: 0.2em;\"  />" +
                "<td style=\"width: 0.2em;\" /><td>\n" +
-               self.generate(blocks: blocks) +
+               self.generate(blocks: blocks, parent: .block(block, parent)) +
                "</td></tr></tbody></table>\n"
       default:
-        return super.generate(block: block, tight: tight)
+        return super.generate(block: block, parent: parent, tight: tight)
     }
   }
 }
@@ -320,7 +331,7 @@ generator.generateAsync(doc: markdown) { result in
 
 #### Loading images securely
 
-By default, images referred to by Markdown may be loaded from any location: the system's HTML renderer loads any file that an image URL points to (also files outside of `imageBaseUrl`, reached via `../` or absolute paths), and `generateAsync` additionally fetches `http(s)` images and style sheets. Only the path extension of an image is checked by default (see `imageExtensions` below). For untrusted Markdown, restrict image loading with the options `localImages` and `remoteImages`. Each is an `ImageAccess`: `.none` (never load), `.any` (no restriction in terms or URL path), or `.within(url)` (local images: only image files inside this directory, symbolic links resolved; remote images: only URLs with the same scheme, host and port as `url` and a path below the path of `url`).
+By default, images referred to by Markdown may be loaded from any location: the system's HTML renderer loads any file that an image URL points to (also files outside of `imageBaseUrl`, reached via `../` or absolute paths), and `generateAsync` additionally fetches `http(s)` images and style sheets. Only the path extension of an image is checked by default (see `imageExtensions` below). For untrusted Markdown, restrict image loading with the options `localImages` and `remoteImages`. Each is an `ImageAccess`: `.none` (never load), `.any` (no restriction in terms of URL path), or `.within(url)` (local images: only image files inside this directory, symbolic links resolved; remote images: only URLs with the same scheme, host and port as `url` and a path below the path of `url`).
 
 ```swift
 let imageDirectory = URL(fileURLWithPath: "/path/to/images", isDirectory: true)
@@ -362,7 +373,7 @@ where: <format> is either 'text', 'ansi', 'html', 'rtf', or 'rtfd'
        <source> is either a Markdown file or a directory of Markdown files
        <target> is either a file path or an existing directory into which
                 the output files are written into. '-' writes the output
-                into the termimal.
+                into the terminal.
        <width>  defines a terminal width in columns for the formats 'text'
                 and 'ansi'
 ```
@@ -434,9 +445,15 @@ struct ContentView: View {
 
 ## Known issues
 
-There are a number of limitations and known issues:
+There are a number of limitations and known issues. Measured against the 652 examples of the CommonMark 0.31.2 specification, all but 13 produce equivalent HTML (ignoring differences such as `&quot;` vs. `"`, `<ol start="1">`, and percent-encoding of URLs, which do not change how browsers render the output). The remaining deviations are:
 
-  - The Markdown parser currently does not fully support _link reference definitions_ in a CommonMark-compliant fashion. It is possible to define link reference definitions and use them, but for some corner cases, the current implementation behaves differently from the spec.
+  - Tab characters in list items and block quotes are treated as four spaces; they are not expanded to the next tab stop. This can lead to wrong nesting for tab-indented list items.
+  - A list that contains a nested list or block quote with blank lines inside is rendered as a loose list (with `<p>` elements) even though CommonMark considers it tight.
+  - A backslash at the end of a line is dropped inside code spans and inline HTML.
+  - Corner cases for links and images: a link destination in `<...>` may span lines, `<http://example.com/\[\>` is not recognized as an autolink, and the `!` of an unresolved image such as `Hello![World]` is dropped.
+  - Unicode currency and other symbol characters are not treated as punctuation for the purpose of recognizing emphasis.
+  - A tilde fence whose info string contains a backtick is not recognized as a code fence.
+  - For security reasons, the `class` attribute of fenced code blocks only uses characters out of `A-Z a-z 0-9 _ + # . -`.
 
 ## Requirements
 
@@ -445,9 +462,11 @@ The command-line tool can be compiled with the _Swift Package Manager_, so _Xcod
 for that. Similarly, just for compiling the framework and trying the command-line tool in _Xcode_, the
 _Swift Package Manager_ is not needed.
 
-- [Xcode 26](https://developer.apple.com/xcode/)
-- [Swift 6](https://developer.apple.com/swift/)
+- [Xcode 16](https://developer.apple.com/xcode/) or later (the framework is developed with Xcode 26)
+- [Swift 6](https://developer.apple.com/swift/) toolchain (the package is compiled in Swift 5 language mode)
 - [Swift Package Manager](https://swift.org/package-manager/)
+
+_Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting relies on JavaScriptCore and is not available on watchOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tool is only functional on macOS.
 
 ## License
 

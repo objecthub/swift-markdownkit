@@ -538,15 +538,14 @@ public final class SyntaxHighlighter {
   ///   - html: The HTML string returned by `highlight(code:as:ignoreIllegals:)`.
   ///   - config: The ANSI highlighting config to apply for colors and styling.
   ///
-  /// - Returns: A string with ANSI escape sequences for syntax highlighting,
-  ///            or `nil` if conversion fails.
+  /// - Returns: The text with ANSI styling for syntax highlighting.
   ///
   /// Example:
   /// ```swift
   /// if let html = highlighter.highlight(code: sourceCode, as: "swift"),
-  ///    let config = AnsiHighlighterConfig(withTheme: "monokai") {
-  ///   let ansiString = highlighter.asAnsiTerminalString(html, using: config)
-  ///   print(ansiString ?? "")
+  ///    let config = AnsiHighlightingConfig(withTheme: "monokai", fullColorSupport: true) {
+  ///   let ansiText = highlighter.asAnsiTerminalString(html, using: config)
+  ///   print(ansiText)
   /// }
   /// ```
   public func asAnsiTerminalString(_ html: String,

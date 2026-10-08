@@ -19,7 +19,7 @@
 //
 
 /// 
-/// Class `Context` provides information about the environment in which a Markdown
+/// Class `GeneratorContext` provides information about the environment in which a Markdown
 /// construct is being mapped to a string.
 /// 
 open class GeneratorContext {

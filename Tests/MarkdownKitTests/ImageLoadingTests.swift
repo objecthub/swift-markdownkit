@@ -366,7 +366,7 @@ final class ImageLoadingTests: XCTestCase {
 
   @MainActor
   func testAsynchronousRenderingHonorsRemoteImageRestrictions() async throws {
-    let server = try ProbeRecordingServer(png: makeProbePNG())
+    let server = try LoopbackImageServer(png: makeTestPNG())
     try server.start()
     defer {
       server.stop()

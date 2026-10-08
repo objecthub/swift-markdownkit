@@ -31,15 +31,15 @@ import UIKit
 ///
 /// Configuration for converting syntax-highlighted HTML to ANSI terminal strings.
 ///
-/// `AnsiHighlighterConfig` parses CSS theme files and maps color and style information
+/// `AnsiHighlightingConfig` parses CSS theme files and maps color and style information
 /// to ANSI terminal escape sequences using the CommandLineKit framework. This allows
 /// syntax highlighting to be displayed in terminal applications.
 ///
 /// Example usage:
 /// ```swift
-/// if let config = AnsiHighlighterConfig(withTheme: "monokai") {
-///   let ansiString = highlighter.asAnsiTerminalString(html, using: config)
-///   print(ansiString ?? "")
+/// if let config = AnsiHighlightingConfig(withTheme: "monokai", fullColorSupport: true) {
+///   let ansiText = highlighter.asAnsiTerminalString(html, using: config)
+///   print(ansiText)
 /// }
 /// ```
 ///
@@ -49,20 +49,22 @@ public class AnsiHighlightingConfig {
   
   /// Creates a new ANSI highlighter configuration from a theme name or CSS content.
   ///
-  /// - Parameter withTheme: Either the name of a bundled theme (without `.css` extension),
-  ///                        or raw CSS content to parse.
+  /// - Parameters:
+  ///   - withTheme: Either the name of a bundled theme (without `.css` extension),
+  ///                or raw CSS content to parse.
+  ///   - fullColorSupport: If true, theme colors are mapped to the 256 color palette.
   ///
-  /// - Returns: A configured `AnsiHighlighterConfig` instance, or `nil` if the theme
+  /// - Returns: A configured `AnsiHighlightingConfig` instance, or `nil` if the theme
   ///            cannot be loaded or parsed.
   ///
   /// Example:
   /// ```swift
   /// // Load a bundled theme
-  /// let config1 = AnsiHighlighterConfig(withTheme: "monokai")
+  /// let config1 = AnsiHighlightingConfig(withTheme: "monokai", fullColorSupport: true)
   ///
   /// // Use custom CSS
   /// let css = ".hljs { color: #ffffff; } .hljs-keyword { color: #ff0000; font-weight: bold; }"
-  /// let config2 = AnsiHighlighterConfig(withTheme: css)
+  /// let config2 = AnsiHighlightingConfig(withTheme: css, fullColorSupport: true)
   /// ```
   public init?(withTheme nameOrContent: String, fullColorSupport: Bool) {
     let content: String

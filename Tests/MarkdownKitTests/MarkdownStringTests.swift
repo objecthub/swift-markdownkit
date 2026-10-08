@@ -55,10 +55,4 @@ class MarkdownStringTests: XCTestCase {
     XCTAssertEqual(";; This defines `foo` - &amp;quot;".decodingNamedCharacters(),
                    ";; This defines `foo` - &quot;")
   }
-  
-  static let allTests = [
-    ("testAmpersandEncoding", testAmpersandEncoding),
-    ("testPredefinedEncodings", testPredefinedEncodings),
-    ("testDecodingEntities", testDecodingEntities),
-  ]
 }

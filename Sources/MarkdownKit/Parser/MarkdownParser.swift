@@ -24,7 +24,7 @@ import Foundation
 /// `MarkdownParser` objects are used to parse Markdown text represented as a string.
 /// The `MarkdownParser` object itself defines the configuration of the parser. It is
 /// stateless in the sense that it can be used for parsing many input strings. This is
-/// done via the `parse` function. `parse` returns an abstract syntac tree representing
+/// done via the `parse` function. `parse` returns an abstract syntax tree representing
 /// the Markdown text for the given input string.
 ///
 /// The `parse` method of the `MarkdownParser` object delegates parsing of the input
@@ -103,9 +103,9 @@ open class MarkdownParser {
     return DocumentParser(blockParsers: blockParsers, input: input)
   }
   
-  /// Inline parsing is performed via a stateless `InlineParser` object which implements a
-  /// protocol for invoking the `InlineTransformer` objects. Since the inline parser is stateless,
-  /// a single object gets created lazily and reused for parsing all input.
+  /// Inline parsing is performed via an `InlineParser` object which implements a protocol for
+  /// invoking the `InlineTransformer` objects. A new `InlineParser` object is created for each
+  /// document that gets parsed.
   public func inlineParser(input: Block) -> InlineParser {
     return self.inlineParser(inlineTransformers: self.customInlineTransformers ??
                                                  type(of: self).defaultInlineTransformers,
@@ -118,8 +118,9 @@ open class MarkdownParser {
     return InlineParser(inlineTransformers: inlineTransformers, input: input)
   }
   
-  /// Constructor of `MarkdownParser` objects; it takes a list of block parsers, a list of
-  /// inline transformers as well as an input string as its parameters.
+  /// Constructor of `MarkdownParser` objects; it takes an optional list of block parsers and an
+  /// optional list of inline transformers. If a list is not provided, the corresponding default
+  /// (`defaultBlockParsers` or `defaultInlineTransformers`) is used.
   public init(blockParsers: [BlockParser.Type]? = nil,
               inlineTransformers: [InlineTransformer.Type]? = nil) {
     self.customBlockParsers = blockParsers

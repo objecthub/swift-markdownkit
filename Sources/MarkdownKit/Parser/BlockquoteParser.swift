@@ -21,7 +21,7 @@
 import Foundation
 
 ///
-/// A block parser which parses block quotes eturning `blockquote` blocks.
+/// A block parser which parses block quotes returning `blockquote` blocks.
 ///
 open class BlockquoteParser: BlockParser {
 

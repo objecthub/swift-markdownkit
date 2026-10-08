@@ -1,5 +1,5 @@
 //
-//  MarkdownExtension.swift
+//  MarkdownExtensionTests.swift
 //  MarkdownKitTests
 //
 //  Created by Matthias Zenger on 11/05/2021.
@@ -21,7 +21,7 @@
 import XCTest
 @testable import MarkdownKit
 
-class MarkdownExtension: XCTestCase, MarkdownKitFactory {
+class MarkdownExtensionTests: XCTestCase, MarkdownKitFactory {
 
   enum LineEmphasis: CustomTextFragment {
     case underline(Text)

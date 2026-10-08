@@ -104,7 +104,7 @@ open class TerminalGenerator {
   /// determines what the output will be.
   public let tableRenderers: [TableRenderer]
   
-  /// Default `StringGenerator` implementation with 80 columns
+  /// Default `TerminalGenerator` implementation with 80 columns
   public static let standard = TerminalGenerator(numColumns: 80)
   
   /// Configuration for the syntax highlighter.

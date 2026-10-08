@@ -156,8 +156,6 @@ final class AttributedStringAsyncTests: XCTestCase {
     XCTAssertTrue(text.contains("Hello from a background task"))
   }
 
-  #if os(macOS)
-
   /// A relative image is only found if there is a base URL, both for `generate(doc:)` and
   /// for `generateAsync(doc:)`.
   @MainActor
@@ -210,7 +208,19 @@ final class AttributedStringAsyncTests: XCTestCase {
     }
   }
 
-  #endif
+  /// The system's own timeout (not the watchdog) is reported as `.timedOut`.
+  @MainActor
+  func testSystemTimeoutIsReportedAsTimedOut() async {
+    let generator = AttributedStringGenerator()
+    do {
+      _ = try await generator.generateAsync(doc: parse("fast"),
+                                            options: RenderingOptions(timeout: 0.0001))
+      XCTFail("should throw")
+    } catch AttributedStringGenerator.RenderingError.timedOut {
+    } catch {
+      XCTFail("unexpected error \(error)")
+    }
+  }
 
   // MARK: RenderingState
 

@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:6.0
 //
 //  Package.swift
 //  MarkdownKit
@@ -175,8 +175,7 @@ let package = Package(
       dependencies: [
         "MarkdownKit",
         .product(name: "CommandLineKit", package: "swift-commandlinekit")
-      ],
-      exclude: []
+      ]
     ),
     .testTarget(
       name: "MarkdownKitTests",
@@ -184,5 +183,5 @@ let package = Package(
       exclude: ["Info.plist"]
     )
   ],
-  swiftLanguageVersions: [.v5]
+  swiftLanguageModes: [.v5]
 )

@@ -1,5 +1,5 @@
 //
-//  NSAttributedTextView.swift
+//  AttributedTextView_macOS.swift
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 17/03/2026.

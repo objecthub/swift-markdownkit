@@ -22,8 +22,10 @@ import Foundation
 
 ///
 /// An `InlineParser` implements Markdown inline text markup parsing given a list of
-/// `InlineTransformer` classes as its configuration. `InlineParser` objects are not
-/// stateful and can be reused to parse the inline text of many Markdown blocks.
+/// `InlineTransformer` classes as its configuration. An `InlineParser` object collects the
+/// link reference definitions of the document it is created for. It is created for parsing
+/// a single document (see `MarkdownParser.inlineParser(input:)`) and is not meant to be
+/// reused for other documents or shared across threads.
 ///
 open class InlineParser {
 
