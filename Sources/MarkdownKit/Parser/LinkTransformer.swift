@@ -245,7 +245,7 @@ open class LinkTransformer: InlineTransformer {
         element = iterator.next()
         loop: while let fragment = element {
           switch fragment {
-            case .delimiter(">", _, _):
+            case .delimiter(">", _, let type) where !type.contains(.escaped):
               break loop
             case .delimiter("<", _, _):
               return nil

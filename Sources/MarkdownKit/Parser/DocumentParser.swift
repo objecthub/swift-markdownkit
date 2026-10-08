@@ -31,6 +31,8 @@ open class DocumentParser {
   /// a container. It is used for undoing this if a container is not supposed to be created.
   private struct LineState {
     let line: Substring
+    let lineColumn: Int
+    let linePartialTab: Int
     let contentStartIndex: Substring.Index
     let lineIndent: Int
     let lineEmpty: Bool
@@ -66,7 +68,14 @@ open class DocumentParser {
   /// End index on `line` where the content is
   internal fileprivate(set) var contentEndIndex: Substring.Index
   
-  /// Number of indentation characters at beginning of line
+  /// The column at which `line` starts. Tabs advance to the next tab stop (a multiple of 4).
+  internal fileprivate(set) var lineColumn: Int
+  
+  /// If `line` starts with a tab, this is the number of columns of the tab which were already
+  /// consumed (e.g. as part of a block quote marker). The remaining columns are indentation.
+  internal fileprivate(set) var linePartialTab: Int
+  
+  /// Number of columns of indentation at beginning of line
   internal fileprivate(set) var lineIndent: Int
   
   /// Is the line empty?
@@ -95,6 +104,8 @@ open class DocumentParser {
     self.line = input[input.startIndex..<input.startIndex]
     self.contentStartIndex = self.line.startIndex
     self.contentEndIndex = self.line.endIndex
+    self.lineColumn = 0
+    self.linePartialTab = 0
     self.lineIndent = 0
     self.lineEmpty = true
     self.prevLineEmpty = false
@@ -113,6 +124,8 @@ open class DocumentParser {
     state.line = self.line
     state.contentStartIndex = self.contentStartIndex
     state.contentEndIndex = self.contentEndIndex
+    state.lineColumn = self.lineColumn
+    state.linePartialTab = self.linePartialTab
     state.lineIndent = self.lineIndent
     state.lineEmpty = self.lineEmpty
     state.prevLineEmpty = self.prevLineEmpty
@@ -132,6 +145,8 @@ open class DocumentParser {
     self.line = state.line
     self.contentStartIndex = state.contentStartIndex
     self.contentEndIndex = state.contentEndIndex
+    self.lineColumn = state.lineColumn
+    self.linePartialTab = state.linePartialTab
     self.lineIndent = state.lineIndent
     self.lineEmpty = state.lineEmpty
     self.prevLineEmpty = state.prevLineEmpty
@@ -168,6 +183,8 @@ open class DocumentParser {
       self.line = self.input[self.input.endIndex..<self.input.endIndex]
       self.contentStartIndex = self.line.startIndex
       self.contentEndIndex = self.line.endIndex
+      self.lineColumn = 0
+      self.linePartialTab = 0
       self.lineIndent = 0
       self.prevLineEmpty = lineWasEmpty
       self.lineEmpty = true
@@ -189,33 +206,57 @@ open class DocumentParser {
     } else {
       self.index = self.input.endIndex
     }
-    let (newstart, container) = self.container.parseIndent(input: self.input,
-                                                           startIndex: startIndex,
-                                                           endIndex: self.index!)
+    let (position, container) = self.container.parseIndent(
+                                  input: self.input,
+                                  position: LinePosition(index: startIndex, column: 0),
+                                  endIndex: self.index!)
     self.currentContainer = container
-    self.line = self.input[newstart..<self.index!]
+    self.line = self.input[position.index..<self.index!]
+    self.lineColumn = position.column
+    self.linePartialTab = position.partialTab
     if index < self.input.endIndex {
       self.contentEndIndex = self.line.index(before: self.line.endIndex)
     } else {
       self.contentEndIndex = self.line.endIndex
     }
     self.prevLineEmpty = lineWasEmpty
-    self.resetLineStart(self.line.startIndex)
+    self.updateLineStart()
   }
   
-  public func resetLineStart(_ startIndex: Substring.Index) {
+  /// Makes the line start at `startIndex`, which is typically behind the marker of a
+  /// container that was just started. If the character at `startIndex` is a tab, `partialTab`
+  /// is the number of columns of the tab which are part of the marker.
+  public func resetLineStart(_ startIndex: Substring.Index, partialTab: Int = 0) {
     if startIndex > self.line.startIndex {
+      // Skipping characters advances the column
+      var i = self.line.startIndex
+      while i < startIndex {
+        self.lineColumn += self.line[i] == "\t" ? LinePosition.tabWidth(at: self.lineColumn) : 1
+        i = self.line.index(after: i)
+      }
       self.line = self.line[startIndex..<self.line.endIndex]
     }
+    self.linePartialTab = partialTab
+    self.updateLineStart()
+  }
+  
+  /// Determines the indentation of the line and where its content starts.
+  private func updateLineStart() {
     self.lineIndent = 0
     self.contentStartIndex = self.line.startIndex
     self.lineEmpty = true
+    var column = self.lineColumn
+    var partialTab = self.linePartialTab
     loop: while self.contentStartIndex < self.contentEndIndex {
       switch self.line[self.contentStartIndex] {
         case " ":
           self.lineIndent += 1
+          column += 1
         case "\t":
-          self.lineIndent += 4
+          let width = LinePosition.tabWidth(at: column)
+          self.lineIndent += width - partialTab
+          column += width
+          partialTab = 0
         default:
           self.lineEmpty = false
           break loop
@@ -245,6 +286,8 @@ open class DocumentParser {
   
   private var lineState: LineState {
     return LineState(line: self.line,
+                     lineColumn: self.lineColumn,
+                     linePartialTab: self.linePartialTab,
                      contentStartIndex: self.contentStartIndex,
                      lineIndent: self.lineIndent,
                      lineEmpty: self.lineEmpty)
@@ -252,6 +295,8 @@ open class DocumentParser {
 
   private func restore(_ state: LineState) {
     self.line = state.line
+    self.lineColumn = state.lineColumn
+    self.linePartialTab = state.linePartialTab
     self.contentStartIndex = state.contentStartIndex
     self.lineIndent = state.lineIndent
     self.lineEmpty = state.lineEmpty
@@ -298,7 +343,7 @@ open class DocumentParser {
         }
         var lines = Text()
         let linesTight = !self.prevLineEmpty
-        lines.append(line: self.trimLine(), withHardLineBreak: self.hasHardLineBreak())
+        lines.append(line: self.lineContent(), withHardLineBreak: false)
         self.readNextLine()
         while !self.finished && !self.lineEmpty {
           self.prevParagraphLines = lines
@@ -341,7 +386,7 @@ open class DocumentParser {
           }
           self.prevParagraphLines = nil
           self.prevParagraphLinesTight = false
-          lines.append(line: self.trimLine(), withHardLineBreak: self.hasHardLineBreak())
+          lines.append(line: self.lineContent(), withHardLineBreak: false)
           self.readNextLine()
         }
         self.container.append(block: .paragraph(lines.finalized()), tight: linesTight)
@@ -399,24 +444,12 @@ open class DocumentParser {
     return res
   }
 
-  private func trimLine() -> Substring {
-    var i = self.line.index(before: self.contentEndIndex)
-    while i >= self.contentStartIndex && (self.line[i] == " " || self.line[i] == "\t") {
-      i = self.line.index(before: i)
-    }
-    return self.line[self.contentStartIndex...i]
-  }
-
-  private func hasHardLineBreak() -> Bool {
-    var i = self.line.index(before: self.contentEndIndex)
-    guard i >= self.line.startIndex && self.line[i] == " " else {
-      return false
-    }
-    i = self.line.index(before: i)
-    guard i >= self.line.startIndex && self.line[i] == " " else {
-      return false
-    }
-    return true
+  /// The content of the current line, i.e. the line without indentation and line terminator.
+  /// Trailing spaces and a trailing backslash are part of the content. They are only
+  /// interpreted when parsing the inline markup, because they are no line break inside of code
+  /// spans and HTML tags.
+  private func lineContent() -> Substring {
+    return self.line[self.contentStartIndex..<self.contentEndIndex]
   }
 }
 
@@ -430,6 +463,8 @@ internal struct DocumentParserState {
   fileprivate var line: Substring
   fileprivate var contentStartIndex: Substring.Index
   fileprivate var contentEndIndex: Substring.Index
+  fileprivate var lineColumn: Int
+  fileprivate var linePartialTab: Int
   fileprivate var lineIndent: Int
   fileprivate var lineEmpty: Bool
   fileprivate var prevLineEmpty: Bool
@@ -444,6 +479,8 @@ internal struct DocumentParserState {
     self.line = docParser.line
     self.contentStartIndex = docParser.contentStartIndex
     self.contentEndIndex = docParser.contentEndIndex
+    self.lineColumn = docParser.lineColumn
+    self.linePartialTab = docParser.linePartialTab
     self.lineIndent = docParser.lineIndent
     self.lineEmpty = docParser.lineEmpty
     self.prevLineEmpty = docParser.prevLineEmpty

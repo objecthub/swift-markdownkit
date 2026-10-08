@@ -61,32 +61,15 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
     return self.fragments.last
   }
 
-  /// Appends a line of text, potentially followed by a hard line break
+  /// Appends a line of text, potentially followed by a hard line break. If the last fragment
+  /// is a text (as opposed to a line break), a soft line break gets inserted in front of the
+  /// line. The line is appended as it is; in particular, trailing spaces and a trailing
+  /// backslash are not interpreted here. Whether a line ending is a hard line break is only
+  /// known once the inline markup is parsed (a backslash or spaces at the end of a line are
+  /// part of a code span or an HTML tag, and are no line break in this case).
   mutating public func append(line: Substring, withHardLineBreak: Bool) {
-    let n = self.fragments.count
-    if n > 0, case .text(let str) = self.fragments[n - 1] {
-      // A backslash at the end of the line is a hard line break unless it is itself escaped
-      // by another backslash.
-      var backslashes = 0
-      var i = str.endIndex
-      while i > str.startIndex {
-        i = str.index(before: i)
-        guard str[i] == "\\" else {
-          break
-        }
-        backslashes += 1
-      }
-      if backslashes % 2 == 1 {
-        let newline = str[str.startIndex..<str.index(before: str.endIndex)]
-        if newline.isEmpty {
-          self.fragments[n - 1] = .hardLineBreak
-        } else {
-          self.fragments[n - 1] = .text(newline)
-          self.fragments.append(.hardLineBreak)
-        }
-      } else {
-        self.fragments.append(.softLineBreak)
-      }
+    if case .text(_)? = self.fragments.last {
+      self.fragments.append(.softLineBreak)
     }
     self.fragments.append(.text(line))
     if withHardLineBreak {
@@ -166,20 +149,26 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
     return res
   }
 
-  /// Finalizes the `Text` object by removing trailing line breaks.
+  /// Finalizes the `Text` object by removing trailing line breaks and trailing white space.
   public func finalized() -> Text {
-    if let lastLine = self.fragments.last {
-      switch lastLine {
-        case .hardLineBreak, .softLineBreak:
-          var plines = self
-          plines.fragments.removeLast()
-          return plines
-        default:
-          return self
-      }
-    } else {
-      return self
+    var res = self
+    switch res.fragments.last {
+      case .hardLineBreak?, .softLineBreak?:
+        res.fragments.removeLast()
+      default:
+        break
     }
+    if case .text(let str)? = res.fragments.last,
+       let last = str.lastIndex(where: { $0 != " " && $0 != "\t" }) {
+      let end = str.index(after: last)
+      if end < str.endIndex {
+        res.fragments[res.fragments.count - 1] = .text(str[str.startIndex..<end])
+      }
+    } else if case .text(let str)? = res.fragments.last, !str.isEmpty {
+      // The last text consists of white space only
+      res.fragments.removeLast()
+    }
+    return res
   }
 
   /// Defines an equality relationship for `Text` objects.

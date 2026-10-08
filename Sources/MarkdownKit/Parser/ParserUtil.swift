@@ -124,9 +124,18 @@ public func isControlCharacter(_ ch: Character) -> Bool {
   return false
 }
 
+/// Returns true if `ch` is a Unicode punctuation character in the sense of CommonMark: a
+/// character in one of the Unicode general categories P (punctuation) and S (symbol).
 public func isUnicodePunctuation(_ ch: Character) -> Bool {
-  if let scalar = ch.unicodeScalars.first, CharacterSet.punctuationCharacters.contains(scalar) {
-    return true
+  if let scalar = ch.unicodeScalars.first {
+    switch scalar.properties.generalCategory {
+      case .connectorPunctuation, .dashPunctuation, .openPunctuation, .closePunctuation,
+           .initialPunctuation, .finalPunctuation, .otherPunctuation,
+           .mathSymbol, .currencySymbol, .modifierSymbol, .otherSymbol:
+        return true
+      default:
+        break
+    }
   }
   return isAsciiPunctuation(ch)
 }

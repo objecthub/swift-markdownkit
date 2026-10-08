@@ -227,6 +227,13 @@ final class EmphasisTestMarkdownParser: MarkdownParser {
 }
 ```
 
+The order of the inline transformers matters. In particular, `EscapeTransformer` needs to be the last transformer of the list, and it should not be left out:
+
+  - It resolves backslash escapes. This includes the escapes in link destinations and titles, which only exist after `LinkTransformer` has created the links.
+  - It decides which line endings are hard line breaks (a backslash or at least two spaces at the end of a line) and removes the trailing spaces of the other line endings. This has to happen after `DelimiterTransformer` has classified the delimiters (a `*` followed by a backslash is treated differently from a `*` at the end of a line), after `CodeLinkHtmlTransformer` has recognized code spans and HTML tags (a backslash or spaces at the end of a line are literal text in these, and the line ending is no line break), and after `LinkTransformer` has matched link reference labels (they are compared as written, including backslashes).
+
+A parser without `EscapeTransformer` does not recognize hard line breaks; trailing spaces and backslashes at the end of lines remain in the text. Custom transformers for new inline markup, such as the ones above, belong in front of `EscapeTransformer`.
+
 ## Processing Markdown
 
 The usage of abstract syntax trees for representing Markdown text has the advantage that it is very easy to process such data, in particular, to transform it and to extract information. Below is a short  _Swift_  snippet which illustrates how to process an abstract syntax tree for the purpose of extracting all top-level headers (i.e. this code prints the top-level outline of a text in Markdown format).
@@ -446,12 +453,12 @@ struct ContentView: View {
 
 ## Known issues
 
-There are a number of limitations and known issues. Measured against the 652 examples of the CommonMark 0.31.2 specification, all but 6 produce equivalent HTML (ignoring differences such as `&quot;` vs. `"`, `<ol start="1">`, and percent-encoding of URLs, which do not change how browsers render the output). The remaining deviations are:
+The parser passes all 652 examples of the [CommonMark 0.31.2 specification](https://spec.commonmark.org/0.31.2/). The test suite compares the generated HTML with the reference HTML of the specification, ignoring differences that do not change how browsers render the output: whitespace outside of code, `&quot;` vs. `"`, `<ol start="1">` vs. `<ol>`, and percent-encoding of URLs (MarkdownKit does not encode URLs).
 
-  - Tab characters in list items and block quotes are treated as four spaces; they are not expanded to the next tab stop. This can lead to wrong nesting for tab-indented list items.
-  - A backslash at the end of a line is dropped inside code spans and inline HTML.
-  - Corner cases for links and images: a link destination in `<...>` may span lines and `<http://example.com/\[\>` is not recognized as an autolink.
-  - Unicode currency and other symbol characters are not treated as punctuation for the purpose of recognizing emphasis.
+There are a number of limitations:
+
+  - Extensions of GitHub Flavored Markdown other than tables are not supported: task lists, strikethrough, extended autolinks and footnotes. See [Extending the parser](#extending-the-parser) for how to add strikethrough.
+  - The block parser keeps trailing spaces and backslashes at the end of the lines of a paragraph; whether a line ending is a hard line break is only decided by the inline parser (`EscapeTransformer`), because it depends on the inline markup (e.g. code spans). If you only parse the block structure (`blockOnly: true`), hard line breaks are not recognized.
 
 ## Requirements
 

@@ -188,7 +188,14 @@ open class CodeLinkHtmlTransformer: InlineTransformer {
       } else if case .delimiter("<", _, _) = fragment, onlyEndsAtFirstGreater {
         return nil
       }
-      let raw = fragment.rawDescription
+      // Line endings are part of HTML tags as they are
+      let raw: String
+      switch fragment {
+        case .softLineBreak, .hardLineBreak:
+          raw = "\n"
+        default:
+          raw = fragment.rawDescription
+      }
       if content.isEmpty {
         guard let first = raw.first, !first.isWhitespace else {
           return nil

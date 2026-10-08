@@ -37,15 +37,18 @@ class MarkdownBlockTests: XCTestCase, MarkdownKitFactory {
   func testParagraphs() {
     XCTAssertEqual(parseBlocks("foo"), document(paragraph("foo")))
     XCTAssertEqual(parseBlocks("foo\nbar"), document(paragraph("foo", "bar")))
-    XCTAssertEqual(parseBlocks("foo \nbar"), document(paragraph("foo", "bar")))
-    XCTAssertEqual(parseBlocks("foo  \nbar"), document(paragraph("foo", nil, "bar")))
-    XCTAssertEqual(parseBlocks("foo   \nbar"), document(paragraph("foo", nil, "bar")))
-    XCTAssertEqual(parseBlocks("foo   \nbar   \n"), document(paragraph("foo", nil, "bar")))
-    XCTAssertEqual(parseBlocks("one\\\ntwo\\\n"), document(paragraph("one", nil, "two\\")))
+    // Whether a line ending is a hard line break is only decided when the inline markup is parsed
+    // (the line ending is no line break in a code span): trailing spaces and backslashes are
+    // part of the lines (except for the last line of a paragraph, which is trimmed).
+    XCTAssertEqual(parseBlocks("foo \nbar"), document(paragraph("foo ", "bar")))
+    XCTAssertEqual(parseBlocks("foo  \nbar"), document(paragraph("foo  ", "bar")))
+    XCTAssertEqual(parseBlocks("foo   \nbar"), document(paragraph("foo   ", "bar")))
+    XCTAssertEqual(parseBlocks("foo   \nbar   \n"), document(paragraph("foo   ", "bar")))
+    XCTAssertEqual(parseBlocks("one\\\ntwo\\\n"), document(paragraph("one\\", "two\\")))
     XCTAssertEqual(parseBlocks("one\\\n\\\ntwo\\\n"),
-                   document(paragraph("one", nil, nil, "two\\")))
+                   document(paragraph("one\\", "\\", "two\\")))
     XCTAssertEqual(parseBlocks("one\\\n   \\\ntwo\\\n"),
-                   document(paragraph("one", nil, nil, "two\\")))
+                   document(paragraph("one\\", "\\", "two\\")))
     XCTAssertEqual(parseBlocks("*foo"), document(paragraph("*foo")))
     XCTAssertEqual(parseBlocks("**foo\ntwo"), document(paragraph("**foo", "two")))
     XCTAssertEqual(parseBlocks("**foo**"), document(paragraph("**foo**")))
@@ -94,8 +97,8 @@ class MarkdownBlockTests: XCTestCase, MarkdownKitFactory {
     XCTAssertEqual(parseBlocks("  \n====="), document(paragraph("=====")))
     XCTAssertEqual(parseBlocks("---\n---\n"), document(.thematicBreak, .thematicBreak))
     XCTAssertEqual(parseBlocks("\\> foo\n------"), document(setextHeading(2, "\\> foo")))
-    XCTAssertEqual(parseBlocks("one\\\ntwo\n=\n "), document(setextHeading(1, "one", nil, "two")))
-    XCTAssertEqual(parseBlocks("one  \ntwo\n=\n "), document(setextHeading(1, "one", nil, "two")))
+    XCTAssertEqual(parseBlocks("one\\\ntwo\n=\n "), document(setextHeading(1, "one\\", "two")))
+    XCTAssertEqual(parseBlocks("one  \ntwo\n=\n "), document(setextHeading(1, "one  ", "two")))
   }
 
   func testBlockquotes() {

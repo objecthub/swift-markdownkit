@@ -27,20 +27,21 @@ import Foundation
 ///
 open class CodeBlockParser: BlockParser {
   
+  /// Returns the current line without `n` columns of indentation. Tabs expand to the next tab
+  /// stop. If a tab spans more columns than are left to be removed, the remaining columns
+  /// stay as spaces.
   public func formatIndentedLine(_ n: Int = 4) -> Substring {
-    var index = self.line.startIndex
-    var indent = 0
-    while index < self.line.endIndex && indent < n {
-      if self.line[index] == " " {
-        indent += 1
-      } else if self.line[index] == "\t" {
-        indent += 4
-      } else {
-        break
-      }
-      index = self.line.index(after: index)
+    let line = self.line
+    let start = LinePosition(index: line.startIndex,
+                             column: self.docParser.lineColumn,
+                             partialTab: self.docParser.linePartialTab)
+    let (position, _) = start.consumingWhitespace(in: line, endIndex: line.endIndex, columns: n)
+    if position.partialTab > 0 {
+      let remaining = LinePosition.tabWidth(at: position.column) - position.partialTab
+      let rest = line[line.index(after: position.index)..<line.endIndex]
+      return Substring(String(repeating: " ", count: remaining) + rest)
     }
-    return self.line[index..<self.line.endIndex]
+    return line[position.index..<line.endIndex]
   }
 }
 

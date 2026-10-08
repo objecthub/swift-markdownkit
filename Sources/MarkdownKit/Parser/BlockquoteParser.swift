@@ -35,23 +35,31 @@ open class BlockquoteParser: BlockParser {
       return false
     }
 
-    public override func skipIndent(input: String,
-                                    startIndex: String.Index,
-                                    endIndex: String.Index) -> String.Index? {
-      var index = startIndex
-      var indent = 0
-      while index < endIndex && input[index] == " " {
-        indent += 1
-        index = input.index(after: index)
-      }
-      guard indent < 4 && index < endIndex && input[index] == ">" else {
+    internal override func skipIndent(input: String,
+                                      position: LinePosition,
+                                      endIndex: String.Index) -> LinePosition? {
+      // The marker can be indented by up to three columns
+      var (pos, indent) = position.consumingWhitespace(in: input, endIndex: endIndex, columns: 4)
+      guard indent < 4 && pos.index < endIndex && input[pos.index] == ">" else {
         return nil
       }
-      index = input.index(after: index)
-      if index < endIndex && input[index] == " " {
-        index = input.index(after: index)
+      pos.index = input.index(after: pos.index)
+      pos.column += 1
+      // The marker is followed by an optional space, which can be one column of a tab
+      if pos.index < endIndex {
+        if input[pos.index] == " " {
+          pos.index = input.index(after: pos.index)
+          pos.column += 1
+        } else if input[pos.index] == "\t" {
+          if LinePosition.tabWidth(at: pos.column) == 1 {
+            pos.index = input.index(after: pos.index)
+            pos.column += 1
+          } else {
+            pos.partialTab = 1
+          }
+        }
       }
-      return index
+      return pos
     }
 
     public override func makeBlock(_ docParser: DocumentParser) -> Block {
@@ -70,6 +78,15 @@ open class BlockquoteParser: BlockParser {
     let i = self.line.index(after: self.contentStartIndex)
     if i < self.contentEndIndex && self.line[i] == " " {
       self.docParser.resetLineStart(self.line.index(after: i))
+    } else if i < self.contentEndIndex && self.line[i] == "\t" {
+      // The marker is followed by a tab, one column of which is part of the marker
+      let markerColumn = self.docParser.lineColumn + self.docParser.linePartialTab +
+                         self.lineIndent
+      if LinePosition.tabWidth(at: markerColumn + 1) == 1 {
+        self.docParser.resetLineStart(self.line.index(after: i))
+      } else {
+        self.docParser.resetLineStart(i, partialTab: 1)
+      }
     } else {
       self.docParser.resetLineStart(i)
     }

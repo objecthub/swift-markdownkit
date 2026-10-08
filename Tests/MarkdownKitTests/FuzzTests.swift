@@ -58,7 +58,8 @@ class FuzzTests: XCTestCase {
     "\u{200D}", "\r\n", "\u{0}", "\u{1B}", "\u{202E}", "[x]: /u \"t\"", "[x]", "![i](u)",
     "<div>", "</div>", "<script>", "<x@y.z>", "Term\n: def",
     "| a | b |\n|---|:-:|\n| c |", "|---|", ":---:", "<br/>", "  \n", "\\\n", "<?", "?>",
-    "<![CDATA[", "]]>", "<!X", "'", "\"", "- [ ] t", "1. a\n2. b"
+    "<![CDATA[", "]]>", "<!X", "'", "\"", "- [ ] t", "1. a\n2. b",
+    ">\t", "-\t", "\t-\t", "1.\t", "\t\t", " \t", "*\t", "  \n", "\\ \n", "`a\\\n"
   ]
 
   /// Fragments for generating code blocks (indented or fenced) which get syntax highlighted

@@ -61,7 +61,8 @@ open class MarkdownParser {
     ThematicBreakParser.self
   ]
 
-  /// The default list of inline transformers. The order of this list matters.
+  /// The default list of inline transformers. The order of this list matters; in particular,
+  /// `EscapeTransformer` has to be the last transformer (see its documentation).
   open class var defaultInlineTransformers: [InlineTransformer.Type] {
     return self.inlineTransformers
   }

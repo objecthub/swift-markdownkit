@@ -578,4 +578,102 @@ class ParserRegressionTests: XCTestCase {
     XCTAssertEqual(StringGenerator.standard.generate(doc: doc), "Hello![World]")
     XCTAssertEqual(TerminalGenerator.standard.generate(doc: doc).plainText, "Hello![World]")
   }
+
+  // MARK: Line endings
+
+  /// Backslashes and spaces at the end of a line are no line breaks in code spans and HTML
+  func testLineEndingsInCodeSpansAndInlineHtml() {
+    XCTAssertEqual(html("`code\\\nspan`"), "<p><code>code\\ span</code></p>")
+    XCTAssertEqual(html("`code  \nspan`"), "<p><code>code   span</code></p>")
+    XCTAssertEqual(html("``\nfoo\nbar  \nbaz\n``"), "<p><code>foo bar   baz</code></p>")
+    XCTAssertEqual(html("``\nfoo \n``"), "<p><code>foo </code></p>")
+    XCTAssertEqual(html("`foo   bar \nbaz`"), "<p><code>foo   bar  baz</code></p>")
+    XCTAssertEqual(html("<a href=\"foo\\\nbar\">"), "<p><a href=\"foo\\\nbar\"></p>")
+    XCTAssertEqual(html("<a  /><b2\ndata=\"foo\" >"), "<p><a  /><b2\ndata=\"foo\" ></p>")
+    // A link destination in angle brackets cannot contain line endings (this is an HTML tag)
+    XCTAssertEqual(html("[link](<foo\nbar>)"), "<p>[link](<foo\nbar>)</p>")
+  }
+
+  func testHardAndSoftLineBreaks() {
+    XCTAssertEqual(html("foo\\\nbar"), "<p>foo<br/>bar</p>")
+    XCTAssertEqual(html("foo  \nbar"), "<p>foo<br/>bar</p>")
+    XCTAssertEqual(html("foo      \nbar"), "<p>foo<br/>bar</p>")
+    XCTAssertEqual(html("foo \nbar"), "<p>foo\nbar</p>")
+    XCTAssertEqual(html("foo\t\nbar"), "<p>foo\nbar</p>")
+    XCTAssertEqual(html("foo\\ \nbar"), "<p>foo\\\nbar</p>")
+    XCTAssertEqual(html("foo\\  \nbar"), "<p>foo\\<br/>bar</p>")
+    XCTAssertEqual(html("*foo  \nbar*"), "<p><em>foo<br/>bar</em></p>")
+    XCTAssertEqual(html("*foo\\\nbar*"), "<p><em>foo<br/>bar</em></p>")
+    XCTAssertEqual(html("`a`  \nb"), "<p><code>a</code><br/>b</p>")
+    XCTAssertEqual(html("[a  \nb](/u)"), "<p><a href=\"/u\">a<br/>b</a></p>")
+    // No line break at the end of a paragraph or heading
+    XCTAssertEqual(html("foo\\"), "<p>foo\\</p>")
+    XCTAssertEqual(html("foo  "), "<p>foo</p>")
+    XCTAssertEqual(html("Foo  \n---"), "<h2>Foo</h2>")
+    XCTAssertEqual(html("# Foo  "), "<h1>Foo</h1>")
+  }
+
+  // MARK: Autolinks and angle brackets
+
+  /// Backslash escapes do not work in autolinks, but an escaped `>` is a literal `>` elsewhere
+  func testBackslashesInAutolinks() {
+    XCTAssertEqual(html("<http://example.com/\\[\\>"),
+                   "<p><a href=\"http://example.com/\\[\\\">http://example.com/\\[\\</a></p>")
+    XCTAssertEqual(html("<http://example.com/a\\>b>"),
+                   "<p><a href=\"http://example.com/a\\\">http://example.com/a\\</a>b&gt;</p>")
+    XCTAssertEqual(html("a \\> b"), "<p>a &gt; b</p>")
+    XCTAssertEqual(html("1 < 2 \\> 0"), "<p>1 &lt; 2 &gt; 0</p>")
+    XCTAssertEqual(html("\\>a\\>"), "<p>&gt;a&gt;</p>")
+    XCTAssertEqual(html("[a](<b\\>c>)"), "<p><a href=\"b&gt;c\">a</a></p>")
+    // The same text as in the case without a preceding `<`
+    XCTAssertEqual(MarkdownParser.standard.parse("a \\> b"),
+                   .document([.paragraph(Text(TextFragment.text("a > b")))]))
+    XCTAssertEqual(MarkdownParser.standard.parse("1 < 2 \\> 0"),
+                   .document([.paragraph({
+                     var text = Text()
+                     text.append(fragment: .text("1 "))
+                     text.append(fragment: .delimiter("<", 1, []))
+                     text.append(fragment: .text(" 2 > 0"))
+                     return text
+                   }())]))
+  }
+
+  // MARK: Tabs
+
+  /// Tabs behave like spaces up to the next tab stop (a multiple of 4 columns) where whitespace
+  /// is significant for the block structure. They are not changed in code.
+  func testTabsExpandToTabStopsForIndentation() {
+    // A tab which is partially consumed by a container leaves spaces in the code block
+    XCTAssertEqual(html("- foo\n\n\t\tbar"),
+                   "<ul>\n<li><p>foo</p>\n<pre><code>  bar\n</code></pre>\n</li>\n</ul>")
+    XCTAssertEqual(html(">\t\tfoo"), "<blockquote>\n<pre><code>  foo\n</code></pre>\n</blockquote>")
+    XCTAssertEqual(html("-\t\tfoo"), "<ul>\n<li><pre><code>  foo\n</code></pre>\n</li>\n</ul>")
+    // (the first tab spans two columns, one of which follows the marker)
+    XCTAssertEqual(html("1.\t\tfoo"), "<ol start=\"1\">\n<li><pre><code> foo\n</code></pre>\n</li>\n</ol>")
+    // A tab which starts after two columns spans two columns only
+    XCTAssertEqual(html("  \tfoo"), "<pre><code>foo\n</code></pre>")
+    XCTAssertEqual(html("   \tfoo\tbar"), "<pre><code>foo\tbar\n</code></pre>")
+    XCTAssertEqual(html("\t\tfoo\n\t\t\tbar"), "<pre><code>\tfoo\n\t\tbar\n</code></pre>")
+    // A tab after the `>` of a block quote consumes one column
+    XCTAssertEqual(html(">\tfoo"), "<blockquote>\n<p>foo</p>\n</blockquote>")
+    XCTAssertEqual(html("> a\n>\t b\n>\t\t c"), "<blockquote>\n<p>a\nb\nc</p>\n</blockquote>")
+  }
+
+  func testTabsDetermineNestingOfListItems() {
+    XCTAssertEqual(html(" - foo\n   - bar\n\t - baz"),
+                   "<ul>\n<li>foo\n<ul>\n<li>bar\n<ul>\n<li>baz</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>")
+    XCTAssertEqual(html("- a\n\t- b\n\t\t- c"),
+                   "<ul>\n<li>a\n<ul>\n<li>b\n<ul>\n<li>c</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>")
+    XCTAssertEqual(html("1.\tfoo\n\tbar\n\n\tbaz"),
+                   "<ol start=\"1\">\n<li><p>foo\nbar</p>\n<p>baz</p>\n</li>\n</ol>")
+    XCTAssertEqual(html("-\tfoo\n\n\tbar"), "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n</ul>")
+  }
+
+  func testTabsDoNotCountAsFourColumnsAfterOtherCharacters() {
+    // A tab after two spaces and a list marker ends at the tab stop of column 4
+    XCTAssertEqual(html("  -\tfoo\n\n\tbar"), "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n</ul>")
+    // Content of code blocks and tabs in paragraphs are preserved
+    XCTAssertEqual(html("    a\ta\n    \u{1F50}\ta"), "<pre><code>a\ta\n\u{1F50}\ta\n</code></pre>")
+    XCTAssertEqual(html("a\tb"), "<p>a\tb</p>")
+  }
 }

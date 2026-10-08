@@ -39,6 +39,16 @@ open class DelimiterTransformer: InlineTransformer {
     }
   }
 
+  /// True if the text contains a `<` delimiter which is not followed by a `>` delimiter yet.
+  /// A `>` which is escaped by a backslash then becomes a delimiter as well: backslashes do not
+  /// escape anything in autolinks and in HTML tags, so the `>` ends an autolink or HTML tag.
+  private var angleOpen = false
+
+  public override func transform(_ text: Text) -> Text {
+    self.angleOpen = false
+    return super.transform(text)
+  }
+
   public override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {
@@ -72,9 +82,25 @@ open class DelimiterTransformer: InlineTransformer {
               res.append(fragment: .text(str[start..<i]))
             }
             res.append(fragment: .delimiter(str[i], 1, []))
+            if str[i] == "<" {
+              self.angleOpen = true
+            } else if str[i] == ">" {
+              self.angleOpen = false
+            }
             split = true
             i = str.index(after: i)
             start = i
+          } else if str[i] == ">" && self.angleOpen {
+            // The text in front of the delimiter ends with the escaping backslash
+            if start < i {
+              res.append(fragment: .text(str[start..<i]))
+            }
+            res.append(fragment: .delimiter(">", 1, .escaped))
+            self.angleOpen = false
+            split = true
+            i = str.index(after: i)
+            start = i
+            escape = false
           } else {
             i = str.index(after: i)
             escape = false

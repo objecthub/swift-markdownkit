@@ -52,26 +52,13 @@ open class ListItemParser: BlockParser {
       self.density = .init(tight: tight)
     }
 
-    public override func skipIndent(input: String,
-                                    startIndex: String.Index,
-                                    endIndex: String.Index) -> String.Index? {
-      var index = startIndex
-      var indent = 0
-      loop: while index < endIndex && indent < self.indent {
-        switch input[index] {
-        case " ":
-          indent += 1
-        case "\t":
-          indent += 4
-        default:
-          break loop
-        }
-        index = input.index(after: index)
-      }
-      guard index <= endIndex && indent >= self.indent else {
-        return nil
-      }
-      return index
+    internal override func skipIndent(input: String,
+                                      position: LinePosition,
+                                      endIndex: String.Index) -> LinePosition? {
+      let (res, consumed) = position.consumingWhitespace(in: input,
+                                                         endIndex: endIndex,
+                                                         columns: self.indent)
+      return consumed >= self.indent ? res : nil
     }
 
     internal override var endsAtBlankLineIfEmpty: Bool {
@@ -150,15 +137,21 @@ open class ListItemParser: BlockParser {
     }
     i = self.line.index(after: i)
     listMarkerIndent += 1
-    // Determine the amount of whitespace between the list marker and the content
+    // Determine the amount of whitespace (in columns, taking tab stops into account) between
+    // the list marker and the content
     let markerEnd = i
+    let markerEndColumn = self.docParser.lineColumn + self.docParser.linePartialTab +
+                          self.lineIndent + listMarkerIndent
     var indent = 0
+    var column = markerEndColumn
     loop: while i < self.contentEndIndex {
       switch self.line[i] {
         case " ":
           indent += 1
+          column += 1
         case "\t":
-          indent += 4
+          indent += LinePosition.tabWidth(at: column)
+          column += LinePosition.tabWidth(at: column)
         default:
           break loop
       }
@@ -176,16 +169,23 @@ open class ListItemParser: BlockParser {
         return .none
       }
     }
+    var partialTab = 0
     if blankRest {
       // The item starts with a blank line: the content starts one space after the marker
       indent = 1
     } else if indent > 4 {
-      // Five or more spaces: the content is an indented code block which follows one space
+      // Five or more columns: the content is an indented code block which follows one column
+      // of white space (which can be part of a tab)
       indent = 1
-      i = self.line.index(after: markerEnd)
+      if self.line[markerEnd] == "\t" && LinePosition.tabWidth(at: markerEndColumn) > 1 {
+        i = markerEnd
+        partialTab = 1
+      } else {
+        i = self.line.index(after: markerEnd)
+      }
     }
     indent += self.lineIndent + listMarkerIndent
-    self.docParser.resetLineStart(i)
+    self.docParser.resetLineStart(i, partialTab: partialTab)
     let tight = !self.prevLineEmpty
     if let number = number {
       return .container { encl in

@@ -20,6 +20,59 @@
 
 import Foundation
 
+/// A position within a line, which is used for skipping the indentation required by containers.
+/// Tabs are not expanded, but they behave as if they were replaced by spaces up to the next tab
+/// stop (a multiple of 4 columns). A tab can be consumed partially: a block quote marker `>`
+/// followed by a tab consumes one column of the tab, the remaining columns are indentation.
+internal struct LinePosition {
+  /// The index of the character at this position
+  var index: String.Index
+  /// The column at which the character at `index` starts
+  var column: Int
+  /// The number of columns of the tab at `index` which are already consumed (0 if the
+  /// character at `index` is not a tab)
+  var partialTab: Int = 0
+
+  /// The number of columns of a tab starting at `column`.
+  static func tabWidth(at column: Int) -> Int {
+    return 4 - column % 4
+  }
+
+  /// Consumes at most `columns` columns of white space (spaces and tabs) starting at this
+  /// position. A tab is consumed partially if there are fewer columns left than the tab
+  /// spans. Returns the resulting position and the number of columns consumed.
+  func consumingWhitespace<S: StringProtocol>(in input: S,
+                                              endIndex: String.Index,
+                                              columns: Int) -> (position: LinePosition,
+                                                                consumed: Int)
+                                              where S.Index == String.Index {
+    var pos = self
+    var remaining = columns
+    while remaining > 0 && pos.index < endIndex {
+      let ch = input[pos.index]
+      if ch == " " {
+        pos.index = input.index(after: pos.index)
+        pos.column += 1
+        remaining -= 1
+      } else if ch == "\t" {
+        let width = LinePosition.tabWidth(at: pos.column)
+        if width - pos.partialTab <= remaining {
+          remaining -= width - pos.partialTab
+          pos.column += width
+          pos.partialTab = 0
+          pos.index = input.index(after: pos.index)
+        } else {
+          pos.partialTab += remaining
+          remaining = 0
+        }
+      } else {
+        break
+      }
+    }
+    return (pos, columns - remaining)
+  }
+}
+
 ///
 /// A `Container` contains a sequence of blocks that are in the process of being parsed.
 /// Containers can be nested. The subclass `NestedContainer` implements a nested container;
@@ -94,9 +147,9 @@ open class Container: CustomDebugStringConvertible {
   }
 
   internal func parseIndent(input: String,
-                            startIndex: String.Index,
-                            endIndex: String.Index) -> (String.Index, Container) {
-    return (startIndex, self)
+                            position: LinePosition,
+                            endIndex: String.Index) -> (LinePosition, Container) {
+    return (position, self)
   }
 
   internal func outermostIndentRequired(upto: Container) -> Container? {
@@ -134,6 +187,27 @@ open class NestedContainer: Container {
     return startIndex
   }
 
+  /// Skips the indentation required by this container at the given position, taking tab stops
+  /// into account. Returns `nil` if the line does not have the required indentation. Subclasses
+  /// in this module override this method; the default implementation uses `skipIndent`
+  /// (without support for partially consumed tabs).
+  internal func skipIndent(input: String,
+                           position: LinePosition,
+                           endIndex: String.Index) -> LinePosition? {
+    guard let index = self.skipIndent(input: input,
+                                      startIndex: position.index,
+                                      endIndex: endIndex) else {
+      return nil
+    }
+    var column = position.column
+    var i = position.index
+    while i < index {
+      column += input[i] == "\t" ? LinePosition.tabWidth(at: column) : 1
+      i = input.index(after: i)
+    }
+    return LinePosition(index: index, column: column)
+  }
+
   open override func makeBlock(_ docParser: DocumentParser) -> Block {
     preconditionFailure("makeBlock() not defined")
   }
@@ -143,16 +217,18 @@ open class NestedContainer: Container {
   }
 
   internal final override func parseIndent(input: String,
-                                           startIndex: String.Index,
-                                           endIndex: String.Index) -> (String.Index, Container) {
-    let (index, container) = self.outer.parseIndent(input: input,
-                                                    startIndex: startIndex,
-                                                    endIndex: endIndex)
+                                           position: LinePosition,
+                                           endIndex: String.Index) -> (LinePosition, Container) {
+    let (outerPosition, container) = self.outer.parseIndent(input: input,
+                                                            position: position,
+                                                            endIndex: endIndex)
     guard container === self.outer else {
-      return (index, container)
+      return (outerPosition, container)
     }
-    guard let res = self.skipIndent(input: input, startIndex: index, endIndex: endIndex) else {
-      return (index, self.outer)
+    guard let res = self.skipIndent(input: input,
+                                    position: outerPosition,
+                                    endIndex: endIndex) else {
+      return (outerPosition, self.outer)
     }
     return (res, self)
   }

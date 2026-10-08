@@ -1066,7 +1066,13 @@ class LegacyCodeLinkHtmlTransformer: InlineTransformer {
                 var scanner2 = iterator
                 var content = ""
                 for _ in 1..<count {
-                  content += scanner2.next()?.rawDescription ?? ""
+                  // Changed after freezing this copy: line endings are part of raw HTML
+                  switch scanner2.next() {
+                    case .some(.softLineBreak), .some(.hardLineBreak):
+                      content += "\n"
+                    case let other:
+                      content += other?.rawDescription ?? ""
+                  }
                 }
                 if isURI(content) {
                   res.append(fragment: .autolink(.uri, Substring(content)))

@@ -29,8 +29,9 @@ import Foundation
 /// CC-BY-SA 4.0 license (https://creativecommons.org/licenses/by-sa/4.0/).
 ///
 /// MarkdownKit does not reproduce the HTML of the reference implementation byte by byte. The
-/// comparison ignores whitespace, quote entities, percent-encoding of URLs, and the `start`
-/// attribute of ordered lists starting with 1. The examples in `knownDeviations` are the ones
+/// comparison ignores whitespace (except in the content of code blocks and code spans), quote
+/// entities, percent-encoding of URLs, and the `start` attribute of ordered lists starting
+/// with 1. The examples in `knownDeviations` are the ones
 /// for which MarkdownKit produces different results even then. The test fails if an example
 /// outside of this list fails (a regression) and also if an example in the list passes
 /// (the list needs to be updated; a bug was fixed).
@@ -43,15 +44,10 @@ class CommonMarkSpecTests: XCTestCase {
     let section: String
   }
 
-  /// Examples for which the output of MarkdownKit differs from the specification.
-  static let knownDeviations: [Int : String] = [
-    9: "tab stops are not taken into account for list item indentation",
-    354: "currency symbols are not punctuation for emphasis delimiter runs",
-    491: "a link destination in angle brackets may span lines",
-    603: "a backslash in an autolink",
-    641: "a backslash at the end of a line in a code span is dropped",
-    643: "a backslash at the end of a line in inline HTML is dropped"
-  ]
+  /// Examples for which the output of MarkdownKit differs from the specification, with the
+  /// reason. There are none at the moment: MarkdownKit passes all examples. Examples are added
+  /// here if a change makes MarkdownKit deviate from the specification on purpose.
+  static let knownDeviations: [Int : String] = [:]
 
   private func loadExamples() throws -> [Example] {
     #if SWIFT_PACKAGE
@@ -79,7 +75,25 @@ class CommonMarkSpecTests: XCTestCase {
       let value = String(result[range])
       result.replaceSubrange(range, with: value.removingPercentEncoding ?? value)
     }
-    return String(result.unicodeScalars.filter { !CharacterSet.whitespacesAndNewlines.contains($0) })
+    // Whitespace is only significant in code (`<pre><code>` and `<code>` elements)
+    let code = try! NSRegularExpression(pattern: "<code[^>]*>.*?</code>",
+                                        options: [.dotMatchesLineSeparators])
+    var normalized = ""
+    var position = result.startIndex
+    for match in code.matches(in: result, range: NSRange(result.startIndex..., in: result)) {
+      guard let range = Range(match.range, in: result) else {
+        continue
+      }
+      normalized += self.removeWhitespace(result[position..<range.lowerBound])
+      normalized += result[range]
+      position = range.upperBound
+    }
+    normalized += self.removeWhitespace(result[position...])
+    return normalized
+  }
+
+  private func removeWhitespace(_ str: Substring) -> String {
+    return String(str.unicodeScalars.filter { !CharacterSet.whitespacesAndNewlines.contains($0) })
   }
 
   func testSpecExamples() throws {

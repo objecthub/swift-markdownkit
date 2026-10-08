@@ -118,14 +118,14 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
     XCTAssertEqual(parse("<a/><b2/>"),
                    document(paragraph(.html("a/"), .html("b2/"))))
     XCTAssertEqual(parse("<a  /><b2\ndata=\"foo\" >"),
-                   document(paragraph(.html("a  /"), .html("b2 data=\"foo\" "))))
+                   document(paragraph(.html("a  /"), .html("b2\ndata=\"foo\" "))))
     XCTAssertEqual(parse("<a foo=\"bar>\"> foo"),
                    document(paragraph(.html("a foo=\"bar>\""), .text(" foo"))))
     XCTAssertEqual(parse("x <a foo=\"bar\" b = 'baz <em>\"</em>' x mk:72=m:7 />"),
                    document(paragraph(.text("x "),
                                       .html("a foo=\"bar\" b = 'baz <em>\"</em>' x mk:72=m:7 /"))))
     XCTAssertEqual(parse("<a foo=\"bar\" bam = 'baz <em>\"</em>'\n_b zoop:33=zoop:33 />"),
-                   document(paragraph(.html("a foo=\"bar\" bam = 'baz <em>\"</em>' " +
+                   document(paragraph(.html("a foo=\"bar\" bam = 'baz <em>\"</em>'\n" +
                                             "_b zoop:33=zoop:33 /"))))
     XCTAssertEqual(parse("<33> <__>"),
                    document(paragraph(.delimiter("<", 1, []),
@@ -204,7 +204,7 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
                    document(paragraph(.html("/a"), .html("/foo "))))
     XCTAssertEqual(parse("foo <!-- this is a\ncomment - with hyphen -->"),
                    document(paragraph(.text("foo "),
-                                      .html("!-- this is a comment - with hyphen --"))))
+                                      .html("!-- this is a\ncomment - with hyphen --"))))
     // CommonMark 0.30: comments can contain `--`, and `<!-->` and `<!--->` are comments
     XCTAssertEqual(parse("foo <!-- comment -- with two hyphens -->"),
                    document(paragraph(.text("foo "),
