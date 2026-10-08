@@ -54,7 +54,7 @@ open class HtmlBlockParser: BlockParser {
   }
 
   open override func parse() -> ParseResult {
-    guard self.shortLineIndent, self.line[self.contentStartIndex] == "<" else {
+    guard self.shortLineIndent, self.firstContentCharacter == "<" else {
       return .none
     }
     var cline = self.line[self.contentStartIndex..<self.contentEndIndex].lowercased()

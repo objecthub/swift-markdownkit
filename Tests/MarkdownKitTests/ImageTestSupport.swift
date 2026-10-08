@@ -24,16 +24,15 @@ import AppKit
 import Network
 @testable import MarkdownKit
 
-final class ProbeRecordingServer {
+/// A minimal HTTP server on the loopback interface which records the requests it receives
+/// and answers every request with a PNG image (or a CSS file for paths ending in `.css`).
+final class LoopbackImageServer {
   private let listener: NWListener
-  private let queue = DispatchQueue(label: "ImageLoadingProbeTests.server")
+  private let queue = DispatchQueue(label: "LoopbackImageServer")
   private let lock = NSLock()
   private var recorded: [String] = []
   private(set) var port: UInt16 = 0
   private let png: Data
-  /// Requests for paths containing this string are never answered (to probe timeouts)
-  var hangMarker: String? = nil
-  private var hung: [NWConnection] = []
 
   init(png: Data) throws {
     let parameters = NWParameters.tcp
@@ -62,7 +61,7 @@ final class ProbeRecordingServer {
     }
     self.listener.start(queue: self.queue)
     guard ready.wait(timeout: .now() + 5) == .success, let port = self.listener.port?.rawValue else {
-      throw NSError(domain: "ImageLoadingProbeTests", code: 1,
+      throw NSError(domain: "LoopbackImageServer", code: 1,
                     userInfo: [NSLocalizedDescriptionKey: "server did not start"])
     }
     self.port = port
@@ -85,12 +84,6 @@ final class ProbeRecordingServer {
       self.recorded.append(line)
       self.lock.unlock()
       let path = line.split(separator: " ").dropFirst().first.map(String.init) ?? ""
-      if let marker = self.hangMarker, path.contains(marker) {
-        self.lock.lock()
-        self.hung.append(connection)
-        self.lock.unlock()
-        return
-      }
       let (type, body): (String, Data) = path.hasSuffix(".css")
         ? ("text/css", Data("body { color: red }".utf8))
         : ("image/png", self.png)
@@ -102,7 +95,7 @@ final class ProbeRecordingServer {
   }
 }
 
-func makeProbePNG() -> Data {
+func makeTestPNG() -> Data {
   let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 8, pixelsHigh: 8,
                              bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
                              isPlanar: false, colorSpaceName: .deviceRGB,

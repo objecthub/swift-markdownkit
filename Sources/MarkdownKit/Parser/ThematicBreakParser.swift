@@ -29,8 +29,10 @@ open class ThematicBreakParser: BlockParser {
     guard self.shortLineIndent else {
       return .none
     }
+    guard let ch = self.firstContentCharacter else {
+      return .none
+    }
     var i = self.contentStartIndex
-    let ch = self.line[i]
     switch ch {
       case "-", "_", "*":
         break

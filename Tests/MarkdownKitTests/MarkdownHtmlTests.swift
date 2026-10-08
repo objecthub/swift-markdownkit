@@ -107,12 +107,4 @@ class MarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
                    "<p>Test</p>\n<pre><code>This should &lt;b&gt;not be bold&lt;/b&gt;.\n" +
                    "</code></pre>")
   }
-  
-  static let allTests = [
-    ("testBasics", testBasics),
-    ("testLists", testLists),
-    ("testNestedLists", testNestedLists),
-    ("testImageLinks", testImageLinks),
-    ("testAutolinks", testAutolinks),
-  ]
 }

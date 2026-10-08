@@ -673,18 +673,4 @@ class MarkdownInlineTests: XCTestCase, MarkdownKitFactory {
   func testDebug() {
 
   }
-  
-  static let allTests = [
-    ("testDelimiters", testDelimiters),
-    ("testCodeSpans", testCodeSpans),
-    ("testAutolinks", testAutolinks),
-    ("testXmlTags", testXmlTags),
-    ("testSimpleEmphasis", testSimpleEmphasis),
-    ("testEmphasis", testEmphasis),
-    ("testLinks", testLinks),
-    ("testImages", testImages),
-    ("testCombinations", testCombinations),
-    ("testLinkRef", testLinkRef),
-    ("testEscaping", testEscaping),
-  ]
 }

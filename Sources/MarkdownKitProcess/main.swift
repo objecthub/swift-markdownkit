@@ -171,28 +171,38 @@ for (sourceUrl, optTargetUrl) in sourceTarget {
           print("cannot convert \(sourceUrl.lastPathComponent)")
           continue
         }
-        output = try astr.data(
-          from: NSRange(location: 0, length: astr.length),
-          documentAttributes: [
-            .documentType: NSAttributedString.DocumentType.rtf,
-            .author: "MarkdownKitProcess",
-            .title: sourceUrl.lastPathComponent,
-            .creationTime: Date()
-          ])
+        do {
+          output = try astr.data(
+            from: NSRange(location: 0, length: astr.length),
+            documentAttributes: [
+              .documentType: NSAttributedString.DocumentType.rtf,
+              .author: "MarkdownKitProcess",
+              .title: sourceUrl.lastPathComponent,
+              .creationTime: Date()
+            ])
+        } catch {
+          print("cannot convert \(sourceUrl.lastPathComponent): \(error.localizedDescription)")
+          continue
+        }
       case .rtfd:
         guard let astr = AttributedStringGenerator.standard.generate(doc: markdownContent) else {
           print("cannot convert \(sourceUrl.lastPathComponent)")
           continue
         }
         output = nil
-        fileWrapper = try astr.fileWrapper(
-          from: NSRange(location: 0, length: astr.length),
-          documentAttributes: [
-            .documentType: NSAttributedString.DocumentType.rtfd,
-            .author: "MarkdownKitProcess",
-            .title: sourceUrl.lastPathComponent,
-            .creationTime: Date()
-          ])
+        do {
+          fileWrapper = try astr.fileWrapper(
+            from: NSRange(location: 0, length: astr.length),
+            documentAttributes: [
+              .documentType: NSAttributedString.DocumentType.rtfd,
+              .author: "MarkdownKitProcess",
+              .title: sourceUrl.lastPathComponent,
+              .creationTime: Date()
+            ])
+        } catch {
+          print("cannot convert \(sourceUrl.lastPathComponent): \(error.localizedDescription)")
+          continue
+        }
     }
     if let targetUrl = optTargetUrl {
       if fileManager.fileExists(atPath: targetUrl.path) {

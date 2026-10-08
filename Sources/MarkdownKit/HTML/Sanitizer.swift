@@ -32,21 +32,15 @@ enum Sanitizer {
   }
 
   /// Returns the language name that is used for the `class` attribute of a code block, or `nil`
-  /// if the info string does not contain a usable one. Only the first word of the info string
-  /// is considered and only characters that cannot break out of an attribute are kept.
+  /// if the info string does not contain a word. The language name is the first word of the
+  /// info string, which is the info string of the syntax tree (backslash escapes and entity
+  /// references are already resolved). The result can be embedded into a double-quoted HTML
+  /// attribute; it does not need to be encoded again.
   static func languageClass(for info: String) -> String? {
-    let word = info.split(whereSeparator: { $0.isWhitespace }).first ?? ""
-    let name = String(word.unicodeScalars.filter(Sanitizer.isLanguageScalar))
-    return name.isEmpty ? nil : name
-  }
-
-  private static func isLanguageScalar(_ scalar: Unicode.Scalar) -> Bool {
-    switch scalar {
-      case "a"..."z", "A"..."Z", "0"..."9", "_", "+", "#", ".", "-":
-        return true
-      default:
-        return false
+    guard let word = info.split(whereSeparator: { $0.isWhitespace }).first else {
+      return nil
     }
+    return String(word).encodingPredefinedXmlEntities()
   }
 
   private static let allowedSchemes: Set<String> = ["http", "https", "mailto"]

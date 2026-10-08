@@ -65,13 +65,35 @@ class SecurityTests: XCTestCase {
                    "<p><a href=\"http://a?b=1&amp;c=2\">http://a?b=1&amp;c=2</a></p>")
   }
 
-  func testCodeLanguageIsSanitized() {
+  func testCodeLanguageIsEscaped() {
+    // The first word of the info string is the language, whatever characters it contains;
+    // it is escaped, so it cannot break out of the attribute.
     XCTAssertEqual(html("```x\" onmouseover=\"alert(1)\ncode\n```"),
-                   "<pre><code class=\"language-x\">code\n</code></pre>")
+                   "<pre><code class=\"language-x&quot;\">code\n</code></pre>")
     XCTAssertEqual(html("```swift extra words\ncode\n```"),
                    "<pre><code class=\"language-swift\">code\n</code></pre>")
     XCTAssertEqual(html("```c++\ncode\n```"), "<pre><code class=\"language-c++\">code\n</code></pre>")
-    XCTAssertEqual(html("```\"'<>\ncode\n```"), "<pre><code>code\n</code></pre>")
+    XCTAssertEqual(html("```\"'<>\ncode\n```"),
+                   "<pre><code class=\"language-&quot;&#39;&lt;&gt;\">code\n</code></pre>")
+    XCTAssertEqual(html("```&quot;&gt;&lt;script&gt;alert(1)\ncode\n```"),
+                   "<pre><code class=\"language-&quot;&gt;&lt;script&gt;alert(1)\">code\n</code></pre>")
+    XCTAssertEqual(html("```a\\\"b\ncode\n```"),
+                   "<pre><code class=\"language-a&quot;b\">code\n</code></pre>")
+    // No language
+    XCTAssertEqual(html("```\ncode\n```"), "<pre><code>code\n</code></pre>")
+    XCTAssertEqual(html("```&#32;\ncode\n```"), "<pre><code>code\n</code></pre>")
+  }
+
+  func testCodeLanguageCannotInjectAttributesOrTags() {
+    let attack = ["x\" onmouseover=\"alert(1)", "x'onmouseover='alert(1)", "\"><script>alert(1)</script>",
+                  "&quot;&gt;&lt;img src=x onerror=alert(1)&gt;", "x\u{0301}\"onmouseover=\"1",
+                  "\\\"onmouseover=\\\"1", "&#34;onmouseover=&#34;1"]
+    let pattern = try! NSRegularExpression(pattern: "^<pre><code class=\"language-([^\"<>]*)\">code\n</code></pre>$")
+    for info in attack {
+      let output = html("```\(info)\ncode\n```")
+      XCTAssertNotNil(pattern.firstMatch(in: output, range: NSRange(output.startIndex..., in: output)),
+                      "\(info.debugDescription): \(output)")
+    }
   }
 
   func testEntityObfuscatedSchemeIsStillCaughtInSafeMode() {

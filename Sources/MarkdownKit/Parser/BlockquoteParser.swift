@@ -21,7 +21,7 @@
 import Foundation
 
 ///
-/// A block parser which parses block quotes eturning `blockquote` blocks.
+/// A block parser which parses block quotes returning `blockquote` blocks.
 ///
 open class BlockquoteParser: BlockParser {
 
@@ -29,6 +29,10 @@ open class BlockquoteParser: BlockParser {
 
     public override var indentRequired: Bool {
       return true
+    }
+
+    internal override var blankLinesSeparateBlocks: Bool {
+      return false
     }
 
     public override func skipIndent(input: String,
@@ -60,7 +64,7 @@ open class BlockquoteParser: BlockParser {
   }
   
   public override func parse() -> ParseResult {
-    guard self.shortLineIndent && self.line[self.contentStartIndex] == ">" else {
+    guard self.shortLineIndent && self.firstContentCharacter == ">" else {
       return .none
     }
     let i = self.line.index(after: self.contentStartIndex)

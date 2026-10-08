@@ -160,7 +160,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
       case .indentedCode(let lines):
         return lines.map { String($0) }.joined()
       case .fencedCode(_, let lines):
-        return lines.map { String($0) }.joined(separator: "\n")
+        return lines.map { String($0) }.joined()
       case .htmlBlock(_):
         return ""
       case .referenceDef(_, _, let lines):
@@ -191,15 +191,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
   }
   
   fileprivate static func string(from row: Row) -> String {
-    var res = "row("
-    for cell in row {
-      if res.isEmpty {
-        res = cell.description
-      } else {
-        res = res + " | " + cell.description
-      }
-    }
-    return res + ")"
+    return "row(" + row.map { $0.description }.joined(separator: " | ") + ")"
   }
   
   /// Defines an equality relation for two blocks.

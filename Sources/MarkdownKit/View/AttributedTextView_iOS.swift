@@ -1,5 +1,5 @@
 //
-//  AttributedTextView.swift
+//  AttributedTextView_iOS.swift
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 17/03/2026.
@@ -41,8 +41,12 @@ struct AttributedTextView: UIViewRepresentable {
   }
   
   func updateUIView(_ textView: UITextView, context: Context) {
-    // Propagate the attributed text and line limit constraints
-    textView.attributedText = attributedText
+    // Propagate the attributed text and line limit constraints. Setting the text resets the
+    // text selection; it is only done if the text changed.
+    if context.coordinator.attributedText !== attributedText {
+      context.coordinator.attributedText = attributedText
+      textView.attributedText = attributedText
+    }
     textView.textContainer.maximumNumberOfLines = context.environment.lineLimit ?? 0
     // Calculate the required height for the content
     let size = textView.sizeThatFits(CGSize(width: self.availableWidth,
@@ -65,6 +69,8 @@ struct AttributedTextView: UIViewRepresentable {
   
   class Coordinator: NSObject, UITextViewDelegate {
     var openURL: OpenURLAction? = nil
+    /// The attributed text that was set last
+    var attributedText: NSAttributedString? = nil
     
     func textView(_ textView: UITextView,
                   primaryActionFor textItem: UITextItem,

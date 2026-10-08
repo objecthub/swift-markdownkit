@@ -104,7 +104,7 @@ open class TerminalGenerator {
   /// determines what the output will be.
   public let tableRenderers: [TableRenderer]
   
-  /// Default `StringGenerator` implementation with 80 columns
+  /// Default `TerminalGenerator` implementation with 80 columns
   public static let standard = TerminalGenerator(numColumns: 80)
   
   /// Configuration for the syntax highlighter.
@@ -226,11 +226,16 @@ open class TerminalGenerator {
   /// `generate` takes a block representing a Markdown document and returns a corresponding
   /// formatted plain text string.
   open func generate(doc: Block) -> AnsiText.Normalized {
-    guard case .document(let blocks) = doc else {
-      preconditionFailure("cannot generate string from \(doc)")
+    // A block which is not a document is handled like a document consisting of this block
+    let blocks: Blocks
+    if case .document(let docBlocks) = doc {
+      blocks = docBlocks
+    } else {
+      blocks = [doc]
     }
     return self.generate(blocks: blocks,
-                         context: self.newContext(doc: doc, maxColumns: self.numColumns))
+                         context: self.newContext(doc: .document(blocks),
+                                                  maxColumns: self.numColumns))
                .joined(separator: "\n")
   }
   
@@ -351,10 +356,8 @@ open class TerminalGenerator {
            let transformed = hl.highlight(code: lines.joined(separator: "").sanitizingControlCharacters(),
                                           as: nil,
                                           ignoreIllegals: self.ignoreSyntacticIssues) {
-          let encoded = hl.asAnsiTerminalString(transformed.decodingNamedCharacters(),
-                                                using: config)
-          let newlines = encoded.split(whereSeparator: \.isNewline)
-          result.append(contentsOf: newlines)
+          // `asAnsiTerminalString` decodes the entities in `transformed`
+          result.append(contentsOf: hl.asAnsiTerminalString(transformed, using: config).lines())
         } else {
           for line in lines {
             let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
@@ -373,16 +376,16 @@ open class TerminalGenerator {
         var result: [AnsiText.Normalized] = []
         result.append(self.codeBlockBorder(lang: lang, maxColumns: context.maxColumns))
         #if !os(watchOS)
-        if !self.ignoredLanguages.contains(lang ?? ""),
+        // The language is the first word of the info string
+        let language = lang?.split(whereSeparator: \.isWhitespace).first.map(String.init)
+        if !self.ignoredLanguages.contains(language ?? ""),
            let config = self.codeBlockHighlightingConfig,
            let hl = self.syntaxHighlighter ?? SyntaxHighlighter.proxy,
            let transformed = hl.highlight(code: lines.joined(separator: "").sanitizingControlCharacters(),
-                                          as: lang,
+                                          as: language,
                                           ignoreIllegals: self.ignoreSyntacticIssues) {
-          let encoded = hl.asAnsiTerminalString(transformed.decodingNamedCharacters(),
-                                                using: config)
-          let newlines = encoded.split(whereSeparator: \.isNewline)
-          result.append(contentsOf: newlines)
+          // `asAnsiTerminalString` decodes the entities in `transformed`
+          result.append(contentsOf: hl.asAnsiTerminalString(transformed, using: config).lines())
         } else {
           for line in lines {
             let normalized = line.hasSuffix("\n") ? line[..<line.index(before: line.endIndex)] : line
@@ -527,8 +530,10 @@ open class TerminalGenerator {
         }
       case .html(_):
         return AnsiText.Normalized()
-      case .delimiter(let ch, let n, _):
-        return AnsiText.Normalized(repeating: ch, count: max(n, 0))
+      case .delimiter(let ch, let n, let type):
+        // The opening bracket of an image, which was not completed, comes with its `!`
+        return AnsiText.Normalized((type.contains(.image) ? "!" : "") +
+                                   String(repeating: ch, count: max(n, 0)))
       case .softLineBreak:
         return AnsiText.Normalized(" ")
       case .hardLineBreak:
@@ -1048,5 +1053,31 @@ open class TerminalGenerator {
       }
       return columnWidths
     }
+  }
+}
+
+fileprivate extension AnsiText.Normalized {
+  
+  /// Splits this text into lines at newline characters. As opposed to `split`, the result
+  /// includes empty lines. A newline at the very end terminates the last line; it does not
+  /// start another one.
+  func lines() -> [AnsiText.Normalized] {
+    var lines: [[(TextProperties, String)]] = [[]]
+    for (properties, text) in self.segments {
+      var first = true
+      for part in text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline) {
+        if !first {
+          lines.append([])
+        }
+        first = false
+        if !part.isEmpty {
+          lines[lines.count - 1].append((properties, String(part)))
+        }
+      }
+    }
+    if lines.count > 1 && lines[lines.count - 1].isEmpty {
+      lines.removeLast()
+    }
+    return lines.map { $0.isEmpty ? AnsiText.Normalized() : AnsiText.Normalized(segments: $0) }
   }
 }

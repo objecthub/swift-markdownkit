@@ -69,6 +69,16 @@ open class BlockParser {
     return self.docParser.lineIndent
   }
   
+  /// The first character of the content of the current line (the first character after the
+  /// indentation), or `nil` if the line has no content. Block parsers need to use this
+  /// instead of subscripting `line` with `contentStartIndex`, because `contentStartIndex` is
+  /// out of bounds for a blank line at the very end of the input (one without a line
+  /// terminator).
+  public var firstContentCharacter: Character? {
+    let start = self.docParser.contentStartIndex
+    return start < self.docParser.contentEndIndex ? self.docParser.line[start] : nil
+  }
+  
   public var lineEmpty: Bool {
     return self.docParser.lineEmpty
   }

@@ -47,8 +47,9 @@ open class HtmlGenerator {
   /// `generate` takes a block representing a Markdown document and returns a corresponding
   /// representation in HTML as a string.
   open func generate(doc: Block) -> String {
+    // A block which is not a document is handled like a document consisting of this block
     guard case .document(let blocks) = doc else {
-      preconditionFailure("cannot generate HTML from \(doc)")
+      return self.generate(blocks: [doc], parent: .none)
     }
     return self.generate(blocks: blocks, parent: .none)
   }
@@ -63,8 +64,8 @@ open class HtmlGenerator {
   
   open func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
     switch block {
-      case .document(_):
-        preconditionFailure("broken block \(block)")
+      case .document(let blocks):
+        return self.generate(blocks: blocks, parent: parent, tight: tight)
       case .blockquote(let blocks):
         return "<blockquote>\n" +
                self.generate(blocks: blocks, parent: .block(block, parent)) +
@@ -138,10 +139,14 @@ open class HtmlGenerator {
               tagsuffix.append(" align=\"center\">")
           }
         }
+        // Rows with more cells than there are column alignments are tolerated
+        func suffix(_ i: Int) -> String {
+          return i < tagsuffix.count ? tagsuffix[i] : ">"
+        }
         var html = "<table><thead><tr>\n"
         var i = 0
         for head in header {
-          html += "<th\(tagsuffix[i])\(self.generate(text: head))</th>"
+          html += "<th\(suffix(i))\(self.generate(text: head))</th>"
           i += 1
         }
         html += "\n</tr></thead><tbody>\n"
@@ -149,7 +154,7 @@ open class HtmlGenerator {
           html += "<tr>"
           i = 0
           for cell in row {
-            html += "<td\(tagsuffix[i])\(self.generate(text: cell))</td>"
+            html += "<td\(suffix(i))\(self.generate(text: cell))</td>"
             i += 1
           }
           html += "</tr>\n"
@@ -221,7 +226,7 @@ open class HtmlGenerator {
         }
       case .html(let tag):
         return self.safeMode ? "<!-- raw HTML omitted -->" : "<\(tag.description)>"
-      case .delimiter(let ch, let n, _):
+      case .delimiter(let ch, let n, let type):
         let char: String
         switch ch {
           case "<":
@@ -231,11 +236,8 @@ open class HtmlGenerator {
           default:
             char = String(ch)
         }
-        var res = char
-        for _ in 1..<n {
-          res.append(char)
-        }
-        return res
+        // The opening bracket of an image, which was not completed, comes with its `!`
+        return (type.contains(.image) ? "!" : "") + String(repeating: char, count: max(n, 0))
       case .softLineBreak:
         return "\n"
       case .hardLineBreak:

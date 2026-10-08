@@ -87,10 +87,4 @@ class ExtendedMarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
                    "<dd>Description three</dd>\n" +
                    "</dl>")
   }
-  
-  static let allTests = [
-    ("testSimpleNestedLists", testSimpleNestedLists),
-    ("testTables", testTables),
-    ("testDescriptionLists", testDescriptionLists),
-  ]
 }

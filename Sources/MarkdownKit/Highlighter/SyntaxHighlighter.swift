@@ -502,13 +502,15 @@ public final class SyntaxHighlighter {
       } else if nextChar == "/" {
           // We have a SPAN end tag so skip over it
         _ = scanner.scanString("/span>")
-        propStack.removeLast()
+        if !propStack.isEmpty {
+          propStack.removeLast()
+        }
       } else {
-          // We have code text, so style it based on the previous SPAN classe we've stored
+          // We have code text, so style it based on the previous SPAN classe we've stored.
+          // The character following the "<" is not part of the tag; it gets scanned next.
         let attrScannedString: NSAttributedString =
         config.apply(to: "<", styleList: propStack)
         resultString.append(attrScannedString)
-        scanner.skipNextCharacter()
       }
     }
       // Process HTML escapes in the rendered attribute string
@@ -538,15 +540,14 @@ public final class SyntaxHighlighter {
   ///   - html: The HTML string returned by `highlight(code:as:ignoreIllegals:)`.
   ///   - config: The ANSI highlighting config to apply for colors and styling.
   ///
-  /// - Returns: A string with ANSI escape sequences for syntax highlighting,
-  ///            or `nil` if conversion fails.
+  /// - Returns: The text with ANSI styling for syntax highlighting.
   ///
   /// Example:
   /// ```swift
   /// if let html = highlighter.highlight(code: sourceCode, as: "swift"),
-  ///    let config = AnsiHighlighterConfig(withTheme: "monokai") {
-  ///   let ansiString = highlighter.asAnsiTerminalString(html, using: config)
-  ///   print(ansiString ?? "")
+  ///    let config = AnsiHighlightingConfig(withTheme: "monokai", fullColorSupport: true) {
+  ///   let ansiText = highlighter.asAnsiTerminalString(html, using: config)
+  ///   print(ansiText)
   /// }
   /// ```
   public func asAnsiTerminalString(_ html: String,
@@ -560,7 +561,10 @@ public final class SyntaxHighlighter {
       // Read up to the first tag
       scanned = scanner.scanUpToString("<")
       if let content = scanned, !content.isEmpty {
-        result.append(config.apply(to: content, styleList: propStack))
+        // highlight.js escapes `&`, `<`, `>` and quotes in the code it outputs. Entities are
+        // decoded for each run of text separately, so that a decoded `<` can never be
+        // mistaken for the start of a tag.
+        result.append(config.apply(to: content.decodingNamedCharacters(), styleList: propStack))
         if scanner.isAtEnd {
           continue
         }
@@ -588,54 +592,12 @@ public final class SyntaxHighlighter {
           propStack.removeLast()
         }
       } else {
-        // We have code text, so style it based on the previous SPAN classes we've stored
+        // We have code text, so style it based on the previous SPAN classes we've stored.
+        // The character following the "<" is not part of a tag; it gets scanned next.
         result.append(config.apply(to: "<", styleList: propStack))
-        scanner.skipNextCharacter()
       }
     }
     return result
-    // Process HTML escapes in the rendered string
-    /* let results = self.htmlEscape.matches(in: result.description,
-                                          options: [.reportCompletion],
-                                          range: NSMakeRange(0, result.description.count))
-    var localOffset = 0
-    var processedResult = result
-    for checkResult: NSTextCheckingResult in results {
-      let fixedRange = NSMakeRange(checkResult.range.location - localOffset,
-                                   checkResult.range.length)
-      let entity = (result.description as NSString).substring(with: fixedRange)
-      if let decodedEntity = NamedCharacters.decode(entity: entity) {
-        // Find the segment containing this entity and split it
-        var charIndex = 0
-        var segmentIndex = 0
-        for (idx, (_, text)) in processedResult.segments.enumerated() {
-          let segmentLength = text.count
-          if charIndex + segmentLength > fixedRange.location {
-            segmentIndex = idx
-            break
-          }
-          charIndex += segmentLength
-        }
-        let (props, segmentText) = processedResult.segments[segmentIndex]
-        let localStart = fixedRange.location - charIndex
-        let localEnd = localStart + fixedRange.length
-        let before = String(segmentText.prefix(localStart))
-        let after = String(segmentText.suffix(segmentText.count - localEnd))
-        var newSegments: [(TextProperties, String)] = []
-        newSegments.append(contentsOf: processedResult.segments[..<segmentIndex])
-        if !before.isEmpty {
-          newSegments.append((props, before))
-        }
-        newSegments.append((props, String(decodedEntity)))
-        if !after.isEmpty {
-          newSegments.append((props, after))
-        }
-        newSegments.append(contentsOf: processedResult.segments[(segmentIndex + 1)...])
-        processedResult = AnsiText.Normalized(segments: newSegments)
-        localOffset += (checkResult.range.length - 1)
-      }
-    }
-    return processedResult */
   }
   
   /// Configuration for adding line numbers to highlighted code.
@@ -995,14 +957,21 @@ public final class SyntaxHighlighter {
 }
 
 private extension Scanner {
+  /// Returns the character at the current scan location, or the empty string if the scanner
+  /// is at the end of its string.
   func getNextCharacter(in outer: String) -> String {
     let string: NSString = self.string as NSString
     let idx: Int = self.currentIndex.utf16Offset(in: outer)
-    let nextChar: String = string.substring(with: NSMakeRange(idx, 1))
-    return nextChar
+    guard idx < string.length else {
+      return ""
+    }
+    return string.substring(with: NSMakeRange(idx, 1))
   }
   
   func skipNextCharacter() {
+    guard self.currentIndex < self.string.endIndex else {
+      return
+    }
     self.currentIndex = self.string.index(after: self.currentIndex)
   }
 }

@@ -110,9 +110,11 @@ open class ListItemParser: BlockParser {
     guard self.shortLineIndent else {
       return .none
     }
+    guard var marker = self.firstContentCharacter else {
+      return .none
+    }
     var i = self.contentStartIndex
     var listMarkerIndent = 0
-    var marker: Character = self.line[i]
     var number: Int? = nil
     switch marker {
       case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":

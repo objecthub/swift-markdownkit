@@ -31,8 +31,30 @@ open class Container: CustomDebugStringConvertible {
 
   /// The number of containers enclosing this container (0 for the document container).
   public internal(set) var depth: Int = 0
+
+  /// True if there was no blank line in front of the line on which this container started.
+  /// This is what the enclosing container needs to know about this container when determining
+  /// whether it is loose (i.e. whether it directly contains blocks which are separated by
+  /// blank lines); it is not the same as the density of this container.
+  public internal(set) var startedTight: Bool = true
+
+  /// True if a blank line within this container separates the blocks surrounding it. This is
+  /// not the case for block quotes: a blank line at the end of a block quote does not make an
+  /// enclosing list loose.
+  internal var blankLinesSeparateBlocks: Bool {
+    return true
+  }
   
   open func append(block: Block, tight: Bool) {
+    // Successive items of a list are not blocks which are separated by a blank line in the
+    // sense of this container. Blank lines between them make the list loose, which is
+    // determined from the density of the items.
+    if case .listItem(let type, _, _) = block,
+       case .listItem(let prevType, _, _)? = self.content.last,
+       type.compatible(with: prevType) {
+      self.content.append(block)
+      return
+    }
     if !content.isEmpty || self.density == nil {
       self.density = self.density?.merge(tight: tight) ?? .tight
     }
@@ -150,7 +172,7 @@ open class NestedContainer: Container {
     if self === container {
       return self
     } else {
-      self.outer.append(block: self.makeBlock(docParser), tight: self.density?.isTight ?? true)
+      self.outer.append(block: self.makeBlock(docParser), tight: self.startedTight)
       return self.outer.return(to: container, for: docParser)
     }
   }

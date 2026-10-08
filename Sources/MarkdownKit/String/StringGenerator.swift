@@ -94,11 +94,16 @@ open class StringGenerator {
   /// `generate` takes a block representing a Markdown document and returns a corresponding
   /// formatted plain text string.
   open func generate(doc: Block) -> String {
-    guard case .document(let blocks) = doc else {
-      preconditionFailure("cannot generate string from \(doc)")
+    // A block which is not a document is handled like a document consisting of this block
+    let blocks: Blocks
+    if case .document(let docBlocks) = doc {
+      blocks = docBlocks
+    } else {
+      blocks = [doc]
     }
     return self.generate(blocks: blocks,
-                         context: self.newContext(doc: doc, maxColumns: self.numColumns))
+                         context: self.newContext(doc: .document(blocks),
+                                                  maxColumns: self.numColumns))
                .joined(separator: "\n")
   }
   
@@ -322,8 +327,9 @@ open class StringGenerator {
         }
       case .html(_):
         return "" // Skip HTML in plain text output
-      case .delimiter(let ch, let n, _):
-        return String(repeating: ch, count: max(n, 0))
+      case .delimiter(let ch, let n, let type):
+        // The opening bracket of an image, which was not completed, comes with its `!`
+        return (type.contains(.image) ? "!" : "") + String(repeating: ch, count: max(n, 0))
       case .softLineBreak:
         return " "
       case .hardLineBreak:

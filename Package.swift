@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:6.0
 //
 //  Package.swift
 //  MarkdownKit
@@ -49,7 +49,7 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/objecthub/swift-commandlinekit.git", from: "1.1.1")
+    .package(url: "https://github.com/objecthub/swift-commandlinekit.git", from: "1.1.2")
   ],
   targets: [
     .target(
@@ -175,14 +175,16 @@ let package = Package(
       dependencies: [
         "MarkdownKit",
         .product(name: "CommandLineKit", package: "swift-commandlinekit")
-      ],
-      exclude: []
+      ]
     ),
     .testTarget(
       name: "MarkdownKitTests",
       dependencies: ["MarkdownKit"],
-      exclude: ["Info.plist"]
+      exclude: ["Info.plist"],
+      resources: [
+        .copy("commonmark-spec-0.31.2.json")
+      ]
     )
   ],
-  swiftLanguageVersions: [.v5]
+  swiftLanguageModes: [.v5]
 )

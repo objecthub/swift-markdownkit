@@ -26,7 +26,7 @@ import Foundation
 /// 
 /// The `ExtendedMarkdownParser` object itself defines the configuration of the parser.
 /// It is stateless in the sense that it can be used for parsing many input strings. This
-/// is done via the `parse` function. `parse` returns an abstract syntac tree representing
+/// is done via the `parse` function. `parse` returns an abstract syntax tree representing
 /// the Markdown text for the given input string.
 ///
 /// The `parse` method of the `ExtendedMarkdownParser` object delegates parsing of the input

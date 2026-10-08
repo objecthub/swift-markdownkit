@@ -508,10 +508,14 @@ open class AttributedStringGenerator {
                 tagsuffix.append(" align=\"center\">")
             }
           }
+          // Rows with more cells than there are column alignments are tolerated
+          func suffix(_ i: Int) -> String {
+            return i < tagsuffix.count ? tagsuffix[i] : ">"
+          }
           var html = "<table class=\"mtable\"><thead><tr>\n"
           var i = 0
           for head in header {
-            html += "<th\(tagsuffix[i])\(self.generate(text: head))&nbsp;</th>"
+            html += "<th\(suffix(i))\(self.generate(text: head))&nbsp;</th>"
             i += 1
           }
           html += "\n</tr></thead><tbody>\n"
@@ -519,7 +523,7 @@ open class AttributedStringGenerator {
             html += "<tr class=\"mrow\">"
             i = 0
             for cell in row {
-              html += "<td class=\"mcell\"\(tagsuffix[i])\(self.generate(text: cell))&nbsp;</td>"
+              html += "<td class=\"mcell\"\(suffix(i))\(self.generate(text: cell))&nbsp;</td>"
               i += 1
             }
             html += "</tr>\n"
@@ -647,15 +651,20 @@ open class AttributedStringGenerator {
           var code = lines.joined(separator: "")
           let middle: String
           #if !os(watchOS)
-          if self.outer.ignoredLanguages.contains(lang ?? "") {
+          // The language is the first word of the info string
+          let language = lang?.split(whereSeparator: \.isWhitespace).first.map(String.init)
+          if self.outer.ignoredLanguages.contains(language ?? "") {
             middle = "<pre><code>" + code.encodingPredefinedXmlEntities() + "</code></pre>\n"
           } else if let lang, lang == "mermaid" {
             middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
           } else {
             var markup = "<code>"
-            if let hl = self.outer.syntaxHighlighter ?? SyntaxHighlighter.proxy,
+            // Code is only highlighted if syntax highlighting is enabled (`syntaxHighlighting`
+            // is not `nil`)
+            if self.outer.codeBlockHighlightingConfig != nil,
+               let hl = self.outer.syntaxHighlighter ?? SyntaxHighlighter.proxy,
                let transformed = hl.highlight(code: code,
-                                              as: lang,
+                                              as: language,
                                               ignoreIllegals: self.outer.ignoreSyntacticIssues) {
               code = transformed
               markup = "<code class=\"hljs\">"
