@@ -321,6 +321,22 @@ final class ImageLoadingTests: XCTestCase {
     XCTAssertFalse(combined.contains("<b>"))
   }
 
+  func testUntrustedOptionsLoadNoImagesAndOmitRawHtml() {
+    let markdown = "<b>raw</b> [a link](custom://x) [web](http://example.com/page) " +
+                   "![local alt](in.png) ![file alt](\(self.fileURL(self.allowed, "in.png"))) " +
+                   "![remote alt](http://example.com/x.png) ![data alt](data:image/png;base64,AAAA) " +
+                   "<img src=\"x.png\">"
+    let result = self.html(markdown, .untrusted, imageBaseUrl: self.allowed)
+    XCTAssertEqual(self.images(result), 0)
+    for alt in ["local alt", "file alt", "remote alt", "data alt"] {
+      XCTAssertTrue(result.contains(alt), alt)
+    }
+    XCTAssertFalse(result.contains("<b>"))
+    XCTAssertTrue(result.contains("<!-- raw HTML omitted -->"))
+    XCTAssertFalse(result.contains("custom://x"))
+    XCTAssertTrue(result.contains("href=\"http://example.com/page\""))
+  }
+
   // MARK: Options mapping
 
   func testTextSizeMultiplierIsMappedToImportOptions() {
@@ -362,6 +378,15 @@ final class ImageLoadingTests: XCTestCase {
     let off = AttributedStringGenerator(imageBaseUrl: self.allowed,
                                         renderingOptions: Options(localImages: .none, remoteImages: .none))
     XCTAssertEqual(self.attachmentCount(off.generate(doc: ExtendedMarkdownParser.standard.parse(markdown))), 0)
+  }
+
+  func testSynchronousRenderingOfUntrustedMarkdownLoadsNoLocalImages() {
+    let doc = ExtendedMarkdownParser.standard.parse("![alt](in.png)")
+    XCTAssertEqual(self.attachmentCount(AttributedStringGenerator(imageBaseUrl: self.allowed)
+                                          .generate(doc: doc)), 1)
+    XCTAssertEqual(self.attachmentCount(AttributedStringGenerator(imageBaseUrl: self.allowed,
+                                                                  renderingOptions: .untrusted)
+                                          .generate(doc: doc)), 0)
   }
 
   @MainActor

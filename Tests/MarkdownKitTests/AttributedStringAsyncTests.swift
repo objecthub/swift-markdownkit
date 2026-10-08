@@ -67,10 +67,106 @@ final class AttributedStringAsyncTests: XCTestCase {
   func testGeneratorStoresRenderingOptions() {
     let base = URL(fileURLWithPath: "/tmp", isDirectory: true)
     let generator = AttributedStringGenerator(
-                      renderingOptions: RenderingOptions(baseUrl: base,
-                                                                                    timeout: 3))
+                      renderingOptions: RenderingOptions(baseUrl: base, timeout: 3))
     XCTAssertEqual(generator.renderingOptions.baseUrl, base)
     XCTAssertEqual(generator.renderingOptions.timeout, 3)
+  }
+
+  func testRenderingOptionsAreEquatable() {
+    let base = URL(fileURLWithPath: "/tmp/a", isDirectory: true)
+    let other = URL(fileURLWithPath: "/tmp/b", isDirectory: true)
+    func make() -> RenderingOptions {
+      return RenderingOptions(baseUrl: base, timeout: 3, localImages: .within(base),
+                              remoteImages: .none, imageExtensions: ["png"], safeMode: true,
+                              textSizeMultiplier: 1.5)
+    }
+    XCTAssertEqual(make(), make())
+    XCTAssertEqual(RenderingOptions(), RenderingOptions())
+    XCTAssertNotEqual(make(), RenderingOptions())
+    // Each property makes a difference
+    XCTAssertNotEqual(RenderingOptions(baseUrl: base), RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions(baseUrl: base), RenderingOptions(baseUrl: other))
+    XCTAssertNotEqual(RenderingOptions(timeout: 3), RenderingOptions(timeout: 4))
+    XCTAssertNotEqual(RenderingOptions(timeout: nil), RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions(localImages: .none), RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions(localImages: .within(base)),
+                      RenderingOptions(localImages: .within(other)))
+    XCTAssertEqual(RenderingOptions(localImages: .within(base)),
+                   RenderingOptions(localImages: .within(base)))
+    XCTAssertNotEqual(RenderingOptions(remoteImages: .none), RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions(remoteImages: .within(base)),
+                      RenderingOptions(remoteImages: .any))
+    XCTAssertNotEqual(RenderingOptions(imageExtensions: ["png"]), RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions(safeMode: true), RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions(textSizeMultiplier: 2), RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions(textSizeMultiplier: 2), RenderingOptions(textSizeMultiplier: 3))
+  }
+
+  func testUntrustedOptions() {
+    let untrusted = RenderingOptions.untrusted
+    XCTAssertTrue(untrusted.safeMode)
+    XCTAssertEqual(untrusted.localImages, .none)
+    XCTAssertEqual(untrusted.remoteImages, .none)
+    // The other options have their default value
+    XCTAssertNil(untrusted.baseUrl)
+    XCTAssertEqual(untrusted.timeout, RenderingOptions.defaultTimeout)
+    XCTAssertEqual(untrusted.imageExtensions, RenderingOptions.defaultImageExtensions)
+    XCTAssertNil(untrusted.textSizeMultiplier)
+    XCTAssertEqual(untrusted, RenderingOptions(localImages: .none, remoteImages: .none, safeMode: true))
+    XCTAssertNotEqual(untrusted, RenderingOptions())
+    XCTAssertEqual(AttributedStringGenerator(renderingOptions: .untrusted).renderingOptions, untrusted)
+  }
+
+  func testTrustedOptionsAreTheDefaultOptions() {
+    XCTAssertEqual(RenderingOptions.trusted, RenderingOptions())
+    XCTAssertNotEqual(RenderingOptions.trusted, RenderingOptions.untrusted)
+    XCTAssertEqual(RenderingOptions.trusted.localImages, .any)
+    XCTAssertEqual(RenderingOptions.trusted.remoteImages, .any)
+    XCTAssertFalse(RenderingOptions.trusted.safeMode)
+    XCTAssertEqual(AttributedStringGenerator().renderingOptions, RenderingOptions.trusted)
+  }
+
+  func testRenderingErrorsAreEquatable() {
+    typealias RenderingError = AttributedStringGenerator.RenderingError
+    let all: [RenderingError] = [.unsupportedPlatform, .cancelled, .timedOut, .emptyResult,
+                                 .renderingFailed(NSError(domain: "domain", code: 1))]
+    for (i, lhs) in all.enumerated() {
+      for (j, rhs) in all.enumerated() {
+        if i == j {
+          XCTAssertEqual(lhs, rhs)
+        } else {
+          XCTAssertNotEqual(lhs, rhs)
+        }
+      }
+    }
+    // Errors that wrap other errors are equal if the errors have the same domain and code
+    let failed = RenderingError.renderingFailed(NSError(domain: "domain", code: 1, userInfo: ["a": 1]))
+    XCTAssertEqual(failed, .renderingFailed(NSError(domain: "domain", code: 1)))
+    XCTAssertNotEqual(failed, .renderingFailed(NSError(domain: "domain", code: 2)))
+    XCTAssertNotEqual(failed, .renderingFailed(NSError(domain: "other", code: 1)))
+    // Pattern matching continues to work
+    if case .renderingFailed(let error) = failed {
+      XCTAssertEqual((error as NSError).code, 1)
+    } else {
+      XCTFail("\(failed)")
+    }
+  }
+
+  func testRenderingErrorsAreLocalized() {
+    typealias RenderingError = AttributedStringGenerator.RenderingError
+    let failed = RenderingError.renderingFailed(
+                   NSError(domain: "domain", code: 1,
+                           userInfo: [NSLocalizedDescriptionKey: "Something broke"]))
+    let all: [RenderingError] = [.unsupportedPlatform, .cancelled, .timedOut, .emptyResult, failed]
+    var descriptions: Set<String> = []
+    for error in all {
+      let description = error.errorDescription
+      XCTAssertNotNil(description, "\(error)")
+      XCTAssertEqual(error.localizedDescription, description)
+      descriptions.insert(description ?? "")
+    }
+    XCTAssertEqual(descriptions.count, all.count)
+    XCTAssertTrue(failed.localizedDescription.contains("Something broke"))
   }
 
   func testAsyncMethodsExistOnAllPlatforms() async {

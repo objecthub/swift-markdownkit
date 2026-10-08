@@ -463,4 +463,20 @@ class PublicSubclassingTests: XCTestCase {
     XCTAssertTrue(generator.htmlGenerator is MyHtmlGenerator)
     XCTAssertTrue(calls.contains("AttributedStringGenerator.htmlGenerator"))
   }
+
+  func testRenderingOptionsAndErrorsCanBeUsedFromOutsideOfTheFramework() {
+    typealias RenderingOptions = AttributedStringGenerator.RenderingOptions
+    typealias RenderingError = AttributedStringGenerator.RenderingError
+    XCTAssertEqual(RenderingOptions(), RenderingOptions())
+    XCTAssertEqual(RenderingOptions(localImages: .none, remoteImages: .none, safeMode: true),
+                   RenderingOptions.untrusted)
+    XCTAssertNotEqual(RenderingOptions.untrusted, RenderingOptions())
+    XCTAssertEqual(AttributedStringGenerator.ImageAccess.none, .none)
+    XCTAssertNotEqual(AttributedStringGenerator.ImageAccess.none, .any)
+    let error: Error = RenderingError.timedOut
+    XCTAssertEqual(error as? RenderingError, .timedOut)
+    XCTAssertNotEqual(error as? RenderingError, .cancelled)
+    XCTAssertNotNil((error as? LocalizedError)?.errorDescription)
+    XCTAssertFalse(error.localizedDescription.isEmpty)
+  }
 }

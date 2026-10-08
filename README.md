@@ -338,7 +338,7 @@ generator.generateAsync(doc: markdown) { result in
 
 #### Loading images securely
 
-By default, images referred to by Markdown may be loaded from any location: the system's HTML renderer loads any file that an image URL points to (also files outside of `imageBaseUrl`, reached via `../` or absolute paths), and `generateAsync` additionally fetches `http(s)` images and style sheets. Only the path extension of an image is checked by default (see `imageExtensions` below). For untrusted Markdown, restrict image loading with the options `localImages` and `remoteImages`. Each is an `ImageAccess`: `.none` (never load), `.any` (no restriction in terms of URL path), or `.within(url)` (local images: only image files inside this directory, symbolic links resolved; remote images: only URLs with the same scheme, host and port as `url` and a path below the path of `url`).
+By default, images referred to by Markdown may be loaded from any location: the system's HTML renderer loads any file that an image URL points to (also files outside of `imageBaseUrl`, reached via `../` or absolute paths), and `generateAsync` additionally fetches `http(s)` images and style sheets. Only the path extension of an image is checked by default (see `imageExtensions` below). For untrusted Markdown, use the preset `RenderingOptions.untrusted` (safe mode, and no local and no remote images): `AttributedStringGenerator(renderingOptions: .untrusted)`. Its counterpart `RenderingOptions.trusted` restricts nothing; it is the same as the default options, `RenderingOptions()`. To allow some images, restrict image loading with the options `localImages` and `remoteImages` instead. Each is an `ImageAccess`: `.none` (never load), `.any` (no restriction in terms of URL path), or `.within(url)` (local images: only image files inside this directory, symbolic links resolved; remote images: only URLs with the same scheme, host and port as `url` and a path below the path of `url`).
 
 ```swift
 let imageDirectory = URL(fileURLWithPath: "/path/to/images", isDirectory: true)
@@ -389,18 +389,28 @@ where: <format> is either 'text', 'ansi', 'html', 'rtf', or 'rtfd'
 
 SwiftUI comes with support for Markdown-formatted snippets but does not have a full-fledged viewer for Markdown documents. Since version 1.4, _MarkdownKit_ includes a SwiftUI view for displaying Markdown documents. As opposed to many other custom created Markdown views, the one included in _MarkdownKit_ is based on the CommonMark-compliant _MarkdownKit_ parser as well as its attributed string generator. It is thus lightweight yet still quite configurable.
 
-The initializer of [`MarkdownText`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/View/MarkdownText.swift) receives the parsed Markdown content of type `Block`, an optional `waitingMessage:` parameter which defines what is being displayed while the content is being rendered (especially if many images need to be loaded), as well as a `generator:` parameter defining how the parsed Markdown is transformed into an attributed string, which is then being shown in the view. The generator is not just called once, but every time the color scheme has changed to potentially update the colors in use. A variant of this initializer accepts a Markdown document as a string and uses the extended Markdown parser internally to parse it. The following code snippet shows the signatures of the initializers.
+The initializer of [`MarkdownText`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/View/MarkdownText.swift) receives the parsed Markdown content of type `Block`, an optional `waitingMessage:` parameter which defines what is being displayed while the content is being rendered (especially if many images need to be loaded), as well as a `generator:` parameter defining how the parsed Markdown is transformed into an attributed string, which is then being shown in the view. The generator is not just called once, but every time the color scheme has changed to potentially update the colors in use. A variant of this initializer accepts a Markdown document as a string and uses the extended Markdown parser internally to parse it. There are two initializers for each of the two ways of providing the document. Either you pass a `generator:`, or you do not provide one and the view uses the default generators for light and dark mode, which can be configured with `renderingOptions:` (see `AttributedStringGenerator.RenderingOptions`; the default is `.trusted`). The view generates the attributed string synchronously, which is why only the rendering options `baseUrl`, `localImages`, `imageExtensions`, `safeMode` and `textSizeMultiplier` have an effect (remote images are never loaded). Use `MarkdownText(string: text, renderingOptions: .untrusted)` if the Markdown does not come from a trusted source. The following code snippet shows the signatures of the initializers.
 
 ```swift
 struct MarkdownText: View {
   init(_ text: Block,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-       generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil) { 
+       renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+    ...
+  }
+  init(_ text: Block,
+       waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
+       generator: ((Block, ColorScheme) -> NSAttributedString?)?) {
     ...
   }
   init(string: String,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-       generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil) {
+       renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+    ...
+  }
+  init(string: String,
+       waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
+       generator: ((Block, ColorScheme) -> NSAttributedString?)?) {
     ...
   }
   ...

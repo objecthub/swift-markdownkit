@@ -24,8 +24,12 @@ import SwiftUI
 
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public struct MarkdownText: View {
-  /// Default `AttributedStringGenerator` implementation for dark mode
-  private static let darkGenerator = AttributedStringGenerator(
+  
+  /// Creates the attributed string generator for dark mode with the given rendering options.
+  private static func makeDarkGenerator(
+                        _ renderingOptions: AttributedStringGenerator.RenderingOptions)
+                      -> AttributedStringGenerator {
+    return AttributedStringGenerator(
       fontColor: "#FFF",
       codeFontColor: "#FFF",
       codeBlockFontColor: "#FF6",
@@ -35,7 +39,40 @@ public struct MarkdownText: View {
       h1Color: "#FFF",
       h2Color: "#FFF",
       h3Color: "#FFF",
-      h4Color: "#FFF")
+      h4Color: "#FFF",
+      renderingOptions: renderingOptions)
+  }
+  
+  /// Default `AttributedStringGenerator` implementation for dark mode
+  private static let darkGenerator = MarkdownText.makeDarkGenerator(.trusted)
+  
+  /// Returns the function which generates attributed strings with the default generators for
+  /// the given rendering options. This is `internal` so that tests can call it.
+  static func defaultGenerator(
+                        _ renderingOptions: AttributedStringGenerator.RenderingOptions)
+                      -> (Block, ColorScheme) -> NSAttributedString? {
+    if renderingOptions == .trusted {
+      return { doc, colorScheme in
+        switch colorScheme {
+          case .dark:
+            return MarkdownText.darkGenerator.generate(doc: doc)
+          default:
+            return AttributedStringGenerator.standard.generate(doc: doc)
+        }
+      }
+    } else {
+      let lightGenerator = AttributedStringGenerator(renderingOptions: renderingOptions)
+      let darkGenerator = MarkdownText.makeDarkGenerator(renderingOptions)
+      return { doc, colorScheme in
+        switch colorScheme {
+          case .dark:
+            return darkGenerator.generate(doc: doc)
+          default:
+            return lightGenerator.generate(doc: doc)
+        }
+      }
+    }
+  }
   
   @Environment(\.colorScheme) var colorScheme
   
@@ -61,30 +98,65 @@ public struct MarkdownText: View {
   @State private var cachedColorScheme: ColorScheme? = nil
   @State private var lastUsedColorScheme: ColorScheme? = nil
   
-  /// Creates a Markdown text view for the specified Markdown document.
+  /// The designated initializer.
+  private init(content: Block,
+               waitingMessage: NSAttributedString,
+               generator: @escaping (Block, ColorScheme) -> NSAttributedString?) {
+    self.content = content
+    self.waitingMessage = waitingMessage
+    self.generator = generator
+  }
+  
+  /// Creates a Markdown text view for the specified Markdown document. The view uses the
+  /// default attributed string generators for light and dark mode, which are configured with
+  /// `renderingOptions`.
+  ///
+  /// The attributed string is generated synchronously (see
+  /// `AttributedStringGenerator.generate(doc:)`). Therefore, only the rendering options
+  /// `baseUrl`, `localImages`, `imageExtensions`, `safeMode` and `textSizeMultiplier` have an
+  /// effect; remote images are never loaded. Use `RenderingOptions.untrusted` if the
+  /// Markdown does not come from a trusted source.
+  ///
+  /// - Parameters:
+  ///   - text: The Markdown document.
+  ///   - waitingMessage: What is displayed until the document has been converted.
+  ///   - renderingOptions: The options for rendering the generated HTML.
   public init(_ text: Block,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-              generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil) {
-    self.waitingMessage = waitingMessage
-    self.content = text
-    if let generator {
-      self.generator = generator
-    } else {
-      self.generator = { doc, colorScheme in
-        switch colorScheme {
-          case .dark:
-            return MarkdownText.darkGenerator.generate(doc: doc)
-          default:
-            return AttributedStringGenerator.standard.generate(doc: doc)
-        }
-      }
-    }
+              renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+    self.init(content: text,
+              waitingMessage: waitingMessage,
+              generator: MarkdownText.defaultGenerator(renderingOptions))
+  }
+  
+  /// Creates a Markdown text view for the specified Markdown document. `generator` creates
+  /// the attributed string that is displayed for a document and a color scheme. If it is
+  /// `nil`, the default generators are used (see `init(_:waitingMessage:renderingOptions:)`).
+  public init(_ text: Block,
+              waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
+              generator: ((Block, ColorScheme) -> NSAttributedString?)?) {
+    self.init(content: text,
+              waitingMessage: waitingMessage,
+              generator: generator ?? MarkdownText.defaultGenerator(.trusted))
+  }
+  
+  /// Creates a Markdown text view for the specified Markdown document as a string. See
+  /// `init(_:waitingMessage:renderingOptions:)`.
+  public init(string: String,
+              waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
+              renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+    self.init(ExtendedMarkdownParser.standard.parse(string),
+              waitingMessage: waitingMessage,
+              renderingOptions: renderingOptions)
   }
   
   /// Creates a Markdown text view for the specified Markdown document as a string.
+  /// `generator` creates the attributed string that is displayed for a document and a color
+  /// scheme. If it is `nil`, the default generators are used (see
+  /// `init(string:waitingMessage:renderingOptions:)`).
   public init(string: String,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-              generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil) {
+              generator: ((Block, ColorScheme) -> NSAttributedString?)?) {
     self.init(ExtendedMarkdownParser.standard.parse(string),
               waitingMessage: waitingMessage,
               generator: generator)

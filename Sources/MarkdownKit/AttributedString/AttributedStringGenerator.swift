@@ -54,11 +54,46 @@ open class AttributedStringGenerator {
   /// Options for rendering the HTML that `AttributedStringGenerator` generates into an
   /// `NSAttributedString`. They are used by the synchronous methods (`generate(doc:)` etc.) as
   /// well as by the asynchronous ones (`generateAsync(doc:)` etc.).
-  public struct RenderingOptions {
-    
+  ///
+  /// Do not confuse them with `AttributedStringGenerator.Options`, which controls how the HTML
+  /// is generated from the Markdown document. `RenderingOptions` control how the system turns
+  /// the generated HTML into an attributed string and which resources it may load.
+  public struct RenderingOptions: Equatable {
+
     /// The default for `timeout`: 30 seconds.
     public static let defaultTimeout: TimeInterval = 30
-    
+
+    /// Options for rendering Markdown which does not come from a trusted source (for example
+    /// text written by other users, or by a language model). Raw HTML in the Markdown is
+    /// omitted, links are limited to the schemes `http`, `https` and `mailto` (and relative
+    /// URLs), and no image of the Markdown text is loaded, neither a local one nor one from
+    /// the web: images are replaced by their alternative text. Everything else has the
+    /// default value (see the initializer), e.g. `timeout` is `defaultTimeout`.
+    ///
+    /// This does not restrict what the application itself adds to the HTML, such as
+    /// `AttributedStringGenerator.customStyle`. Use the initializer to derive other options,
+    /// for example to allow images from one web site:
+    /// `RenderingOptions(remoteImages: .within(url), safeMode: true)`.
+    public static let untrusted = RenderingOptions(localImages: .none,
+                                                   remoteImages: .none,
+                                                   safeMode: true)
+
+    /// Options for rendering Markdown which comes from a trusted source (for example documents
+    /// written by the author of the application, or files of the user). It is the counterpart
+    /// of `untrusted` and nothing is restricted: raw HTML in the Markdown is passed on, links
+    /// can use any scheme, and images stored in the local file system as well as images from
+    /// the web may be loaded (remote images are only loaded by the asynchronous methods; the
+    /// synchronous ones never load them). As always, the path extension of every image has to
+    /// be one of `imageExtensions`. All other options have their default value.
+    ///
+    /// These are the options that the initializer creates if it is called without arguments:
+    /// `RenderingOptions.trusted == RenderingOptions()`. `MarkdownText` uses them by default.
+    /// Do not use them for Markdown which comes from other users or from a language model;
+    /// use `untrusted` or restrict images and raw HTML with the initializer instead.
+    public static let trusted = RenderingOptions(localImages: .any,
+                                                 remoteImages: .any,
+                                                 safeMode: false)
+
     /// The base URL for resolving relative URLs inside of the rendered HTML (for example for
     /// images and links). This is different from `AttributedStringGenerator.imageBaseUrl`,
     /// which is used while generating the HTML for turning relative image paths into file
@@ -337,7 +372,7 @@ open class AttributedStringGenerator {
   }
 
   /// Errors thrown by `generateAsync`.
-  public enum RenderingError: Error {
+  public enum RenderingError: Error, Equatable, LocalizedError {
     /// Rendering HTML asynchronously is not available on this platform (e.g. tvOS and watchOS,
     /// which do not provide WebKit).
     case unsupportedPlatform
@@ -349,9 +384,44 @@ open class AttributedStringGenerator {
     case renderingFailed(Error)
     /// The system did not report an error, but did not return a result either.
     case emptyResult
+
+    /// A description of the error which can be shown to a user.
+    public var errorDescription: String? {
+      switch self {
+        case .unsupportedPlatform:
+          return "Rendering HTML asynchronously is not supported on this platform"
+        case .cancelled:
+          return "Rendering the HTML was cancelled"
+        case .timedOut:
+          return "Rendering the HTML timed out"
+        case .renderingFailed(let error):
+          return "The system could not render the HTML: \(error.localizedDescription)"
+        case .emptyResult:
+          return "The system did not return a result when rendering the HTML"
+      }
+    }
+
+    /// Two errors are equal if they are the same case. Two `renderingFailed` errors are equal
+    /// if their underlying errors have the same domain and code.
+    public static func == (lhs: RenderingError, rhs: RenderingError) -> Bool {
+      switch (lhs, rhs) {
+        case (.unsupportedPlatform, .unsupportedPlatform),
+             (.cancelled, .cancelled),
+             (.timedOut, .timedOut),
+             (.emptyResult, .emptyResult):
+          return true
+        case (.renderingFailed(let lerror), .renderingFailed(let rerror)):
+          let lnserror = lerror as NSError
+          let rnserror = rerror as NSError
+          return lnserror.domain == rnserror.domain && lnserror.code == rnserror.code
+        default:
+          return false
+      }
+    }
   }
   
-  /// Options for the attributed string generator
+  /// Options for the attributed string generator. They control how the HTML is generated from
+  /// a Markdown document. For options of rendering the generated HTML, see `RenderingOptions`.
   public struct Options: OptionSet {
     public let rawValue: UInt
     
