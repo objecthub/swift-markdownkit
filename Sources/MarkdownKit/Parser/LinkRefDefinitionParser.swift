@@ -30,7 +30,7 @@ open class LinkRefDefinitionParser: RestorableBlockParser {
   }
 
   public override func parse() -> BlockParser.ParseResult {
-    guard self.shortLineIndent && self.line[self.contentStartIndex] == "[" else {
+    guard self.shortLineIndent && self.firstContentCharacter == "[" else {
       return .none
     }
     return super.parse()

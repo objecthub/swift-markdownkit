@@ -72,11 +72,12 @@ public class HighlightingConfig {
     self.boldCodeFont = HRFont(descriptor: boldDescriptor, size: font.pointSize)
     self.italicCodeFont = HRFont(descriptor: italicDescriptor, size: font.pointSize)
     #else
-    let boldDescriptor = NSFontDescriptor(fontAttributes: [.family : font.familyName!,
+    let familyName = font.familyName ?? font.fontName
+    let boldDescriptor = NSFontDescriptor(fontAttributes: [.family : familyName,
                                                            .face : "Bold"])
-    let italicDescriptor = NSFontDescriptor(fontAttributes: [.family : font.familyName!,
+    let italicDescriptor = NSFontDescriptor(fontAttributes: [.family : familyName,
                                                              .face : "Italic"])
-    let obliqueDescriptor = NSFontDescriptor(fontAttributes: [.family : font.familyName!,
+    let obliqueDescriptor = NSFontDescriptor(fontAttributes: [.family : familyName,
                                                               .face : "Oblique"])
     self.boldCodeFont = HRFont(descriptor: boldDescriptor, size: font.pointSize) ?? font
     self.italicCodeFont = HRFont(descriptor: italicDescriptor, size: font.pointSize) ??
@@ -131,9 +132,12 @@ public class HighlightingConfig {
       attrs[.font] = self.codeFont
       attrs[.paragraphStyle] = spacedParaStyle
       for style in styleList {
-        if let themeStyle = self.themeDict[style] as? [NSAttributedString.Key : Any] {
-          for (attrName, attrValue) in themeStyle {
-            attrs.updateValue(attrValue, forKey: attrName)
+        // A class attribute value can consist of several class names, like `hljs-title function_`
+        for className in style.split(whereSeparator: \.isWhitespace) {
+          if let themeStyle = self.themeDict[String(className)] as? [NSAttributedString.Key : Any] {
+            for (attrName, attrValue) in themeStyle {
+              attrs.updateValue(attrValue, forKey: attrName)
+            }
           }
         }
       }

@@ -508,10 +508,14 @@ open class AttributedStringGenerator {
                 tagsuffix.append(" align=\"center\">")
             }
           }
+          // Rows with more cells than there are column alignments are tolerated
+          func suffix(_ i: Int) -> String {
+            return i < tagsuffix.count ? tagsuffix[i] : ">"
+          }
           var html = "<table class=\"mtable\"><thead><tr>\n"
           var i = 0
           for head in header {
-            html += "<th\(tagsuffix[i])\(self.generate(text: head))&nbsp;</th>"
+            html += "<th\(suffix(i))\(self.generate(text: head))&nbsp;</th>"
             i += 1
           }
           html += "\n</tr></thead><tbody>\n"
@@ -519,7 +523,7 @@ open class AttributedStringGenerator {
             html += "<tr class=\"mrow\">"
             i = 0
             for cell in row {
-              html += "<td class=\"mcell\"\(tagsuffix[i])\(self.generate(text: cell))&nbsp;</td>"
+              html += "<td class=\"mcell\"\(suffix(i))\(self.generate(text: cell))&nbsp;</td>"
               i += 1
             }
             html += "</tr>\n"

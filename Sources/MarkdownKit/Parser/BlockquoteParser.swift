@@ -60,7 +60,7 @@ open class BlockquoteParser: BlockParser {
   }
   
   public override func parse() -> ParseResult {
-    guard self.shortLineIndent && self.line[self.contentStartIndex] == ">" else {
+    guard self.shortLineIndent && self.firstContentCharacter == ">" else {
       return .none
     }
     let i = self.line.index(after: self.contentStartIndex)

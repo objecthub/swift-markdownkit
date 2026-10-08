@@ -131,14 +131,18 @@ public class AnsiHighlightingConfig {
   ///
   /// - Parameters:
   ///   - string: The text to style.
-  ///   - styleList: An array of CSS class names (without the leading dot).
+  ///   - styleList: An array of CSS class attribute values (without leading dots). Each
+  ///                element can consist of several class names separated by whitespace, like
+  ///                `hljs-title function_`; every class name is looked up on its own.
   ///
   /// - Returns: An `AnsiText.Normalized` value with the appropriate styling applied.
   public func apply(to string: String, styleList: [String]) -> AnsiText.Normalized {
     var properties = TextProperties.empty
     for style in styleList {
-      if let themeStyle = self.styleDict[style] {
-        properties = properties.with(themeStyle)
+      for className in style.split(whereSeparator: \.isWhitespace) {
+        if let themeStyle = self.styleDict[String(className)] {
+          properties = properties.with(themeStyle)
+        }
       }
     }
     return AnsiText.Normalized(string, properties: properties)

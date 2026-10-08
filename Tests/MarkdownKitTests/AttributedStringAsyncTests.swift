@@ -214,7 +214,7 @@ final class AttributedStringAsyncTests: XCTestCase {
     let generator = AttributedStringGenerator()
     do {
       _ = try await generator.generateAsync(doc: parse("fast"),
-                                            options: RenderingOptions(timeout: 0.0001))
+                                            options: RenderingOptions(timeout: 0.00001))
       XCTFail("should throw")
     } catch AttributedStringGenerator.RenderingError.timedOut {
     } catch {

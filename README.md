@@ -445,7 +445,7 @@ struct ContentView: View {
 
 ## Known issues
 
-There are a number of limitations and known issues. Measured against the 652 examples of the CommonMark 0.31.2 specification, all but 13 produce equivalent HTML (ignoring differences such as `&quot;` vs. `"`, `<ol start="1">`, and percent-encoding of URLs, which do not change how browsers render the output). The remaining deviations are:
+There are a number of limitations and known issues. Measured against the 652 examples of the CommonMark 0.31.2 specification, all but 11 produce equivalent HTML (ignoring differences such as `&quot;` vs. `"`, `<ol start="1">`, and percent-encoding of URLs, which do not change how browsers render the output). The remaining deviations are:
 
   - Tab characters in list items and block quotes are treated as four spaces; they are not expanded to the next tab stop. This can lead to wrong nesting for tab-indented list items.
   - A list that contains a nested list or block quote with blank lines inside is rendered as a loose list (with `<p>` elements) even though CommonMark considers it tight.
@@ -453,7 +453,6 @@ There are a number of limitations and known issues. Measured against the 652 exa
   - Corner cases for links and images: a link destination in `<...>` may span lines, `<http://example.com/\[\>` is not recognized as an autolink, and the `!` of an unresolved image such as `Hello![World]` is dropped.
   - Unicode currency and other symbol characters are not treated as punctuation for the purpose of recognizing emphasis.
   - A tilde fence whose info string contains a backtick is not recognized as a code fence.
-  - For security reasons, the `class` attribute of fenced code blocks only uses characters out of `A-Z a-z 0-9 _ + # . -`.
 
 ## Requirements
 

@@ -85,8 +85,8 @@ public final class FencedCodeBlockParser: CodeBlockParser {
     guard self.shortLineIndent else {
       return .none
     }
-    let fenceChar = self.line[self.contentStartIndex]
-    guard fenceChar == "`" || fenceChar == "~" else {
+    guard let fenceChar = self.firstContentCharacter,
+          fenceChar == "`" || fenceChar == "~" else {
       return .none
     }
     let fenceIndent = self.lineIndent
@@ -99,11 +99,12 @@ public final class FencedCodeBlockParser: CodeBlockParser {
     guard fenceLength >= 3 else {
       return .none
     }
-    let info = self.line[index..<self.contentEndIndex]
-                   .trimmingCharacters(in: CharacterSet.whitespaces)
-    guard !info.contains("`") && !info.contains("~") else {
+    let rawInfo = self.line[index..<self.contentEndIndex]
+                      .trimmingCharacters(in: CharacterSet.whitespaces)
+    guard !rawInfo.contains("`") && !rawInfo.contains("~") else {
       return .none
     }
+    let info = FencedCodeBlockParser.resolveEscapesAndEntities(in: rawInfo)
     self.readNextLine()
     var code: Lines = []
     var closed = false
@@ -133,5 +134,32 @@ public final class FencedCodeBlockParser: CodeBlockParser {
       self.readNextLine()
     }
     return .block(.fencedCode(info.isEmpty ? nil : info, code))
+  }
+  
+  /// Backslash escapes and entity references (like `&ouml;` or `&#246;`) are processed in the
+  /// info string of a fenced code block, as they are in other text. This returns the info
+  /// string with backslashes in front of ASCII punctuation characters removed and with all
+  /// entity references (that are not escaped) replaced by the characters they stand for.
+  static func resolveEscapesAndEntities(in info: String) -> String {
+    guard info.contains("\\") || info.contains("&") else {
+      return info
+    }
+    var result = ""
+    var pending = ""  // text which is not escaped and might contain entity references
+    var i = info.startIndex
+    while i < info.endIndex {
+      let next = info.index(after: i)
+      if info[i] == "\\" && next < info.endIndex && isAsciiPunctuation(info[next]) {
+        result.append(pending.decodingNamedCharacters())
+        pending = ""
+        result.append(info[next])
+        i = info.index(after: next)
+      } else {
+        pending.append(info[i])
+        i = next
+      }
+    }
+    result.append(pending.decodingNamedCharacters())
+    return result
   }
 }

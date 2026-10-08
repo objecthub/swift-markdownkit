@@ -464,4 +464,37 @@ class ParserRegressionTests: XCTestCase {
     XCTAssertEqual(html("_foo_bar_baz_"), "<p><em>foo_bar_baz</em></p>")
     XCTAssertEqual(html("a***b* c"), "<p>a**<em>b</em> c</p>")
   }
+
+  // MARK: Info strings of fenced code blocks
+
+  private func info(_ str: String) -> String? {
+    guard case .document(let blocks) = MarkdownParser.standard.parse(str),
+          case .fencedCode(let info, _)? = blocks.first else {
+      XCTFail("not a fenced code block: \(str.debugDescription)")
+      return nil
+    }
+    return info
+  }
+
+  /// Backslash escapes and entity references are processed in the info string (CommonMark 4.5)
+  func testInfoStringEscapesAndEntitiesAreResolved() {
+    XCTAssertEqual(self.info("``` f&ouml;&ouml; x\n```"), "föö x")
+    XCTAssertEqual(self.info("```\\;a\\*b\n```"), ";a*b")
+    XCTAssertEqual(self.info("```a\\b\n```"), "a\\b")           // backslash before a letter
+    XCTAssertEqual(self.info("```&#35;&#x41;&amp;\n```"), "#A&")
+    XCTAssertEqual(self.info("```\\&ouml;\n```"), "&ouml;")      // an escaped & is not an entity
+    XCTAssertEqual(self.info("```&unknown; &#0;\n```"), "&unknown; \u{FFFD}")
+    XCTAssertEqual(self.info("```swift\n```"), "swift")
+    XCTAssertNil(self.info("```\n```"))
+  }
+
+  func testCodeBlockLanguageClassFollowsSpec() {
+    XCTAssertEqual(html("``` f&ouml;&ouml;\nfoo\n```"),
+                   "<pre><code class=\"language-föö\">foo\n</code></pre>")
+    XCTAssertEqual(html("````;\n````"), "<pre><code class=\"language-;\"></code></pre>")
+    XCTAssertEqual(html("```日本語 x\ncode\n```"),
+                   "<pre><code class=\"language-日本語\">code\n</code></pre>")
+    XCTAssertEqual(html("```\\&ouml;\ncode\n```"),
+                   "<pre><code class=\"language-&amp;ouml;\">code\n</code></pre>")
+  }
 }

@@ -60,10 +60,7 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
       case .html(let tag):
         return "<\(tag.description)>"
       case .delimiter(let ch, let n, let type):
-        var res = String(ch)
-        for _ in 1..<n {
-          res.append(ch)
-        }
+        let res = String(repeating: ch, count: max(n, 0))
         return type.contains(.image) ? "!" + res : res
       case .softLineBreak:
         return "\n"
@@ -95,10 +92,7 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
       case .html(let tag):
         return "<\(tag.description)>"
       case .delimiter(let ch, let n, let type):
-        var res = String(ch)
-        for _ in 1..<n {
-          res.append(ch)
-        }
+        let res = String(repeating: ch, count: max(n, 0))
         return type.contains(.image) ? "!" + res : res
       case .softLineBreak:
         return " "
@@ -116,11 +110,7 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
       case .html(_):
         return ""
       case .delimiter(let ch, let n, _):
-        var res = String(ch)
-        for _ in 1..<n {
-          res.append(ch)
-        }
-        return res
+        return String(repeating: ch, count: max(n, 0))
       default:
         return self.rawDescription
     }

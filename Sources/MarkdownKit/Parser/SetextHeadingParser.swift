@@ -33,7 +33,9 @@ open class SetextHeadingParser: BlockParser {
           !plines.isEmpty else {
       return .none
     }
-    let ch = self.line[self.contentStartIndex]
+    guard let ch = self.firstContentCharacter else {
+      return .none
+    }
     let level: Int
     switch ch {
       case "=":

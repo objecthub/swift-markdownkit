@@ -49,7 +49,7 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(url: "https://github.com/objecthub/swift-commandlinekit.git", from: "1.1.1")
+    .package(url: "https://github.com/objecthub/swift-commandlinekit.git", from: "1.1.2")
   ],
   targets: [
     .target(
@@ -180,7 +180,10 @@ let package = Package(
     .testTarget(
       name: "MarkdownKitTests",
       dependencies: ["MarkdownKit"],
-      exclude: ["Info.plist"]
+      exclude: ["Info.plist"],
+      resources: [
+        .copy("commonmark-spec-0.31.2.json")
+      ]
     )
   ],
   swiftLanguageModes: [.v5]

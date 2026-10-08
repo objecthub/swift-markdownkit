@@ -182,6 +182,10 @@ open class TableParser: RestorableBlockParser {
   /// Returns true if the current line starts a different kind of block (other than a table).
   /// The state of the document parser is not changed.
   private func startsOtherBlock() -> Bool {
+    // A blank line cannot start a block
+    guard !self.lineEmpty else {
+      return false
+    }
     var saved = DocumentParserState(self.docParser)
     self.docParser.copyState(&saved)
     defer {
