@@ -302,7 +302,7 @@ open class DocumentParser {
     self.lineEmpty = state.lineEmpty
   }
 
-  public func parse() -> Block {
+  open func parse() -> Block {
     loop: while !self.finished {
       if self.lineEmpty {
         if let encl = self.container.outermostIndentRequired(upto: self.currentContainer) {

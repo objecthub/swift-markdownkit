@@ -48,8 +48,9 @@ open class InlineParser {
   /// The maximal nesting depth of inline markup (links, images, emphasis).
   public var maxNestingDepth: Int = InlineParser.defaultMaxNestingDepth
 
-  /// Initializer
-  init(inlineTransformers: [InlineTransformer.Type], input: Block) {
+  /// Initializer. This is the initializer that `MarkdownParser.inlineParser(inlineTransformers:input:)`
+  /// uses; subclasses of `InlineParser` are created by overriding this factory method.
+  public init(inlineTransformers: [InlineTransformer.Type], input: Block) {
     self.block = input
     self.linkRefDef = [:]
     self.inlineTransformers = []
@@ -142,7 +143,7 @@ open class InlineParser {
 
   /// Parses a sequence of Markdown blocks and returns a new sequence in which all inline
   /// text markup is represented using `TextFragment` objects.
-  public func parse(_ blocks: Blocks) -> Blocks {
+  open func parse(_ blocks: Blocks) -> Blocks {
     var res: Blocks = []
     for block in blocks {
       res.append(self.parse(block))
@@ -152,7 +153,7 @@ open class InlineParser {
 
   /// Transforms raw Markdown text and returns a new `Text` object in which all inline markup
   /// is represented using `TextFragment` objects.
-  public func transform(_ text: Text) -> Text {
+  open func transform(_ text: Text) -> Text {
     var res = text
     for transformer in self.inlineTransformers {
       res = transformer.transform(res)
@@ -162,7 +163,7 @@ open class InlineParser {
   
   /// Transforms raw Markdown rows and returns a new `Row` object in which all inline markup
   /// is represented using `TextFragment` objects.
-  public func transform(_ row: Row) -> Row {
+  open func transform(_ row: Row) -> Row {
     var res = Row()
     for cell in row {
       res.append(self.transform(cell))
@@ -172,7 +173,7 @@ open class InlineParser {
   
   /// Transforms raw Markdown tables and returns a new `Rows` object in which all inline markup
   /// is represented using `TextFragment` objects.
-  public func transform(_ rows: Rows) -> Rows {
+  open func transform(_ rows: Rows) -> Rows {
     var res = Rows()
     for row in rows {
       res.append(self.transform(row))
@@ -180,7 +181,7 @@ open class InlineParser {
     return res
   }
   
-  public func transform(_ defs: Definitions) -> Definitions {
+  open func transform(_ defs: Definitions) -> Definitions {
     var res = Definitions()
     for def in defs {
       res.append(Definition(item: self.transform(def.item),

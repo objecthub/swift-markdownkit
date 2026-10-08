@@ -105,6 +105,15 @@ open class BlockParser {
     self.docParser.readNextLine()
   }
 
+  /// Makes the current line start at `startIndex`. Block parsers which start a container (like a
+  /// block quote or a list item) call this after they determined the end of the marker of the
+  /// container, so that the remainder of the line is parsed as content of the container. If
+  /// the character at `startIndex` is a tab, `partialTab` is the number of columns of this tab
+  /// that are part of the marker.
+  public func resetLineStart(_ startIndex: Substring.Index, partialTab: Int = 0) {
+    self.docParser.resetLineStart(startIndex, partialTab: partialTab)
+  }
+
   open var mayInterruptParagraph: Bool {
     return true
   }

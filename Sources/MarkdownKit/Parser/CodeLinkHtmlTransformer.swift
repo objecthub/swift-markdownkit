@@ -87,7 +87,7 @@ open class CodeLinkHtmlTransformer: InlineTransformer {
     }
   }
 
-  public override func transform(_ text: Text) -> Text {
+  open override func transform(_ text: Text) -> Text {
     // The index is only needed if there are delimiters which might start a code span or tag
     let relevant = text.contains { fragment in
       if case .delimiter(let ch, _, []) = fragment {

@@ -37,11 +37,13 @@ open class GeneratorContext {
     self.maxColumns = maxColumns
   }
   
-  internal init(parent: Block,
-                context: GeneratorContext?,
-                tight: Bool,
-                itemIndent: Int?,
-                maxColumns: Int) {
+  /// Creates a context for a block nested in the context `context`. Subclasses of
+  /// `GeneratorContext` use this initializer when they override `new(parent:tight:itemIndent:indent:)`.
+  public init(parent: Block,
+              context: GeneratorContext?,
+              tight: Bool,
+              itemIndent: Int?,
+              maxColumns: Int) {
     self.parent = parent
     self.context = context
     self.tight = tight
@@ -49,10 +51,10 @@ open class GeneratorContext {
     self.maxColumns = maxColumns
   }
   
-  public func new(parent: Block? = nil,
-                  tight: Bool? = nil,
-                  itemIndent: Int? = nil,
-                  indent: Int) -> GeneratorContext {
+  open func new(parent: Block? = nil,
+                tight: Bool? = nil,
+                itemIndent: Int? = nil,
+                indent: Int) -> GeneratorContext {
     return GeneratorContext(parent: parent ?? self.parent,
                             context: self,
                             tight: tight ?? self.tight,

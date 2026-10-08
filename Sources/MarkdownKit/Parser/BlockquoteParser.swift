@@ -71,7 +71,7 @@ open class BlockquoteParser: BlockParser {
     }
   }
   
-  public override func parse() -> ParseResult {
+  open override func parse() -> ParseResult {
     guard self.shortLineIndent && self.firstContentCharacter == ">" else {
       return .none
     }

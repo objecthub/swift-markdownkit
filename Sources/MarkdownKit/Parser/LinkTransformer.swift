@@ -77,7 +77,7 @@ open class LinkTransformer: InlineTransformer {
     return matches
   }
 
-  public override func transform(_ text: Text) -> Text {
+  open override func transform(_ text: Text) -> Text {
     // Brackets are matched upfront. This avoids scanning the rest of the text for every `[`,
     // which is quadratic for texts with many unmatched brackets.
     let hasBrackets = text.contains { fragment in

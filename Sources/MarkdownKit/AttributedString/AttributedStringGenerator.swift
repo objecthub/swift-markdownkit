@@ -67,7 +67,7 @@ open class AttributedStringGenerator {
     /// To use a directory as base URL, use a URL with a trailing slash, for example one that
     /// was created with `URL(fileURLWithPath:isDirectory:)`; otherwise the last path
     /// component gets replaced when resolving relative URLs.
-    public let baseURL: URL?
+    public let baseUrl: URL?
     
     /// The maximal time in seconds that rendering HTML asynchronously may take (including
     /// loading everything which the HTML refers to). `generateAsync` throws
@@ -82,7 +82,7 @@ open class AttributedStringGenerator {
     /// alternative text. See `ImageAccess` for the meaning of the cases. The default is `.any`.
     ///
     /// Relative image paths are resolved against `AttributedStringGenerator.imageBaseUrl`, or,
-    /// if that is `nil`, against `baseURL`; resolution is independent of this option, which
+    /// if that is `nil`, against `baseUrl`; resolution is independent of this option, which
     /// only checks the resolved URL. Relative paths are rejected if there is no base, and so
     /// are paths that resolve to a location that is not permitted by the options.
     ///
@@ -129,14 +129,14 @@ open class AttributedStringGenerator {
     /// used. Works for the synchronous and the asynchronous methods.
     public let textSizeMultiplier: Double?
 
-    public init(baseURL: URL? = nil,
+    public init(baseUrl: URL? = nil,
                 timeout: TimeInterval? = RenderingOptions.defaultTimeout,
                 localImages: ImageAccess = .any,
                 remoteImages: ImageAccess = .any,
                 imageExtensions: Set<String> = RenderingOptions.defaultImageExtensions,
                 safeMode: Bool = false,
                 textSizeMultiplier: Double? = nil) {
-      self.baseURL = baseURL
+      self.baseUrl = baseUrl
       self.timeout = timeout
       self.localImages = localImages
       self.remoteImages = remoteImages
@@ -216,8 +216,8 @@ open class AttributedStringGenerator {
           return url.map { .other($0) } ?? .rejected
         case .none:
           // A relative path (or something that is not a valid URL). It is resolved against
-          // `imageBaseUrl` or `baseURL`; the access options only check the result.
-          guard let base = imageBaseUrl ?? self.baseURL else {
+          // `imageBaseUrl` or `baseUrl`; the access options only check the result.
+          guard let base = imageBaseUrl ?? self.baseUrl else {
             // Without a base, a relative URL stays as it is, unless locations are restricted
             if !self.restrictsImages, let url {
               return .other(url)
@@ -323,8 +323,8 @@ open class AttributedStringGenerator {
       }
       // The keys for the base URL and the timeout are only declared on macOS; they have the
       // same raw values everywhere.
-      if let baseURL = self.baseURL {
-        result[NSAttributedString.DocumentReadingOptionKey(rawValue: "BaseURL")] = baseURL
+      if let baseUrl = self.baseUrl {
+        result[NSAttributedString.DocumentReadingOptionKey(rawValue: "BaseURL")] = baseUrl
       }
       if forLoadFromHTML, let timeout = self.timeout, timeout > 0 {
         result[NSAttributedString.DocumentReadingOptionKey(rawValue: "Timeout")] = timeout

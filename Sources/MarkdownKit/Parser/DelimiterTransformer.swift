@@ -44,12 +44,12 @@ open class DelimiterTransformer: InlineTransformer {
   /// escape anything in autolinks and in HTML tags, so the `>` ends an autolink or HTML tag.
   private var angleOpen = false
 
-  public override func transform(_ text: Text) -> Text {
+  open override func transform(_ text: Text) -> Text {
     self.angleOpen = false
     return super.transform(text)
   }
 
-  public override func transform(_ fragment: TextFragment,
+  open override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {
     guard case .text(let str) = fragment else {

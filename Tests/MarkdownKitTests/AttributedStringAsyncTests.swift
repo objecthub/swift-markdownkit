@@ -21,6 +21,7 @@
 #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
 
 import XCTest
+import Network
 #if canImport(WebKit) && (os(macOS) || os(iOS))
 import WebKit
 #endif
@@ -41,24 +42,24 @@ final class AttributedStringAsyncTests: XCTestCase {
     XCTAssertEqual(options[.documentType] as? NSAttributedString.DocumentType, .html)
     XCTAssertEqual(options[.characterEncoding] as? UInt, String.Encoding.utf8.rawValue)
     // The generator uses default options unless told otherwise
-    XCTAssertNil(generator.renderingOptions.baseURL)
+    XCTAssertNil(generator.renderingOptions.baseUrl)
     XCTAssertEqual(generator.renderingOptions.timeout,
                    RenderingOptions.defaultTimeout)
   }
 
   func testBaseURLAndTimeoutAreMappedToRenderingOptions() {
     let base = URL(fileURLWithPath: "/tmp/some-directory", isDirectory: true)
-    let legacy = RenderingOptions(baseURL: base, timeout: 7).renderingOptions(forLoadFromHTML: false)
+    let legacy = RenderingOptions(baseUrl: base, timeout: 7).renderingOptions(forLoadFromHTML: false)
     // The timeout is only used for the asynchronous render
     XCTAssertEqual(Set(legacy.keys), [.documentType, .characterEncoding, Key(rawValue: "BaseURL")])
     XCTAssertEqual(legacy[Key(rawValue: "BaseURL")] as? URL, base)
-    let async = RenderingOptions(baseURL: base, timeout: 7).renderingOptions(forLoadFromHTML: true)
+    let async = RenderingOptions(baseUrl: base, timeout: 7).renderingOptions(forLoadFromHTML: true)
     XCTAssertEqual(Set(async.keys), [Key(rawValue: "BaseURL"), Key(rawValue: "Timeout")])
     XCTAssertEqual(async[Key(rawValue: "BaseURL")] as? URL, base)
     XCTAssertEqual((async[Key(rawValue: "Timeout")] as? NSNumber)?.doubleValue, 7)
     // No timeout, no base URL, no keys
     for timeout in [nil, 0, -1] as [TimeInterval?] {
-      let none = RenderingOptions(baseURL: nil, timeout: timeout).renderingOptions(forLoadFromHTML: true)
+      let none = RenderingOptions(baseUrl: nil, timeout: timeout).renderingOptions(forLoadFromHTML: true)
       XCTAssertTrue(none.isEmpty, "\(String(describing: timeout))")
     }
   }
@@ -66,9 +67,9 @@ final class AttributedStringAsyncTests: XCTestCase {
   func testGeneratorStoresRenderingOptions() {
     let base = URL(fileURLWithPath: "/tmp", isDirectory: true)
     let generator = AttributedStringGenerator(
-                      renderingOptions: RenderingOptions(baseURL: base,
+                      renderingOptions: RenderingOptions(baseUrl: base,
                                                                                     timeout: 3))
-    XCTAssertEqual(generator.renderingOptions.baseURL, base)
+    XCTAssertEqual(generator.renderingOptions.baseUrl, base)
     XCTAssertEqual(generator.renderingOptions.timeout, 3)
   }
 
@@ -211,7 +212,7 @@ final class AttributedStringAsyncTests: XCTestCase {
     let withoutBase = AttributedStringGenerator()
     let withBase = AttributedStringGenerator(
                      renderingOptions: RenderingOptions(
-                       baseURL: URL(fileURLWithPath: directory.path, isDirectory: true)))
+                       baseUrl: URL(fileURLWithPath: directory.path, isDirectory: true)))
     // Without a base URL, the image cannot be found (a placeholder is used instead)
     let asyncWithoutBase = try await withoutBase.generateAsync(doc: doc)
     XCTAssertNotEqual(imageBytes(withoutBase.generate(doc: doc)), [pngData.count])
@@ -224,7 +225,7 @@ final class AttributedStringAsyncTests: XCTestCase {
     let perCall = try await withoutBase.generateAsync(
                     doc: doc,
                     options: RenderingOptions(
-                      baseURL: URL(fileURLWithPath: directory.path, isDirectory: true)))
+                      baseUrl: URL(fileURLWithPath: directory.path, isDirectory: true)))
     XCTAssertEqual(imageBytes(perCall), [pngData.count])
     // ... and with the variant that uses a completion handler
     let viaHandler: Result<NSAttributedString, AttributedStringGenerator.RenderingError> =
@@ -238,18 +239,30 @@ final class AttributedStringAsyncTests: XCTestCase {
     }
   }
 
-  /// The system's own timeout (not the watchdog) is reported as `.timedOut`.
+  /// The system's own timeout (not the watchdog) is reported as `.timedOut`. The document
+  /// refers to an image which is never delivered; so the load cannot finish before the
+  /// system's timeout is reached (a trivial document may well be rendered faster).
   @MainActor
-  func testSystemTimeoutIsReportedAsTimedOut() async {
+  func testSystemTimeoutIsReportedAsTimedOut() async throws {
+    let server = try SilentServer()
+    try server.start()
+    defer {
+      server.stop()
+    }
     let generator = AttributedStringGenerator()
+    let start = Date()
     do {
-      _ = try await generator.generateAsync(doc: parse("fast"),
-                                            options: RenderingOptions(timeout: 0.00001))
+      _ = try await generator.generateAsync(
+                      doc: parse("![never delivered](http://127.0.0.1:\(server.port)/image.png)"),
+                      options: RenderingOptions(timeout: 0.5))
       XCTFail("should throw")
     } catch AttributedStringGenerator.RenderingError.timedOut {
     } catch {
       XCTFail("unexpected error \(error)")
     }
+    // The watchdog would only report the timeout after the grace period of 5 seconds.
+    XCTAssertLessThan(Date().timeIntervalSince(start), 5)
+    XCTAssertFalse(server.requests.isEmpty, "the image was not requested")
   }
 
   // MARK: RenderingState
@@ -446,6 +459,75 @@ final class AttributedStringAsyncTests: XCTestCase {
   }
 
   #endif
+}
+
+
+/// A minimal HTTP server on the loopback interface which accepts connections, records the
+/// requests it receives, but never answers them.
+private final class SilentServer {
+  private let listener: NWListener
+  private let queue = DispatchQueue(label: "SilentServer")
+  private let lock = NSLock()
+  private var connections: [NWConnection] = []
+  private var recorded: [String] = []
+  private(set) var port: UInt16 = 0
+
+  init() throws {
+    let parameters = NWParameters.tcp
+    parameters.requiredInterfaceType = .loopback
+    self.listener = try NWListener(using: parameters, on: .any)
+  }
+
+  var requests: [String] {
+    self.lock.lock()
+    defer {
+      self.lock.unlock()
+    }
+    return self.recorded
+  }
+
+  func start() throws {
+    let ready = DispatchSemaphore(value: 0)
+    self.listener.stateUpdateHandler = { state in
+      if case .ready = state {
+        ready.signal()
+      }
+    }
+    self.listener.newConnectionHandler = { [weak self] connection in
+      self?.handle(connection)
+    }
+    self.listener.start(queue: self.queue)
+    guard ready.wait(timeout: .now() + 5) == .success, let port = self.listener.port?.rawValue else {
+      throw NSError(domain: "SilentServer", code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "server did not start"])
+    }
+    self.port = port
+  }
+
+  func stop() {
+    self.listener.cancel()
+    self.lock.lock()
+    let open = self.connections
+    self.connections = []
+    self.lock.unlock()
+    for connection in open {
+      connection.cancel()
+    }
+  }
+
+  private func handle(_ connection: NWConnection) {
+    self.lock.lock()
+    self.connections.append(connection)
+    self.lock.unlock()
+    connection.start(queue: self.queue)
+    connection.receive(minimumIncompleteLength: 1, maximumLength: 16384) { [weak self] data, _, _, _ in
+      let request = String(decoding: data ?? Data(), as: UTF8.self)
+      let line = request.components(separatedBy: "\r\n").first ?? ""
+      self?.lock.lock()
+      self?.recorded.append(line)
+      self?.lock.unlock()
+    }
+  }
 }
 
 #endif

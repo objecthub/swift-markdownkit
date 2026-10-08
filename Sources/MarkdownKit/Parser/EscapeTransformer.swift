@@ -44,7 +44,7 @@ import Foundation
 ///
 open class EscapeTransformer: InlineTransformer {
 
-  public override func transform(_ fragment: TextFragment,
+  open override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {
     switch fragment {

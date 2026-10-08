@@ -93,7 +93,7 @@ open class ListItemParser: BlockParser {
     }
   }
 
-  public override func parse() -> ParseResult {
+  open override func parse() -> ParseResult {
     guard self.shortLineIndent else {
       return .none
     }

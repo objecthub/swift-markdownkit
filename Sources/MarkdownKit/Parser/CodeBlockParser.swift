@@ -30,7 +30,7 @@ open class CodeBlockParser: BlockParser {
   /// Returns the current line without `n` columns of indentation. Tabs expand to the next tab
   /// stop. If a tab spans more columns than are left to be removed, the remaining columns
   /// stay as spaces.
-  public func formatIndentedLine(_ n: Int = 4) -> Substring {
+  open func formatIndentedLine(_ n: Int = 4) -> Substring {
     let line = self.line
     let start = LinePosition(index: line.startIndex,
                              column: self.docParser.lineColumn,

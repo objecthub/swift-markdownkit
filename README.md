@@ -312,11 +312,11 @@ let generator = AttributedStringGenerator(fontSize: 12,
 let attributedStr = generator.generate(doc: markdown)
 ```
 
-The generated HTML is rendered into an `NSAttributedString` by the system. Use `RenderingOptions` to configure it. `baseURL` is the base for resolving relative URLs (e.g. relative image paths) in the generated HTML. `AttributedStringGenerator.generate(doc:)` renders synchronously on the calling thread; `generateAsync(doc:)` is an alternative based on `NSAttributedString.loadFromHTML` which does not block the calling thread. It throws an `AttributedStringGenerator.RenderingError` (e.g. `.timedOut` if the render takes longer than `timeout` seconds, or `.cancelled`). It is available on macOS and iOS; on other platforms it throws `.unsupportedPlatform`.
+The generated HTML is rendered into an `NSAttributedString` by the system. Use `RenderingOptions` to configure it. `baseUrl` is the base for resolving relative URLs (e.g. relative image paths) in the generated HTML. `AttributedStringGenerator.generate(doc:)` renders synchronously on the calling thread; `generateAsync(doc:)` is an alternative based on `NSAttributedString.loadFromHTML` which does not block the calling thread. It throws an `AttributedStringGenerator.RenderingError` (e.g. `.timedOut` if the render takes longer than `timeout` seconds, or `.cancelled`). It is available on macOS and iOS; on other platforms it throws `.unsupportedPlatform`.
 
 ```swift
 let options = AttributedStringGenerator.RenderingOptions(
-                baseURL: URL(fileURLWithPath: "/path/to/images", isDirectory: true),
+                baseUrl: URL(fileURLWithPath: "/path/to/images", isDirectory: true),
                 timeout: 10)
 let generator = AttributedStringGenerator(renderingOptions: options)
 let attributedStr = generator.generate(doc: markdown)               // synchronous
@@ -343,14 +343,14 @@ By default, images referred to by Markdown may be loaded from any location: the 
 ```swift
 let imageDirectory = URL(fileURLWithPath: "/path/to/images", isDirectory: true)
 let options = AttributedStringGenerator.RenderingOptions(
-                baseURL: imageDirectory,
+                baseUrl: imageDirectory,
                 localImages: .within(imageDirectory),
                 remoteImages: .within(URL(string: "https://example.com/images/")!),
                 textSizeMultiplier: 1.2)
 let generator = AttributedStringGenerator(renderingOptions: options)
 ```
 
-Independently of the location checks, every image that is checked must also have one of the path extensions in `imageExtensions` (default: `RenderingOptions.defaultImageExtensions`: png, jpg, jpeg, gif, tif, tiff, bmp, ico, heic, heif, webp), whether its location was permitted by `.any` or `.within`; this keeps non-image files from being loaded via an image URL. A custom set replaces the default, and `""` stands for URLs without extension. This check always applies to the images of the Markdown text, also if `localImages` and `remoteImages` are both `.any`. Images in raw HTML are not checked. Images that are not allowed are replaced by their alternative text. Relative image paths are resolved against `imageBaseUrl` or, if that is not set, against `baseURL`; the access options never influence this resolution, they only check the resolved URL (relative paths are rejected if there is no base). The restrictions apply to the images of the Markdown text only: raw HTML in the Markdown can still refer to images, style sheets and other resources. Set `safeMode: true` in the options to also omit raw HTML and to limit links to the schemes `http`, `https` and `mailto` (as `HtmlGenerator(safeMode: true)` does); it is independent of the image options and `false` by default. With `remoteImages: .none` and Markdown without raw HTML, `generateAsync` does not access the network. Remote images are never loaded by the synchronous methods. The restrictions are enforced while generating the HTML; they do not cover resources the application itself refers to (e.g. via `customStyle`), redirects of web servers, or files that change between the check and loading. `textSizeMultiplier` scales all font sizes.
+Independently of the location checks, every image that is checked must also have one of the path extensions in `imageExtensions` (default: `RenderingOptions.defaultImageExtensions`: png, jpg, jpeg, gif, tif, tiff, bmp, ico, heic, heif, webp), whether its location was permitted by `.any` or `.within`; this keeps non-image files from being loaded via an image URL. A custom set replaces the default, and `""` stands for URLs without extension. This check always applies to the images of the Markdown text, also if `localImages` and `remoteImages` are both `.any`. Images in raw HTML are not checked. Images that are not allowed are replaced by their alternative text. Relative image paths are resolved against `imageBaseUrl` or, if that is not set, against `baseUrl`; the access options never influence this resolution, they only check the resolved URL (relative paths are rejected if there is no base). The restrictions apply to the images of the Markdown text only: raw HTML in the Markdown can still refer to images, style sheets and other resources. Set `safeMode: true` in the options to also omit raw HTML and to limit links to the schemes `http`, `https` and `mailto` (as `HtmlGenerator(safeMode: true)` does); it is independent of the image options and `false` by default. With `remoteImages: .none` and Markdown without raw HTML, `generateAsync` does not access the network. Remote images are never loaded by the synchronous methods. The restrictions are enforced while generating the HTML; they do not cover resources the application itself refers to (e.g. via `customStyle`), redirects of web servers, or files that change between the check and loading. `textSizeMultiplier` scales all font sizes.
 
 _Note:_ Without restrictions, do not use `generateAsync` with untrusted Markdown, as it then loads remote resources (images, style sheets) that the HTML refers to.
 

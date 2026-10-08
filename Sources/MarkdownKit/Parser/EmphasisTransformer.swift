@@ -131,7 +131,7 @@ open class EmphasisTransformer: InlineTransformer {
   /// The number of enclosing links, images and emphasis while transforming their text
   private var baseDepth = 0
 
-  public override func transform(_ fragment: TextFragment,
+  open override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {
     switch fragment {
@@ -162,7 +162,7 @@ open class EmphasisTransformer: InlineTransformer {
     let canOpen: Bool
   }
 
-  public override func transform(_ text: Text) -> Text {
+  open override func transform(_ text: Text) -> Text {
     // Compute delimiter stack
     var res: Text = Text()
     var iterator = text.makeIterator()

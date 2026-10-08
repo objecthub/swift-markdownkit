@@ -25,18 +25,18 @@ import Foundation
 ///
 open class LinkRefDefinitionParser: RestorableBlockParser {
 
-  public override var mayInterruptParagraph: Bool {
+  open override var mayInterruptParagraph: Bool {
     return false
   }
 
-  public override func parse() -> BlockParser.ParseResult {
+  open override func parse() -> BlockParser.ParseResult {
     guard self.shortLineIndent && self.firstContentCharacter == "[" else {
       return .none
     }
     return super.parse()
   }
 
-  public override func tryParse() -> ParseResult {
+  open override func tryParse() -> ParseResult {
     var index = self.contentStartIndex
     guard let label = self.parseLabel(index: &index),
           index < self.contentEndIndex,

@@ -516,7 +516,7 @@ open class StringGenerator {
   ///       2 │ Michael Zimmermann │ 10/01/1977
   ///       3 │   Leonie Schmid    │ 19/12/1986
   ///  
-  public class MinimalisticTableRenderer: TableRenderer {
+  open class MinimalisticTableRenderer: TableRenderer {
     let alignDisplayWidth: Bool
     
     public init(alignDisplayWidth: Bool) {
@@ -606,27 +606,34 @@ open class StringGenerator {
   /// │                        │                                  tincidunt. │       │
   /// └────────────────────────┴─────────────────────────────────────────────┴───────┘
   /// 
-  public class FullTableRenderer: TableRenderer {
+  open class FullTableRenderer: TableRenderer {
     
-    struct Delimiter {
-      let left: Character
-      let right: Character
-      let mid: Character
-      let line: Character
+    public struct Delimiter {
+      public let left: Character
+      public let right: Character
+      public let mid: Character
+      public let line: Character
       
-      var leftStart: String {
+      public init(left: Character, right: Character, mid: Character, line: Character) {
+        self.left = left
+        self.right = right
+        self.mid = mid
+        self.line = line
+      }
+      
+      public var leftStart: String {
         return "\(self.left)\(self.line)"
       }
       
-      var rightEnd: String {
+      public var rightEnd: String {
         return "\(self.line)\(self.right)"
       }
       
-      var midSeparator: String {
+      public var midSeparator: String {
         return "\(self.line)\(self.mid)\(self.line)"
       }
       
-      func separatorLine(_ columnWidths: [Int]) -> String {
+      public func separatorLine(_ columnWidths: [Int]) -> String {
         var line = self.leftStart
         for (index, width) in columnWidths.enumerated() {
           line += String(repeating: self.line, count: max(width, 1))
@@ -643,12 +650,12 @@ open class StringGenerator {
     let bar: Character
     let alignDisplayWidth: Bool
     
-    init(topDelimiter: Delimiter = Delimiter(left: "┌", right: "┐", mid: "┬", line: "─"),
-         bottomDelimiter: Delimiter = Delimiter(left: "└", right: "┘", mid: "┴", line: "─"),
-         headerSeparator: Delimiter = Delimiter(left: "╞", right: "╡", mid: "╪", line: "═"),
-         rowSeparator: Delimiter = Delimiter(left: "├", right: "┤", mid: "┼", line: "─"),
-         bar: Character = "│",
-         alignDisplayWidth: Bool) {
+    public init(topDelimiter: Delimiter = Delimiter(left: "┌", right: "┐", mid: "┬", line: "─"),
+                bottomDelimiter: Delimiter = Delimiter(left: "└", right: "┘", mid: "┴", line: "─"),
+                headerSeparator: Delimiter = Delimiter(left: "╞", right: "╡", mid: "╪", line: "═"),
+                rowSeparator: Delimiter = Delimiter(left: "├", right: "┤", mid: "┼", line: "─"),
+                bar: Character = "│",
+                alignDisplayWidth: Bool) {
       self.topDelimiter = topDelimiter
       self.bottomDelimiter = bottomDelimiter
       self.headerSeparator = headerSeparator

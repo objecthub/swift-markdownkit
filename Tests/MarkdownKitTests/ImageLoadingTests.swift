@@ -106,7 +106,7 @@ final class ImageLoadingTests: XCTestCase {
   }
 
   func testLocalWithinAllowsFilesInsideTheDirectory() {
-    let options = Options(baseURL: self.allowed, localImages: .within(self.allowed))
+    let options = Options(baseUrl: self.allowed, localImages: .within(self.allowed))
     for uri in ["in.png", "sub/deep.png", "./sub/../in.png", "IN.PNG".lowercased(),
                 self.fileURL(self.allowed, "sub/deep.png")] {
       XCTAssertEqual(self.images(self.html("![a](\(uri))", options)), 1, uri)
@@ -141,19 +141,19 @@ final class ImageLoadingTests: XCTestCase {
     let sibling = self.root.appendingPathComponent("allowed2", isDirectory: true)
     try FileManager.default.createDirectory(at: sibling, withIntermediateDirectories: true)
     try Data().write(to: sibling.appendingPathComponent("x.png"))
-    let options = Options(baseURL: self.allowed, localImages: .within(self.allowed))
+    let options = Options(baseUrl: self.allowed, localImages: .within(self.allowed))
     XCTAssertEqual(self.images(self.html("![a](\(self.fileURL(sibling, "x.png")))", options)), 0)
     XCTAssertEqual(self.images(self.html("![a](../allowed2/x.png)", options)), 0)
   }
 
   func testResolutionAndAccessControlAreOrthogonal() throws {
     let sub = self.allowed.appendingPathComponent("sub", isDirectory: true)
-    // Relative paths are resolved against `baseURL` ...
-    let viaBase = self.html("![a](in.png)", Options(baseURL: self.allowed, localImages: .within(self.allowed)))
+    // Relative paths are resolved against `baseUrl` ...
+    let viaBase = self.html("![a](in.png)", Options(baseUrl: self.allowed, localImages: .within(self.allowed)))
     XCTAssertTrue(viaBase.contains(
       self.allowed.resolvingSymlinksInPath().appendingPathComponent("in.png").absoluteString))
     // ... or against `imageBaseUrl`, which has priority
-    let options = Options(baseURL: self.outside, localImages: .within(self.allowed))
+    let options = Options(baseUrl: self.outside, localImages: .within(self.allowed))
     XCTAssertEqual(self.images(self.html("![a](deep.png)", options, imageBaseUrl: sub)), 1)
     // `.within` does not provide a base: without a base, relative paths are rejected
     XCTAssertEqual(self.images(self.html("![a](in.png)", Options(localImages: .within(self.allowed)))), 0)
@@ -164,10 +164,10 @@ final class ImageLoadingTests: XCTestCase {
     XCTAssertEqual(self.images(self.html("![a](out.png)", Options(localImages: .within(self.allowed)),
                                          imageBaseUrl: self.outside)), 0)
     // The kind of the resolved URL decides which option applies, not the option's location
-    let remote = Options(baseURL: URL(string: "https://example.com/img/")!,
+    let remote = Options(baseUrl: URL(string: "https://example.com/img/")!,
                          localImages: .within(self.allowed), remoteImages: .none)
     XCTAssertEqual(self.images(self.html("![a](a.png)", remote)), 0)
-    let remoteAllowed = Options(baseURL: URL(string: "https://example.com/img/")!,
+    let remoteAllowed = Options(baseUrl: URL(string: "https://example.com/img/")!,
                                 localImages: .none, remoteImages: .any)
     XCTAssertTrue(self.html("![a](a.png)", remoteAllowed).contains("https://example.com/img/a.png"))
   }
@@ -182,7 +182,7 @@ final class ImageLoadingTests: XCTestCase {
 
   func testRemoteWithin() throws {
     let base = try XCTUnwrap(URL(string: "https://Images.Example.com/img/"))
-    let options = Options(baseURL: base, localImages: .none, remoteImages: .within(base))
+    let options = Options(baseUrl: base, localImages: .none, remoteImages: .within(base))
     let accepted = ["https://images.example.com/img/a.png",
                     "https://images.example.com:443/img/sub/a.png",
                     "https://images.example.com/img/./sub/../a.png",
@@ -212,13 +212,13 @@ final class ImageLoadingTests: XCTestCase {
 
   func testRemoteWithinWithPortAndLocalCombination() throws {
     let base = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/img"))
-    let options = Options(baseURL: self.allowed, localImages: .within(self.allowed),
+    let options = Options(baseUrl: self.allowed, localImages: .within(self.allowed),
                           remoteImages: .within(base))
     XCTAssertEqual(self.images(self.html("![a](http://127.0.0.1:8080/img/a.png)", options)), 1)
     XCTAssertEqual(self.images(self.html("![a](http://127.0.0.1:8081/img/a.png)", options)), 0)
     XCTAssertEqual(self.images(self.html("![a](\(self.fileURL(self.allowed, "in.png")))", options)), 1)
     XCTAssertEqual(self.images(self.html("![a](\(self.fileURL(self.outside, "out.png")))", options)), 0)
-    // Relative paths resolve against `baseURL`, which is local here
+    // Relative paths resolve against `baseUrl`, which is local here
     XCTAssertTrue(self.html("![a](in.png)", options).contains("file:"))
   }
 
@@ -241,7 +241,7 @@ final class ImageLoadingTests: XCTestCase {
     XCTAssertEqual(self.images(self.html("![a](http://example.com/x.txt?a=.png)", remote)), 0)
     XCTAssertEqual(self.images(self.html("![a](http://example.com/avatar)", remote)), 0)
     XCTAssertEqual(self.images(self.html("![a](http://example.com/dir/)", remote)), 0)
-    let within = Options(baseURL: URL(string: "https://example.com/img/")!, localImages: .none,
+    let within = Options(baseUrl: URL(string: "https://example.com/img/")!, localImages: .none,
                          remoteImages: .within(URL(string: "https://example.com/img/")!))
     XCTAssertEqual(self.images(self.html("![a](a.png)", within)), 1)
     XCTAssertEqual(self.images(self.html("![a](a.txt)", within)), 0)
@@ -302,7 +302,7 @@ final class ImageLoadingTests: XCTestCase {
     let markdown = "Text <b>bold</b> [a link](custom://x) ![a](in.png) <img src=\"x.png\">"
     // Safe mode with unrestricted images: raw HTML and link schemes are restricted, images
     // are decided by the image options alone
-    let safe = Options(baseURL: self.allowed, safeMode: true)
+    let safe = Options(baseUrl: self.allowed, safeMode: true)
     let generator = AttributedStringGenerator(renderingOptions: safe)
     XCTAssertTrue(generator.htmlGenerator.safeMode)
     let result = self.html(markdown, safe)
@@ -312,10 +312,10 @@ final class ImageLoadingTests: XCTestCase {
     XCTAssertFalse(result.contains("custom://x"))
     XCTAssertEqual(self.images(result), 1)
     // Restricting images does not turn on safe mode
-    let restricted = Options(baseURL: self.allowed, localImages: .none)
+    let restricted = Options(baseUrl: self.allowed, localImages: .none)
     XCTAssertFalse(AttributedStringGenerator(renderingOptions: restricted).htmlGenerator.safeMode)
     // Both together
-    let both = Options(baseURL: self.allowed, localImages: .none, safeMode: true)
+    let both = Options(baseUrl: self.allowed, localImages: .none, safeMode: true)
     let combined = self.html(markdown, both)
     XCTAssertEqual(self.images(combined), 0)
     XCTAssertFalse(combined.contains("<b>"))
@@ -353,7 +353,7 @@ final class ImageLoadingTests: XCTestCase {
     let unrestricted = AttributedStringGenerator(imageBaseUrl: self.allowed)
     XCTAssertEqual(self.attachmentCount(unrestricted.generate(doc: ExtendedMarkdownParser.standard.parse(markdown))), 3)
     let restricted = AttributedStringGenerator(
-                       renderingOptions: Options(baseURL: self.allowed,
+                       renderingOptions: Options(baseUrl: self.allowed,
                                                  localImages: .within(self.allowed),
                                                  remoteImages: .none))
     let result = restricted.generate(doc: ExtendedMarkdownParser.standard.parse(markdown))

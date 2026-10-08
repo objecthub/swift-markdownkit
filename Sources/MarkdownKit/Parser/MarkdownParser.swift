@@ -131,7 +131,7 @@ open class MarkdownParser {
   /// Invokes the parser and returns an abstract syntx tree of the Markdown syntax.
   /// If `blockOnly` is set to `true` (default is `false`), only the block parsers are
   /// invoked and no inline parsing gets performed.
-  public func parse(_ str: String, blockOnly: Bool = false) -> Block {
+  open func parse(_ str: String, blockOnly: Bool = false) -> Block {
     let doc = self.documentParser(input: str).parse()
     if blockOnly {
       return doc

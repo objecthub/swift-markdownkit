@@ -176,6 +176,7 @@
 		CCD0746822A060CF0053B73C /* Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746722A060CF0053B73C /* Text.swift */; };
 		CCD0746A22A324400053B73C /* InlineTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD0746922A324400053B73C /* InlineTransformer.swift */; };
 		CCE764063030D022008AD5AD /* FuzzTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE76477309E1629008AD5AD /* FuzzTests.swift */; };
+		CCE76485305CE09A008AD5AD /* PublicSubclassingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764B73018ACAB008AD5AD /* PublicSubclassingTests.swift */; };
 		CCE7643E3088A9CC008AD5AD /* MarkdownTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE7646E304A26E7008AD5AD /* MarkdownTextTests.swift */; };
 		CCE7642330968528008AD5AD /* CrashRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE7649630D3E0CB008AD5AD /* CrashRegressionTests.swift */; };
 		CCE764C6307576BE008AD5AD /* Sanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE764C5307576BE008AD5AD /* Sanitizer.swift */; };
@@ -409,6 +410,7 @@
 		CCD0746722A060CF0053B73C /* Text.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Text.swift; sourceTree = "<group>"; };
 		CCD0746922A324400053B73C /* InlineTransformer.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = InlineTransformer.swift; sourceTree = "<group>"; };
 		CCE76477309E1629008AD5AD /* FuzzTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzTests.swift; sourceTree = "<group>"; };
+		CCE764B73018ACAB008AD5AD /* PublicSubclassingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicSubclassingTests.swift; sourceTree = "<group>"; };
 		CCE7646E304A26E7008AD5AD /* MarkdownTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTextTests.swift; sourceTree = "<group>"; };
 		CCE7649130E74826008AD5AD /* CommonMarkSpecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonMarkSpecTests.swift; sourceTree = "<group>"; };
 		CCE7649630D3E0CB008AD5AD /* CrashRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashRegressionTests.swift; sourceTree = "<group>"; };
@@ -555,6 +557,7 @@
 				CCE7649130E74826008AD5AD /* CommonMarkSpecTests.swift */,
 				CCE7649630D3E0CB008AD5AD /* CrashRegressionTests.swift */,
 				CCE76477309E1629008AD5AD /* FuzzTests.swift */,
+				CCE764B73018ACAB008AD5AD /* PublicSubclassingTests.swift */,
 				CCE7646E304A26E7008AD5AD /* MarkdownTextTests.swift */,
 				CCE764CF30EE10B2008AD5AD /* commonmark-spec-0.31.2.json */,
 				CCE764C9307576E8008AD5AD /* PerformanceTests.swift */,
@@ -1102,6 +1105,7 @@
 				CCE764F230A2A4B1008AD5AD /* CommonMarkSpecTests.swift in Sources */,
 				CCE7642330968528008AD5AD /* CrashRegressionTests.swift in Sources */,
 				CCE764063030D022008AD5AD /* FuzzTests.swift in Sources */,
+				CCE76485305CE09A008AD5AD /* PublicSubclassingTests.swift in Sources */,
 				CCE7643E3088A9CC008AD5AD /* MarkdownTextTests.swift in Sources */,
 				CC83081D2FC27E3800FDD777 /* SyntaxHighlighterTests.swift in Sources */,
 				CC55DD88264B19D8001AAD10 /* MarkdownExtensionTests.swift in Sources */,

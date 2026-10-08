@@ -736,7 +736,7 @@ open class TerminalGenerator {
   ///       2 │ Michael Zimmermann │ 10/01/1977
   ///       3 │   Leonie Schmid    │ 19/12/1986
   ///  
-  public class MinimalisticTableRenderer: TableRenderer {
+  open class MinimalisticTableRenderer: TableRenderer {
     let borderProperties: TextProperties
     let headerProperties: TextProperties
     
@@ -853,7 +853,7 @@ open class TerminalGenerator {
   /// │                        │                                  tincidunt. │       │
   /// └────────────────────────┴─────────────────────────────────────────────┴───────┘
   /// 
-  public class FullTableRenderer: TableRenderer {
+  open class FullTableRenderer: TableRenderer {
     
     public struct Delimiter {
       public let left: Character

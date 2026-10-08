@@ -26,7 +26,7 @@ import Foundation
 ///
 open class SetextHeadingParser: BlockParser {
 
-  public override func parse() -> ParseResult {
+  open override func parse() -> ParseResult {
     guard self.shortLineIndent,
           !self.lazyContinuation,
           let plines = self.prevParagraphLines,
