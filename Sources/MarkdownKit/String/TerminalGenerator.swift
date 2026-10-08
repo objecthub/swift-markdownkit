@@ -530,8 +530,10 @@ open class TerminalGenerator {
         }
       case .html(_):
         return AnsiText.Normalized()
-      case .delimiter(let ch, let n, _):
-        return AnsiText.Normalized(repeating: ch, count: max(n, 0))
+      case .delimiter(let ch, let n, let type):
+        // The opening bracket of an image, which was not completed, comes with its `!`
+        return AnsiText.Normalized((type.contains(.image) ? "!" : "") +
+                                   String(repeating: ch, count: max(n, 0)))
       case .softLineBreak:
         return AnsiText.Normalized(" ")
       case .hardLineBreak:

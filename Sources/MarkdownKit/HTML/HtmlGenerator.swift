@@ -226,7 +226,7 @@ open class HtmlGenerator {
         }
       case .html(let tag):
         return self.safeMode ? "<!-- raw HTML omitted -->" : "<\(tag.description)>"
-      case .delimiter(let ch, let n, _):
+      case .delimiter(let ch, let n, let type):
         let char: String
         switch ch {
           case "<":
@@ -236,7 +236,8 @@ open class HtmlGenerator {
           default:
             char = String(ch)
         }
-        return String(repeating: char, count: max(n, 0))
+        // The opening bracket of an image, which was not completed, comes with its `!`
+        return (type.contains(.image) ? "!" : "") + String(repeating: char, count: max(n, 0))
       case .softLineBreak:
         return "\n"
       case .hardLineBreak:

@@ -30,6 +30,7 @@ public struct MarkdownText: View {
       codeFontColor: "#FFF",
       codeBlockFontColor: "#FF6",
       codeBlockBackground: "#333",
+      syntaxHighlighting: .defaultDark,
       borderColor: "#BBB",
       h1Color: "#FFF",
       h2Color: "#FFF",
@@ -38,8 +39,11 @@ public struct MarkdownText: View {
   
   @Environment(\.colorScheme) var colorScheme
   
+  /// The Markdown document that is displayed. The view is updated if this changes.
+  private let content: Block
+  
   /// The generator for turning markdown into a `NSAttributedString` object
-  private let generator: (ColorScheme) -> NSAttributedString?
+  private let generator: (Block, ColorScheme) -> NSAttributedString?
   
   /// What to display until the markdown document has been converted into an
   /// attributed string.
@@ -62,15 +66,16 @@ public struct MarkdownText: View {
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               generator: ((Block, ColorScheme) -> NSAttributedString?)? = nil) {
     self.waitingMessage = waitingMessage
+    self.content = text
     if let generator {
-      self.generator = { colorScheme in generator(text, colorScheme) }
+      self.generator = generator
     } else {
-      self.generator = { colorScheme in
+      self.generator = { doc, colorScheme in
         switch colorScheme {
           case .dark:
-            return MarkdownText.darkGenerator.generate(doc: text)
+            return MarkdownText.darkGenerator.generate(doc: doc)
           default:
-            return AttributedStringGenerator.standard.generate(doc: text)
+            return AttributedStringGenerator.standard.generate(doc: doc)
         }
       }
     }
@@ -101,8 +106,14 @@ public struct MarkdownText: View {
       }
       if self.lastUsedColorScheme != self.colorScheme {
         self.lastUsedColorScheme = self.colorScheme
-        self.attributedText = self.generator(self.colorScheme)
+        self.attributedText = self.generator(self.content, self.colorScheme)
       }
+    }
+    // The state of this view survives the creation of a new `MarkdownText` value for a different
+    // document; the text needs to be generated again in this case.
+    .onChange(of: self.content) {
+      self.lastUsedColorScheme = self.colorScheme
+      self.attributedText = self.generator(self.content, self.colorScheme)
     }
   }
 }

@@ -56,8 +56,12 @@ struct AttributedTextView: NSViewRepresentable {
   }
   
   func updateNSView(_ textView: NSTextView, context: Context) {
-    // Propagate the attributed text
-    textView.textStorage?.setAttributedString(attributedText)
+    // Propagate the attributed text. Setting the text resets the text selection; it is only
+    // done if the text changed.
+    if context.coordinator.attributedText !== attributedText {
+      context.coordinator.attributedText = attributedText
+      textView.textStorage?.setAttributedString(attributedText)
+    }
     // Set the text container width
     textView.textContainer?.containerSize = NSSize(width: self.availableWidth,
                                                    height: .greatestFiniteMagnitude)
@@ -89,6 +93,8 @@ struct AttributedTextView: NSViewRepresentable {
   
   class Coordinator: NSObject, NSTextViewDelegate {
     var openURL: OpenURLAction? = nil
+    /// The attributed text that was set last
+    var attributedText: NSAttributedString? = nil
     
     func textView(_ textView: NSTextView,
                   clickedOnLink link: Any,

@@ -408,6 +408,7 @@ struct ContentView: View {
   private static let darkGenerator = AttributedStringGenerator(
       fontColor: "#FFF", codeFontColor: "#FFF",
       codeBlockFontColor: "#FF6", codeBlockBackground: "#333",
+      syntaxHighlighting: .defaultDark,
       borderColor: "#BBB", h1Color: "#FFF", h2Color: "#FFF",
       h3Color: "#FFF", h4Color: "#FFF")
   
@@ -445,14 +446,12 @@ struct ContentView: View {
 
 ## Known issues
 
-There are a number of limitations and known issues. Measured against the 652 examples of the CommonMark 0.31.2 specification, all but 11 produce equivalent HTML (ignoring differences such as `&quot;` vs. `"`, `<ol start="1">`, and percent-encoding of URLs, which do not change how browsers render the output). The remaining deviations are:
+There are a number of limitations and known issues. Measured against the 652 examples of the CommonMark 0.31.2 specification, all but 6 produce equivalent HTML (ignoring differences such as `&quot;` vs. `"`, `<ol start="1">`, and percent-encoding of URLs, which do not change how browsers render the output). The remaining deviations are:
 
   - Tab characters in list items and block quotes are treated as four spaces; they are not expanded to the next tab stop. This can lead to wrong nesting for tab-indented list items.
-  - A list that contains a nested list or block quote with blank lines inside is rendered as a loose list (with `<p>` elements) even though CommonMark considers it tight.
   - A backslash at the end of a line is dropped inside code spans and inline HTML.
-  - Corner cases for links and images: a link destination in `<...>` may span lines, `<http://example.com/\[\>` is not recognized as an autolink, and the `!` of an unresolved image such as `Hello![World]` is dropped.
+  - Corner cases for links and images: a link destination in `<...>` may span lines and `<http://example.com/\[\>` is not recognized as an autolink.
   - Unicode currency and other symbol characters are not treated as punctuation for the purpose of recognizing emphasis.
-  - A tilde fence whose info string contains a backtick is not recognized as a code fence.
 
 ## Requirements
 

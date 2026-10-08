@@ -18,6 +18,7 @@
 //
 
 import XCTest
+import CommandLineKit
 @testable import MarkdownKit
 
 /// Regression tests for parser bugs. Expected results follow CommonMark and GFM.
@@ -496,5 +497,85 @@ class ParserRegressionTests: XCTestCase {
                    "<pre><code class=\"language-日本語\">code\n</code></pre>")
     XCTAssertEqual(html("```\\&ouml;\ncode\n```"),
                    "<pre><code class=\"language-&amp;ouml;\">code\n</code></pre>")
+  }
+
+  // MARK: Tight and loose lists
+
+  /// A list is loose if its items are separated by blank lines or if an item directly contains
+  /// two blocks with a blank line between them. Blank lines within nested blocks do not count.
+  func testLooseNestedBlocksMakeListLoose() {
+    XCTAssertEqual(html("- a\n\n  > b"),
+                   "<ul>\n<li><p>a</p>\n<blockquote>\n<p>b</p>\n</blockquote>\n</li>\n</ul>")
+    XCTAssertEqual(html("- a\n\n  - b"), "<ul>\n<li><p>a</p>\n<ul>\n<li>b</li>\n</ul>\n</li>\n</ul>")
+    XCTAssertEqual(html("- a\n  > b\n\n- c"),
+                   "<ul>\n<li><p>a</p>\n<blockquote>\n<p>b</p>\n</blockquote>\n</li>\n" +
+                   "<li><p>c</p>\n</li>\n</ul>")
+  }
+
+  func testBlankLinesInNestedBlocksDoNotMakeListLoose() {
+    // Blank lines inside of a block quote
+    XCTAssertEqual(html("- a\n  > b\n  >\n  > c"),
+                   "<ul>\n<li>a\n<blockquote>\n<p>b</p>\n<p>c</p>\n</blockquote>\n</li>\n</ul>")
+    XCTAssertEqual(html("* a\n  > b\n  >\n* c"),
+                   "<ul>\n<li>a\n<blockquote>\n<p>b</p>\n</blockquote>\n</li>\n<li>c</li>\n</ul>")
+    // Blank lines between the items of a nested list make the nested list loose only
+    XCTAssertEqual(html("- a\n  - b\n\n  - c"),
+                   "<ul>\n<li>a\n<ul>\n<li><p>b</p>\n</li>\n<li><p>c</p>\n</li>\n</ul>\n</li>\n</ul>")
+    // Blank lines at the end of a fenced code block which is not closed belong to the code
+    XCTAssertEqual(html("- ```\n  x\n\n- b"),
+                   "<ul>\n<li><pre><code>x\n\n</code></pre>\n</li>\n<li>b</li>\n</ul>")
+  }
+
+  func testBlankLinesBetweenItemsMakeListLoose() {
+    XCTAssertEqual(html("- a\n- b\n\n- c"),
+                   "<ul>\n<li><p>a</p>\n</li>\n<li><p>b</p>\n</li>\n<li><p>c</p>\n</li>\n</ul>")
+    // The blank line between the nested item and the next item of the outer list
+    XCTAssertEqual(html("- a\n  - b\n\n- c"),
+                   "<ul>\n<li><p>a</p>\n<ul>\n<li>b</li>\n</ul>\n</li>\n<li><p>c</p>\n</li>\n</ul>")
+    // A blank line within a block quote does separate the items of a list in the block quote
+    XCTAssertEqual(html("> - a\n>\n> - b"),
+                   "<blockquote>\n<ul>\n<li><p>a</p>\n</li>\n<li><p>b</p>\n</li>\n</ul>\n</blockquote>")
+  }
+
+  func testInfoStringOfTildeFenceMayContainBackticks() {
+    XCTAssertEqual(self.info("~~~ aa ``` ~~~\nfoo\n~~~"), "aa ``` ~~~")
+    XCTAssertEqual(html("~~~ aa ``` ~~~\nfoo\n~~~"),
+                   "<pre><code class=\"language-aa\">foo\n</code></pre>")
+    // A backtick fence with a backtick in the info string is not a fence (it is a code span)
+    XCTAssertEqual(html("``` aa ```\nfoo"), "<p><code>aa</code>\nfoo</p>")
+    // The same holds for longer fences (the last line is the start of another fence)
+    XCTAssertEqual(html("````a`b\nfoo\n````"),
+                   "<p>````a`b\nfoo</p>\n<pre><code></code></pre>")
+  }
+
+  // MARK: Descriptions and raw text of blocks
+
+  func testDescriptionOfTables() {
+    XCTAssertEqual(ExtendedMarkdownParser.standard.parse("| a | b |\n|---|:-:|\n| c | d |").description,
+                   "document(table(row(a | b), -C, row(c | d)))")
+  }
+
+  func testRawTextOfCodeBlocks() {
+    // The lines of a code block include their line terminators, for both kinds of code blocks
+    XCTAssertEqual(MarkdownParser.standard.parse("```\nx\ny\n```").string, "x\ny\n")
+    XCTAssertEqual(MarkdownParser.standard.parse("    x\n    y\n").string, "x\ny\n")
+  }
+
+  // MARK: Unresolved image syntax
+
+  /// The `!` of an image which is not completed is text like any other
+  func testExclamationMarkOfUnresolvedImageIsKept() {
+    XCTAssertEqual(html("Hello![World]"), "<p>Hello![World]</p>")
+    XCTAssertEqual(html("x ![y] z"), "<p>x ![y] z</p>")
+    XCTAssertEqual(html("a ![b"), "<p>a ![b</p>")
+    XCTAssertEqual(html("![[foo]]\n\n[[foo]]: /url \"title\""),
+                   "<p>![[foo]]</p>\n<p>[[foo]]: /url \"title\"</p>")
+    XCTAssertEqual(html("![a][undefined]"), "<p>![a][undefined]</p>")
+    // Images which are completed are not affected
+    XCTAssertEqual(html("![a [b] c](d)"), "<p><img src=\"d\" alt=\"a [b] c\"/></p>")
+    let doc = MarkdownParser.standard.parse("Hello![World]")
+    XCTAssertEqual(doc.string, "Hello![World]")
+    XCTAssertEqual(StringGenerator.standard.generate(doc: doc), "Hello![World]")
+    XCTAssertEqual(TerminalGenerator.standard.generate(doc: doc).plainText, "Hello![World]")
   }
 }

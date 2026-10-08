@@ -46,13 +46,8 @@ class CommonMarkSpecTests: XCTestCase {
   /// Examples for which the output of MarkdownKit differs from the specification.
   static let knownDeviations: [Int : String] = [
     9: "tab stops are not taken into account for list item indentation",
-    146: "an info string of a tilde fence cannot contain backticks",
-    307: "a list is considered loose if a nested list contains blank lines",
-    319: "a list is considered loose if a nested list contains blank lines",
-    320: "a list is considered loose if a nested block quote ends with a blank line",
     354: "currency symbols are not punctuation for emphasis delimiter runs",
     491: "a link destination in angle brackets may span lines",
-    590: "the exclamation mark of an unresolved image is dropped",
     603: "a backslash in an autolink",
     641: "a backslash at the end of a line in a code span is dropped",
     643: "a backslash at the end of a line in inline HTML is dropped"

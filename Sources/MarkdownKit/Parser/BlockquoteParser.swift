@@ -31,6 +31,10 @@ open class BlockquoteParser: BlockParser {
       return true
     }
 
+    internal override var blankLinesSeparateBlocks: Bool {
+      return false
+    }
+
     public override func skipIndent(input: String,
                                     startIndex: String.Index,
                                     endIndex: String.Index) -> String.Index? {

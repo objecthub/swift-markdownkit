@@ -109,8 +109,9 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
     switch self {
       case .html(_):
         return ""
-      case .delimiter(let ch, let n, _):
-        return String(repeating: ch, count: max(n, 0))
+      case .delimiter(let ch, let n, let type):
+        let res = String(repeating: ch, count: max(n, 0))
+        return type.contains(.image) ? "!" + res : res
       default:
         return self.rawDescription
     }

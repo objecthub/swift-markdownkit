@@ -327,8 +327,9 @@ open class StringGenerator {
         }
       case .html(_):
         return "" // Skip HTML in plain text output
-      case .delimiter(let ch, let n, _):
-        return String(repeating: ch, count: max(n, 0))
+      case .delimiter(let ch, let n, let type):
+        // The opening bracket of an image, which was not completed, comes with its `!`
+        return (type.contains(.image) ? "!" : "") + String(repeating: ch, count: max(n, 0))
       case .softLineBreak:
         return " "
       case .hardLineBreak:

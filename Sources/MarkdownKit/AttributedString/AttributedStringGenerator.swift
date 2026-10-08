@@ -651,15 +651,20 @@ open class AttributedStringGenerator {
           var code = lines.joined(separator: "")
           let middle: String
           #if !os(watchOS)
-          if self.outer.ignoredLanguages.contains(lang ?? "") {
+          // The language is the first word of the info string
+          let language = lang?.split(whereSeparator: \.isWhitespace).first.map(String.init)
+          if self.outer.ignoredLanguages.contains(language ?? "") {
             middle = "<pre><code>" + code.encodingPredefinedXmlEntities() + "</code></pre>\n"
           } else if let lang, lang == "mermaid" {
             middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
           } else {
             var markup = "<code>"
-            if let hl = self.outer.syntaxHighlighter ?? SyntaxHighlighter.proxy,
+            // Code is only highlighted if syntax highlighting is enabled (`syntaxHighlighting`
+            // is not `nil`)
+            if self.outer.codeBlockHighlightingConfig != nil,
+               let hl = self.outer.syntaxHighlighter ?? SyntaxHighlighter.proxy,
                let transformed = hl.highlight(code: code,
-                                              as: lang,
+                                              as: language,
                                               ignoreIllegals: self.outer.ignoreSyntacticIssues) {
               code = transformed
               markup = "<code class=\"hljs\">"

@@ -141,12 +141,21 @@ open class DocumentParser {
     return self.index == nil
   }
   
+  /// Declares that the line preceding the current line is not a blank line which separates
+  /// blocks. Block parsers which consume blank lines as part of their content (like fenced
+  /// code blocks which are not closed) call this when they are done.
+  internal func clearPrecedingBlankLine() {
+    self.prevLineEmpty = false
+  }
+  
   public func readNextLine() {
     guard self.index != nil else {
       return
     }
-    // The blank remainder of a line which started a container is not a blank line
-    let lineWasEmpty = self.lineEmpty && !self.containerStartedOnLine
+    // The blank remainder of a line which started a container is not a blank line, and neither
+    // is a blank line within a block quote (it does not separate the blocks around the quote)
+    let lineWasEmpty = self.lineEmpty && !self.containerStartedOnLine &&
+                       self.container.blankLinesSeparateBlocks
     self.containerStartedOnLine = false
     if let lines = self.prevParagraphLines {
       self.container.append(block: .paragraph(lines.finalized()), tight: self.prevParagraphLinesTight)
@@ -281,6 +290,7 @@ open class DocumentParser {
               self.restore(saved!)
             case .container(let constr):
               self.currentContainer = constr(self.container)
+              self.currentContainer.startedTight = tight
               self.container = self.currentContainer
               self.containerStartedOnLine = true
               continue loop
@@ -321,6 +331,7 @@ open class DocumentParser {
                     self.currentContainer = constr(self.container)
                     self.container = self.currentContainer
                   }
+                  self.currentContainer.startedTight = tight
                   self.containerStartedOnLine = true
                   self.prevParagraphLines = nil
                   self.prevParagraphLinesTight = false

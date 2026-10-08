@@ -101,7 +101,9 @@ public final class FencedCodeBlockParser: CodeBlockParser {
     }
     let rawInfo = self.line[index..<self.contentEndIndex]
                       .trimmingCharacters(in: CharacterSet.whitespaces)
-    guard !rawInfo.contains("`") && !rawInfo.contains("~") else {
+    // The info string of a backtick fence cannot contain backticks (the line would be a
+    // code span); there is no such restriction for tilde fences.
+    guard fenceChar != "`" || !rawInfo.contains("`") else {
       return .none
     }
     let info = FencedCodeBlockParser.resolveEscapesAndEntities(in: rawInfo)
@@ -132,6 +134,10 @@ public final class FencedCodeBlockParser: CodeBlockParser {
     if closed {
       // skip the closing fence
       self.readNextLine()
+    } else {
+      // Blank lines at the end of a code block which is not closed belong to the code; they do
+      // not separate the code block from the block that follows
+      self.docParser.clearPrecedingBlankLine()
     }
     return .block(.fencedCode(info.isEmpty ? nil : info, code))
   }
