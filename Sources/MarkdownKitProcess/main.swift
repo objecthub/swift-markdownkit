@@ -54,11 +54,9 @@ enum OutputFormat: String {
 
 // Utility functions
 
-let fileManager = FileManager.default
-
 func markdownFiles(inDir baseUrl: URL) -> [URL] {
   var res: [URL] = []
-  if let urls = try? fileManager.contentsOfDirectory(
+  if let urls = try? FileManager.default.contentsOfDirectory(
                        at: baseUrl,
                        includingPropertiesForKeys: [.nameKey, .isDirectoryKey],
                        options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants]) {
@@ -74,7 +72,7 @@ func markdownFiles(inDir baseUrl: URL) -> [URL] {
 
 func baseUrl(for path: String, role: String, exists: Bool) -> (URL, Bool) {
   var isDir = ObjCBool(false)
-  guard !exists || fileManager.fileExists(atPath: path, isDirectory: &isDir) else {
+  guard !exists || FileManager.default.fileExists(atPath: path, isDirectory: &isDir) else {
     print("\(role) '\(path)' does not exist")
     exit(1)
   }
@@ -205,7 +203,7 @@ for (sourceUrl, optTargetUrl) in sourceTarget {
         }
     }
     if let targetUrl = optTargetUrl {
-      if fileManager.fileExists(atPath: targetUrl.path) {
+      if FileManager.default.fileExists(atPath: targetUrl.path) {
         print("cannot overwrite target file '\(targetUrl.path)'")
       } else {
         do {

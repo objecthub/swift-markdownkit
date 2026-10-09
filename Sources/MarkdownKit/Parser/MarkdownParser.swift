@@ -39,7 +39,15 @@ import Foundation
 /// second phase, the block structure gets traversed and markup within raw text gets
 /// replaced with a structured representation.
 ///
-open class MarkdownParser {
+/// Instances are immutable once they have been created and conform to `Sendable`, so a
+/// single instance (such as `MarkdownParser.standard`) can be used from several threads or tasks
+/// at the same time. The conformance is `@unchecked` because the class is `open`: a
+/// subclass which adds mutable state has to synchronize it itself, and has to restate
+/// the conformance as `@unchecked Sendable`.
+/// Every call of `parse` creates new `DocumentParser` and `InlineParser` objects, which are used
+/// by the calling thread only.
+///
+open class MarkdownParser: @unchecked Sendable {
 
   /// The default list of block parsers. The order of this list matters.
   open class var defaultBlockParsers: [BlockParser.Type] {

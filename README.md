@@ -15,6 +15,7 @@ _Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it p
 &nbsp;&nbsp; 1.2 &nbsp;<a href="#markdown-extensions">Markdown extensions</a><br />
 &nbsp;&nbsp; 1.3 &nbsp;<a href="#configuring-the-parser">Configuring the parser</a><br />
 &nbsp;&nbsp; 1.4 &nbsp;<a href="#extending-the-parser">Extending the parser</a><br />
+&nbsp;&nbsp; 1.5 &nbsp;<a href="#using-markdownkit-concurrently">Using MarkdownKit concurrently</a><br />
 2. &nbsp;<a href="#processing-markdown">Processing Markdown</a><br />
 </td>
 <td width="50%" valign="top">
@@ -233,6 +234,17 @@ The order of the inline transformers matters. In particular, `EscapeTransformer`
   - It decides which line endings are hard line breaks (a backslash or at least two spaces at the end of a line) and removes the trailing spaces of the other line endings. This has to happen after `DelimiterTransformer` has classified the delimiters (a `*` followed by a backslash is treated differently from a `*` at the end of a line), after `CodeLinkHtmlTransformer` has recognized code spans and HTML tags (a backslash or spaces at the end of a line are literal text in these, and the line ending is no line break), and after `LinkTransformer` has matched link reference labels (they are compared as written, including backslashes).
 
 A parser without `EscapeTransformer` does not recognize hard line breaks; trailing spaces and backslashes at the end of lines remain in the text. Custom transformers for new inline markup, such as the ones above, belong in front of `EscapeTransformer`.
+
+### Using MarkdownKit concurrently
+
+_MarkdownKit_ is compiled in Swift 6 language mode and supports strict concurrency checking. Abstract syntax trees (`Block`, `TextFragment`, `Text`, ...), options and configuration types (such as `RenderingOptions`) are `Sendable` value types. Parsers (`MarkdownParser`, `ExtendedMarkdownParser`), generators (`HtmlGenerator`, `StringGenerator`, `TerminalGenerator`, `AttributedStringGenerator`), table renderers and the `SyntaxHighlighter` are immutable objects and `Sendable` as well (the highlighting configurations `HighlightingConfig` and `AnsiHighlightingConfig` are value types), so a single instance can be used from several threads or tasks at the same time. Parsing in a background task and using the resulting `Block` on the main actor works:
+
+```swift
+let doc = await Task.detached { ExtendedMarkdownParser.standard.parse(text) }.value
+let attributedStr = try await AttributedStringGenerator.standard.generateAsync(doc: doc)
+```
+
+The classes are `open`, so their `Sendable` conformance is `@unchecked`. Subclasses restate it as `@unchecked Sendable` (the compiler warns otherwise) and have to make sure that state they add is immutable or synchronized. For the same reason, custom types implementing `CustomBlock`, `CustomTextFragment` or one of the `TableRenderer` protocols have to be `Sendable`. Parser internals, such as `DocumentParser`, `InlineParser` and `BlockParser`, are created for a single parse and are not `Sendable`. The synchronous methods of `AttributedStringGenerator` (`generate(doc:)` etc.) use the system's HTML importer, which Apple documents as usable on the main thread only; from other threads, use `generateAsync`.
 
 ## Processing Markdown
 
@@ -478,7 +490,7 @@ for that. Similarly, just for compiling the framework and trying the command-lin
 _Swift Package Manager_ is not needed.
 
 - [Xcode 16](https://developer.apple.com/xcode/) or later (the framework is developed with Xcode 26)
-- [Swift 6](https://developer.apple.com/swift/) toolchain (the package is compiled in Swift 5 language mode)
+- [Swift 6](https://developer.apple.com/swift/) toolchain (the package is compiled in Swift 6 language mode; clients can use any language mode)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
 _Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting relies on JavaScriptCore and is not available on watchOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tool is only functional on macOS.

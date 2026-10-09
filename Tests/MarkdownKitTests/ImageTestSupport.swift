@@ -26,7 +26,9 @@ import Network
 
 /// A minimal HTTP server on the loopback interface which records the requests it receives
 /// and answers every request with a PNG image (or a CSS file for paths ending in `.css`).
-final class LoopbackImageServer {
+/// The state which is changed concurrently is guarded by a lock; the port is set before the
+/// server is used.
+final class LoopbackImageServer: @unchecked Sendable {
   private let listener: NWListener
   private let queue = DispatchQueue(label: "LoopbackImageServer")
   private let lock = NSLock()

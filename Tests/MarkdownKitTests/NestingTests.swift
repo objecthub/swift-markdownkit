@@ -32,7 +32,7 @@ class NestingTests: XCTestCase {
   private let inlineLimit = InlineParser.defaultMaxNestingDepth
 
   /// Parser with custom limits
-  private final class LimitedParser: MarkdownParser {
+  private final class LimitedParser: MarkdownParser, @unchecked Sendable {
     var blockLimit = DocumentParser.defaultMaxContainerDepth
     var inlineLimit = InlineParser.defaultMaxNestingDepth
 
@@ -105,6 +105,8 @@ class NestingTests: XCTestCase {
   /// Runs `body` on a thread with the given stack size (like threads used by dispatch queues
   /// and by Swift concurrency), and waits for it to finish.
   private func runOnSmallStack(kilobytes: Int = 512, _ body: @escaping () -> Void) {
+    // The caller waits for the thread to finish, so `body` is not used concurrently
+    nonisolated(unsafe) let body = body
     let done = DispatchSemaphore(value: 0)
     let thread = Thread {
       body()

@@ -25,7 +25,7 @@ import Foundation
 /// i.e. the abstract syntax, of Markdown supported by MarkdownKit. The structure of
 /// inline text is defined by the `Text` struct.
 /// 
-public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   case document(Blocks)
   case blockquote(Blocks)
   case list(Int?, Bool, Blocks)
@@ -231,7 +231,7 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
   }
 }
 
-public enum ListDensity: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+public enum ListDensity: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   case initial
   case loose
   case tight
@@ -288,7 +288,7 @@ public enum ListDensity: Equatable, CustomStringConvertible, CustomDebugStringCo
 ///
 /// Enumeration of Markdown list types.
 /// 
-public enum ListType: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+public enum ListType: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   case bullet(Character)
   case ordered(Int, Character)
 
@@ -335,7 +335,7 @@ public typealias Rows = ContiguousArray<Row>
 ///
 /// Column alignments are represented as arrays of `Alignment` enum values
 /// 
-public enum Alignment: UInt, CustomStringConvertible, CustomDebugStringConvertible {
+public enum Alignment: UInt, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   case undefined = 0
   case left = 1
   case right = 2
@@ -361,7 +361,7 @@ public enum Alignment: UInt, CustomStringConvertible, CustomDebugStringConvertib
 
 public typealias Alignments = ContiguousArray<Alignment>
 
-public struct Definition: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+public struct Definition: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   public let item: Text
   public let descriptions: Blocks
   

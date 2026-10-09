@@ -559,8 +559,9 @@ final class AttributedStringAsyncTests: XCTestCase {
 
 
 /// A minimal HTTP server on the loopback interface which accepts connections, records the
-/// requests it receives, but never answers them.
-private final class SilentServer {
+/// requests it receives, but never answers them. The state which is changed concurrently is
+/// guarded by a lock; the port is set before the server is used.
+private final class SilentServer: @unchecked Sendable {
   private let listener: NWListener
   private let queue = DispatchQueue(label: "SilentServer")
   private let lock = NSLock()

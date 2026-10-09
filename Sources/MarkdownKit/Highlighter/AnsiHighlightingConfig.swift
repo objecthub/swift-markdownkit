@@ -43,11 +43,21 @@ import UIKit
 /// }
 /// ```
 ///
-public class AnsiHighlightingConfig {
-  private var strippedTheme: [String : [String: String]]
-  private var styleDict: [String : TextProperties]
+/// `AnsiHighlightingConfig` is an immutable value type and conforms to `Sendable`, so it can be
+/// shared between threads.
+///
+public struct AnsiHighlightingConfig: Sendable {
+  private let styleSheet: ThemeStyleSheet<AnsiStyle>
   
   /// Creates a new ANSI highlighter configuration from a theme name or CSS content.
+  ///
+  /// The theme is a CSS style sheet with rules for the classes that highlight.js assigns to
+  /// the parts of highlighted code, for example `.hljs-keyword{color:#f00;font-weight:bold}`.
+  /// The selectors consist of classes: `.a`, `.a.b`, descendant selectors (`.a .b`) and child
+  /// selectors (`.a > .b`). The cascade follows CSS: a rule with a higher specificity (more
+  /// classes) wins over one with a lower specificity, otherwise the last rule wins. The
+  /// properties `color`, `background-color`, `font-weight`, `font-style` and `text-decoration`
+  /// are used.
   ///
   /// - Parameters:
   ///   - withTheme: Either the name of a bundled theme (without `.css` extension),
@@ -78,78 +88,30 @@ public class AnsiHighlightingConfig {
     } else {
       return nil
     }
-    // Parse the CSS theme
-    self.strippedTheme = HighlightingConfig.stripTheme(content)
-    self.styleDict = [String : TextProperties]()
-    // Convert CSS properties to ANSI text properties
-    for (className, props) in self.strippedTheme {
-      var textColor: TextColor? = nil
-      var backgroundColor: BackgroundColor? = nil
-      var styles: Set<TextStyle> = []
-      for (key, prop) in props {
-        switch key {
-          case "color":
-            textColor =
-                Self.cssColorToAnsiColor(prop, fullColorSupport: fullColorSupport) ?? textColor
-          case "background-color":
-            backgroundColor =
-                Self.cssColorToAnsiBackgroundColor(prop, fullColorSupport: fullColorSupport) ??
-                backgroundColor
-          case "font-style":
-            switch prop {
-              case "italic", "oblique":
-                styles.insert(.italic)
-              default:
-                break
-            }
-          case "font-weight":
-            switch prop {
-              case "bold", "bolder", "600", "700", "800", "900":
-                styles.insert(.bold)
-              default:
-                break
-            }
-          case "text-decoration":
-            if prop.contains("underline") {
-              styles.insert(.underline)
-            }
-            if prop.contains("line-through") {
-              styles.insert(.strikethrough)
-            }
-          default:
-            break
-        }
-      }
-      let key = className.replacingOccurrences(of: ".", with: "")
-      self.styleDict[key] = TextProperties(textColor: textColor,
-                                          backgroundColor: backgroundColor,
-                                          textStyles: styles)
+    // Parse the CSS theme and convert the CSS properties to ANSI text properties
+    self.styleSheet = ThemeStyleSheet<AnsiStyle>(css: content) {
+      AnsiStyle(declarations: $0, fullColorSupport: fullColorSupport)
     }
   }
   
-  /// Applies styling to a string based on a list of CSS class names.
+  /// Applies styling to a string based on the CSS classes of the elements that contain it.
   ///
   /// - Parameters:
   ///   - string: The text to style.
-  ///   - styleList: An array of CSS class attribute values (without leading dots). Each
-  ///                element can consist of several class names separated by whitespace, like
-  ///                `hljs-title function_`; every class name is looked up on its own.
+  ///   - styleList: The values of the class attributes of the elements around the text,
+  ///                starting with the outermost element (like `["hljs", "hljs-function",
+  ///                "hljs-title function_"]`; a value can consist of several class names
+  ///                separated by whitespace). The style of an element replaces the style of
+  ///                the elements around it.
   ///
   /// - Returns: An `AnsiText.Normalized` value with the appropriate styling applied.
   public func apply(to string: String, styleList: [String]) -> AnsiText.Normalized {
-    var properties = TextProperties.empty
-    for style in styleList {
-      for className in style.split(whereSeparator: \.isWhitespace) {
-        if let themeStyle = self.styleDict[String(className)] {
-          properties = properties.with(themeStyle)
-        }
-      }
-    }
-    return AnsiText.Normalized(string, properties: properties)
+    return AnsiText.Normalized(string,
+                               properties: self.styleSheet.style(forClasses: styleList).properties)
   }
   
   /// Converts a CSS color string to an ANSI `TextColor`.
-  private static func cssColorToAnsiColor(_ cssColor: String,
+  fileprivate static func cssColorToAnsiColor(_ cssColor: String,
                                           fullColorSupport: Bool) -> TextColor? {
     if let color = HRColor.from(cssColor: cssColor) {
       return Self.approximateAnsiColor(color, fullColorSupport: fullColorSupport)
@@ -158,7 +120,7 @@ public class AnsiHighlightingConfig {
   }
   
   /// Converts a CSS color string to an ANSI `BackgroundColor`.
-  private static func cssColorToAnsiBackgroundColor(_ cssColor: String,
+  fileprivate static func cssColorToAnsiBackgroundColor(_ cssColor: String,
                                                     fullColorSupport: Bool) -> BackgroundColor? {
     if let color = HRColor.from(cssColor: cssColor) {
       return Self.approximateAnsiBackgroundColor(color, fullColorSupport: fullColorSupport)
@@ -201,6 +163,92 @@ public class AnsiHighlightingConfig {
     color.getRed(&r, green: &g, blue: &b, alpha: &a)
     return BackgroundColor(rgb: (r, g, b), fullColorSupport: fullColorSupport)
     #endif
+  }
+}
+
+/// The style of text in code which is rendered as ANSI text.
+fileprivate struct AnsiStyle: ThemeStyle {
+  var textColor: TextColor? = nil
+  var backgroundColor: BackgroundColor? = nil
+  var bold: Bool? = nil
+  var italic: Bool? = nil
+  var underline: Bool? = nil
+  var strikethrough: Bool? = nil
+  
+  init() {}
+  
+  /// Creates the style for a rule; properties with values that are not understood are ignored.
+  init(declarations: [ThemeDeclaration], fullColorSupport: Bool) {
+    for declaration in declarations {
+      let value = declaration.value
+      switch declaration.name {
+        case "color":
+          self.textColor = AnsiHighlightingConfig.cssColorToAnsiColor(
+                             value, fullColorSupport: fullColorSupport) ?? self.textColor
+        case "background-color":
+          self.backgroundColor = AnsiHighlightingConfig.cssColorToAnsiBackgroundColor(
+                                   value, fullColorSupport: fullColorSupport) ?? self.backgroundColor
+        case "font-weight":
+          if let weight = Int(value) {
+            self.bold = weight >= 600
+          } else if value == "bold" || value == "bolder" {
+            self.bold = true
+          } else if value == "normal" || value == "lighter" {
+            self.bold = false
+          }
+        case "font-style":
+          if value == "italic" || value.hasPrefix("oblique") {
+            self.italic = true
+          } else if value == "normal" {
+            self.italic = false
+          }
+        case "text-decoration":
+          if value == "none" {
+            self.underline = false
+            self.strikethrough = false
+          } else {
+            if value.contains("underline") {
+              self.underline = true
+            }
+            if value.contains("line-through") {
+              self.strikethrough = true
+            }
+          }
+        default:
+          break
+      }
+    }
+  }
+  
+  func overridden(by inner: AnsiStyle) -> AnsiStyle {
+    var result = self
+    result.textColor = inner.textColor ?? self.textColor
+    result.backgroundColor = inner.backgroundColor ?? self.backgroundColor
+    result.bold = inner.bold ?? self.bold
+    result.italic = inner.italic ?? self.italic
+    result.underline = inner.underline ?? self.underline
+    result.strikethrough = inner.strikethrough ?? self.strikethrough
+    return result
+  }
+  
+  /// The text properties for this style
+  var properties: TextProperties {
+    var styles: Set<TextStyle> = []
+    if self.bold == true {
+      styles.insert(.bold)
+    }
+    if self.italic == true {
+      styles.insert(.italic)
+    }
+    if self.underline == true {
+      styles.insert(.underline)
+    }
+    if self.strikethrough == true {
+      styles.insert(.strikethrough)
+    }
+    return TextProperties(textColor: self.textColor,
+                          backgroundColor: self.backgroundColor,
+                          textStyles: styles)
   }
 }
 

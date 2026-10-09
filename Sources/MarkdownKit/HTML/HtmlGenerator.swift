@@ -25,9 +25,15 @@ import Foundation
 /// implementation is extensible allowing subclasses of `HtmlGenerator` to override how
 /// individual Markdown structures are converted into HTML.
 ///
-open class HtmlGenerator {
+/// Instances are immutable once they have been created and conform to `Sendable`, so a
+/// single instance (such as `HtmlGenerator.standard`) can be used from several threads or tasks
+/// at the same time. The conformance is `@unchecked` because the class is `open`: a
+/// subclass which adds mutable state has to synchronize it itself, and has to restate
+/// the conformance as `@unchecked Sendable`.
+///
+open class HtmlGenerator: @unchecked Sendable {
   
-  public enum Parent {
+  public enum Parent: Sendable {
     case none
     indirect case block(Block, Parent)
   }

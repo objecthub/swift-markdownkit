@@ -41,7 +41,7 @@ import Foundation
 /// In the second phase, the block structure gets traversed and markup within raw text
 /// gets replaced with a structured representation.
 ///
-open class ExtendedMarkdownParser: MarkdownParser {
+open class ExtendedMarkdownParser: MarkdownParser, @unchecked Sendable {
 
   /// The default list of block parsers. The order of this list matters.
   override open class var defaultBlockParsers: [BlockParser.Type] {

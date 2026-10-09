@@ -23,7 +23,8 @@ import Foundation
 ///
 /// A `DocumentParser` implements Markdown block parsing for a list of `BlockParsers` and
 /// and an input string. `DocumentParser` objects are stateful and can be used for parsing
-/// only a single document/string in Markdown format.
+/// only a single document/string in Markdown format. They are not `Sendable`: a
+/// `MarkdownParser` creates a new object for every parse, which is used by one thread only.
 ///
 open class DocumentParser {
   

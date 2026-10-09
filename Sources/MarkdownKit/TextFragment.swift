@@ -25,7 +25,7 @@ import Foundation
 /// Each `TextFragment` enumeration variant represents one form of inline markup. Since
 /// markup can be arbitrarily nested, this is a recursive data structure (via struct `Text`).
 ///
-public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   case text(Substring)
   case code(Substring)
   case emph(Text)
@@ -185,7 +185,7 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
 ///
 /// Represents an autolink type.
 ///
-public enum AutolinkType: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+public enum AutolinkType: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   case uri
   case email
 
@@ -211,7 +211,7 @@ public typealias Lines = ContiguousArray<Substring>
 ///
 /// Each delimiter run is classified into a set of types which are represented via the
 /// `DelimiterRunType` struct.
-public struct DelimiterRunType: OptionSet, CustomStringConvertible {
+public struct DelimiterRunType: OptionSet, CustomStringConvertible, Sendable {
   public let rawValue: UInt8
 
   public init(rawValue: UInt8) {

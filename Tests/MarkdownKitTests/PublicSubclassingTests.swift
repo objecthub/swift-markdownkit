@@ -25,8 +25,10 @@ import XCTest
 import MarkdownKit
 import CommandLineKit
 
-/// The methods called on the subclasses below
-private var calls: [String] = []
+/// The methods called on the subclasses below. The tests use this from one thread at a time.
+/// Since subclasses of the (`Sendable`) generators and parsers have to restate the conformance,
+/// the subclasses below are `@unchecked Sendable`.
+nonisolated(unsafe) private var calls: [String] = []
 
 private final class MyAtxParser: AtxHeadingParser {
   override func parse() -> ParseResult {
@@ -199,7 +201,7 @@ private final class MyInlineParser: InlineParser {
   }
 }
 
-private final class MyMarkdownParser: MarkdownParser {
+private final class MyMarkdownParser: MarkdownParser, @unchecked Sendable {
   override func documentParser(blockParsers: [BlockParser.Type], input: String) -> DocumentParser {
     return MyDocumentParser(blockParsers: blockParsers, input: input)
   }
@@ -227,13 +229,13 @@ private final class MyGeneratorContext: GeneratorContext {
   }
 }
 
-private final class MyStringGenerator: StringGenerator {
+private final class MyStringGenerator: StringGenerator, @unchecked Sendable {
   override func newContext(doc: Block, maxColumns: Int) -> GeneratorContext {
     return MyGeneratorContext(doc: doc, maxColumns: maxColumns)
   }
 }
 
-private final class MyMinimalisticTableRenderer: StringGenerator.MinimalisticTableRenderer {
+private final class MyMinimalisticTableRenderer: StringGenerator.MinimalisticTableRenderer, @unchecked Sendable {
   override func renderTable(_ descriptor: TableDescriptor,
                             using generate: (Text, Int) -> [String],
                             in context: GeneratorContext) -> [String]? {
@@ -242,7 +244,7 @@ private final class MyMinimalisticTableRenderer: StringGenerator.MinimalisticTab
   }
 }
 
-private final class MyFullTableRenderer: StringGenerator.FullTableRenderer {
+private final class MyFullTableRenderer: StringGenerator.FullTableRenderer, @unchecked Sendable {
   override func renderTable(_ descriptor: TableDescriptor,
                             using generate: (Text, Int) -> [String],
                             in context: GeneratorContext) -> [String]? {
@@ -252,7 +254,7 @@ private final class MyFullTableRenderer: StringGenerator.FullTableRenderer {
 }
 
 private final class MyTerminalMinimalisticTableRenderer:
-                       TerminalGenerator.MinimalisticTableRenderer {
+                       TerminalGenerator.MinimalisticTableRenderer, @unchecked Sendable {
   override func renderTable(_ descriptor: TerminalGenerator.TableDescriptor,
                             using generate: (Text, Int) -> [AnsiText.Normalized],
                             in context: GeneratorContext) -> [AnsiText.Normalized]? {
@@ -261,21 +263,21 @@ private final class MyTerminalMinimalisticTableRenderer:
   }
 }
 
-private final class MyHtmlGenerator: HtmlGenerator {
+private final class MyHtmlGenerator: HtmlGenerator, @unchecked Sendable {
   override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
     calls.append("HtmlGenerator.generate(block)")
     return super.generate(block: block, parent: parent, tight: tight)
   }
 }
 
-private final class MyTextGenerator: StringGenerator {
+private final class MyTextGenerator: StringGenerator, @unchecked Sendable {
   override func generate(block: Block, context: GeneratorContext) -> [String] {
     calls.append("StringGenerator.generate(block)")
     return super.generate(block: block, context: context)
   }
 }
 
-private final class MyTerminalGenerator: TerminalGenerator {
+private final class MyTerminalGenerator: TerminalGenerator, @unchecked Sendable {
   override func generate(textFragment fragment: TextFragment) -> AnsiText.Normalized? {
     calls.append("TerminalGenerator.generate(textFragment)")
     return super.generate(textFragment: fragment)
@@ -319,7 +321,7 @@ private final class MyHtmlBlockParser: HtmlBlockParser {
   }
 }
 
-private final class MyAttributedStringGenerator: AttributedStringGenerator {
+private final class MyAttributedStringGenerator: AttributedStringGenerator, @unchecked Sendable {
   override var htmlGenerator: HtmlGenerator {
     calls.append("AttributedStringGenerator.htmlGenerator")
     return MyHtmlGenerator()

@@ -24,7 +24,7 @@ import Foundation
 /// Protocol `CustomBlock` defines the interface of custom Markdown elements that are implemented
 /// externally (i.e. not by the MarkdownKit framework).
 ///
-public protocol CustomBlock: CustomStringConvertible, CustomDebugStringConvertible {
+public protocol CustomBlock: CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   var string: String { get }
   func equals(to other: CustomBlock) -> Bool
   func parse(via parser: InlineParser) -> Block

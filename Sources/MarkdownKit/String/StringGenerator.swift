@@ -26,11 +26,19 @@ import Foundation
 /// extensible allowing subclasses of `StringGenerator` to override how individual Markdown
 /// structures are converted into strings.
 ///
-open class StringGenerator {
+/// Instances are immutable once they have been created and conform to `Sendable`, so a
+/// single instance (such as `StringGenerator.standard`) can be used from several threads or tasks
+/// at the same time. The conformance is `@unchecked` because the class is `open`: a
+/// subclass which adds mutable state has to synchronize it itself, and has to restate
+/// the conformance as `@unchecked Sendable`.
+///
+open class StringGenerator: @unchecked Sendable {
   
   /// `TableRenderer` objects are able to render tables as an array of strings where
-  /// each string is representing a line of text.
-  public protocol TableRenderer {
+  /// each string is representing a line of text. A generator can be used by several threads
+  /// at the same time, which is why renderers are `Sendable`: they have to be immutable or
+  /// synchronize their state.
+  public protocol TableRenderer: Sendable {
     func renderTable(_ descriptor: TableDescriptor,
                      using generate: (Text, Int) -> [String],
                      in context: GeneratorContext) -> [String]?
@@ -516,7 +524,7 @@ open class StringGenerator {
   ///       2 │ Michael Zimmermann │ 10/01/1977
   ///       3 │   Leonie Schmid    │ 19/12/1986
   ///  
-  open class MinimalisticTableRenderer: TableRenderer {
+  open class MinimalisticTableRenderer: TableRenderer, @unchecked Sendable {
     let alignDisplayWidth: Bool
     
     public init(alignDisplayWidth: Bool) {
@@ -606,9 +614,9 @@ open class StringGenerator {
   /// │                        │                                  tincidunt. │       │
   /// └────────────────────────┴─────────────────────────────────────────────┴───────┘
   /// 
-  open class FullTableRenderer: TableRenderer {
+  open class FullTableRenderer: TableRenderer, @unchecked Sendable {
     
-    public struct Delimiter {
+    public struct Delimiter: Sendable {
       public let left: Character
       public let right: Character
       public let mid: Character

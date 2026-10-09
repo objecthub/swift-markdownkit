@@ -23,7 +23,7 @@
 /// a table, including metadata about each column (to determine how columns
 /// are organized).
 /// 
-public struct TableDescriptor {
+public struct TableDescriptor: Sendable {
   public let header: Row
   public let alignments: Alignments
   public let rows: Rows

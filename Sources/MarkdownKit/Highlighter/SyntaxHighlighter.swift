@@ -57,8 +57,11 @@ public typealias TextStorageEditActions = NSTextStorage.EditActions
 ///   let attributed = highlighter.asAttributedString(highlighted, using: config)
 /// }
 /// ```
+///
+/// A `SyntaxHighlighter` conforms to `Sendable`: it can be used from several threads at the
+/// same time (calls into the JavaScript engine are serialized).
 /// 
-public final class SyntaxHighlighter {
+public final class SyntaxHighlighter: @unchecked Sendable {
 
   /// Locates the bundle containing this package's highlighting resources
   /// (`highlight.min.js` and the theme `.css` files).
@@ -131,6 +134,10 @@ public final class SyntaxHighlighter {
   
   /// Reference to the result of evaluating `highlight.min.js`.
   private let hljs: JSValue
+  
+  /// Serializes the calls into JavaScript, so that a `SyntaxHighlighter` can be used from
+  /// several threads at the same time.
+  private let hljsLock = NSLock()
   
   /// An array of language identifiers supported by Highlight.js.
   ///
@@ -398,6 +405,10 @@ public final class SyntaxHighlighter {
   public func highlight(code: String,
                         as language: String? = nil,
                         ignoreIllegals: Bool = false) -> String? {
+    self.hljsLock.lock()
+    defer {
+      self.hljsLock.unlock()
+    }
     let result: JSValue
     if let language {
       let options: [String: Any] = ["language" : language, "ignoreIllegals" : ignoreIllegals]
@@ -615,7 +626,7 @@ public final class SyntaxHighlighter {
   ///   minWidth: 3
   /// )
   /// ```
-  public struct LineNumberConfig {
+  public struct LineNumberConfig: Sendable {
     
     /// The first line number to display.
     ///

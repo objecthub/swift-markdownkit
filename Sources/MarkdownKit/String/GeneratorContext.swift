@@ -20,7 +20,8 @@
 
 /// 
 /// Class `GeneratorContext` provides information about the environment in which a Markdown
-/// construct is being mapped to a string.
+/// construct is being mapped to a string. A context is created for one generation and used by
+/// one thread only; it is not `Sendable`.
 /// 
 open class GeneratorContext {
   public let parent: Block

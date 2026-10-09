@@ -33,19 +33,47 @@ import UIKit
 
 ///
 /// Theme objects used for generating attributed strings.
+///
+/// A theme is a CSS style sheet with rules for the classes that highlight.js assigns to the
+/// parts of highlighted code, such as `.hljs-keyword{color:#f00;font-weight:bold}`. The
+/// selectors of the rules consist of classes: `.a`, `.a.b`, descendant selectors (`.a .b`)
+/// and child selectors (`.a > .b`). The cascade follows CSS: a rule with a higher specificity
+/// (more classes) wins over one with a lower specificity, otherwise the last rule wins.
+/// The properties `color`, `background-color`, `font-weight` and `font-style` are used.
+///
+/// `HighlightingConfig` is a value type: copies are independent of each other, so changing a
+/// property of a copy never affects a generator which uses the original. It conforms to
+/// `Sendable`; the conformance is `@unchecked` only because `NSFont` is not marked as
+/// `Sendable` on macOS (fonts and colors are immutable).
+///
+/// The properties can be changed after creating a config. These properties influence how
+/// `apply` styles text, and changes take effect immediately: the fonts `codeFont`,
+/// `boldCodeFont`, `italicCodeFont` and `boldItalicCodeFont` (they are looked up when text
+/// gets styled), `lineSpacing` and `paraSpacing`. The properties `themeBackgroundColor` and
+/// `fontSize` are information for clients; `apply` does not use them.
 /// 
-public class HighlightingConfig {
+public struct HighlightingConfig: @unchecked Sendable {
   public var codeFont: HRFont
   public var boldCodeFont: HRFont
   public var italicCodeFont: HRFont
+  public var boldItalicCodeFont: HRFont
+  
+  /// The background color of the theme: the `background` (or `background-color`) of its `.hljs`
+  /// rule, `clear` if that is not a color (such as a gradient), and white if there is none.
+  /// It is meant for clients which draw the background of a code block. `apply` does not use
+  /// it, so changing it does not change the attributed strings.
   public var themeBackgroundColor: HRColor
+  
   public var lineSpacing: CGFloat = 0.0
   public var paraSpacing: CGFloat = 0.0
+  
+  /// The point size of the font which the config was created with. It is information for
+  /// clients. `apply` does not use it, so changing it does not resize any font.
   public var fontSize: CGFloat = 18.0
+  
   public let theme: String
   public let lightTheme: String
-  private var strippedTheme: [String : [String: String]]
-  private var themeDict: [String : [AnyHashable: AnyObject]]
+  private let styleSheet: ThemeStyleSheet<HighlightStyle>
   
   public init(withTheme: String, usingFont: HRFont) {
     // Store the theme content
@@ -56,6 +84,9 @@ public class HighlightingConfig {
     self.codeFont = font
     self.fontSize = font.pointSize
     // Generate the bold and italic variants
+    let boldFont: HRFont
+    let italicFont: HRFont
+    let boldItalicFont: HRFont
     #if os(iOS) || os(tvOS) || os(visionOS)
     let boldDescriptor = UIFontDescriptor(fontAttributes: [ 
       UIFontDescriptor.AttributeName.family : font.familyName,
@@ -65,12 +96,13 @@ public class HighlightingConfig {
       UIFontDescriptor.AttributeName.family : font.familyName,
       UIFontDescriptor.AttributeName.face : "Italic"
     ])
-    let obliqueDescriptor = UIFontDescriptor(fontAttributes: [ 
-      UIFontDescriptor.AttributeName.family : font.familyName,
-      UIFontDescriptor.AttributeName.face : "Oblique"
-    ])
-    self.boldCodeFont = HRFont(descriptor: boldDescriptor, size: font.pointSize)
-    self.italicCodeFont = HRFont(descriptor: italicDescriptor, size: font.pointSize)
+    boldFont = HRFont(descriptor: boldDescriptor, size: font.pointSize)
+    italicFont = HRFont(descriptor: italicDescriptor, size: font.pointSize)
+    if let descriptor = font.fontDescriptor.withSymbolicTraits([.traitBold, .traitItalic]) {
+      boldItalicFont = HRFont(descriptor: descriptor, size: font.pointSize)
+    } else {
+      boldItalicFont = boldFont
+    }
     #else
     let familyName = font.familyName ?? font.fontName
     let boldDescriptor = NSFontDescriptor(fontAttributes: [.family : familyName,
@@ -79,48 +111,27 @@ public class HighlightingConfig {
                                                              .face : "Italic"])
     let obliqueDescriptor = NSFontDescriptor(fontAttributes: [.family : familyName,
                                                               .face : "Oblique"])
-    self.boldCodeFont = HRFont(descriptor: boldDescriptor, size: font.pointSize) ?? font
-    self.italicCodeFont = HRFont(descriptor: italicDescriptor, size: font.pointSize) ??
-                          HRFont(descriptor: obliqueDescriptor, size: font.pointSize) ?? font
+    boldFont = HRFont(descriptor: boldDescriptor, size: font.pointSize) ?? font
+    italicFont = HRFont(descriptor: italicDescriptor, size: font.pointSize) ??
+                 HRFont(descriptor: obliqueDescriptor, size: font.pointSize) ?? font
+    boldItalicFont = HRFont(descriptor: font.fontDescriptor.withSymbolicTraits([.bold, .italic]),
+                            size: font.pointSize) ?? boldFont
     #endif
-    // Generate and store the theme variants
-    self.strippedTheme = Self.stripTheme(self.theme)
-    self.lightTheme = Self.strippedThemeToString(self.strippedTheme)
-    self.themeDict = [String : [AnyHashable: AnyObject]]()
-    for (className, props) in self.strippedTheme {
-      var keyProps = [NSAttributedString.Key : AnyObject]()
-      for (key, prop) in props {
-        switch key {
-          case "color":
-            keyProps[Self.attributeForCSSKey(key)] = HRColor.from(cssColor: prop)
-          case "font-style", "font-weight":
-            switch prop {
-              case "bold", "bolder", "600", "700", "800", "900":
-                keyProps[Self.attributeForCSSKey(key)] = self.boldCodeFont
-              case "italic", "oblique":
-                keyProps[Self.attributeForCSSKey(key)] = self.italicCodeFont
-              default:
-                keyProps[Self.attributeForCSSKey(key)] = self.codeFont
-            }
-          case "background-color":
-            keyProps[Self.attributeForCSSKey(key)] = HRColor.from(cssColor: prop)
-          default:
-            break
-        }
-      }
-      if keyProps.count > 0 {
-        let key = className.replacingOccurrences(of: ".", with: "")
-        self.themeDict[key] = keyProps
-      }
+    self.boldCodeFont = boldFont
+    self.italicCodeFont = italicFont
+    self.boldItalicCodeFont = boldItalicFont
+    // Parse the theme
+    let styleSheet = ThemeStyleSheet<HighlightStyle>(css: withTheme) { HighlightStyle(declarations: $0) }
+    self.styleSheet = styleSheet
+    // The background of the code block is determined separately, so it is not part of the CSS
+    // for rendering the code as HTML.
+    self.lightTheme = styleSheet.css { rule, declaration in
+      rule.selector.text != ".hljs" || (declaration.name != "background-color" &&
+                                        declaration.name != "background")
     }
     // Set a background color
-    let backgroundColor: String? = self.strippedTheme[".hljs"]?["background"] ??
-                                   self.strippedTheme[".hljs"]?["background-color"]
-    if let backgroundColor {
-      self.themeBackgroundColor = HRColor.from(cssColor: backgroundColor) ?? HRColor.clear
-    } else {
-      self.themeBackgroundColor = HRColor.white
-    }
+    self.themeBackgroundColor = styleSheet.style(forClasses: ["hljs"]).blockBackground ??
+                                HRColor.white
   }
   
   public func apply(to string: String, styleList: [String]) -> NSAttributedString {
@@ -128,18 +139,24 @@ public class HighlightingConfig {
     spacedParaStyle.lineSpacing = self.lineSpacing >= 0.0 ? self.lineSpacing : 0.0
     spacedParaStyle.paragraphSpacing = self.paraSpacing >= 0.0 ? self.paraSpacing : 0.0
     if styleList.count > 0 {
+      let style = self.styleSheet.style(forClasses: styleList)
       var attrs = [NSAttributedString.Key : Any]()
-      attrs[.font] = self.codeFont
+      switch (style.bold ?? false, style.italic ?? false) {
+        case (true, true):
+          attrs[.font] = self.boldItalicCodeFont
+        case (true, false):
+          attrs[.font] = self.boldCodeFont
+        case (false, true):
+          attrs[.font] = self.italicCodeFont
+        case (false, false):
+          attrs[.font] = self.codeFont
+      }
       attrs[.paragraphStyle] = spacedParaStyle
-      for style in styleList {
-        // A class attribute value can consist of several class names, like `hljs-title function_`
-        for className in style.split(whereSeparator: \.isWhitespace) {
-          if let themeStyle = self.themeDict[String(className)] as? [NSAttributedString.Key : Any] {
-            for (attrName, attrValue) in themeStyle {
-              attrs.updateValue(attrValue, forKey: attrName)
-            }
-          }
-        }
+      if let foreground = style.foreground {
+        attrs[.foregroundColor] = foreground
+      }
+      if let background = style.background {
+        attrs[.backgroundColor] = background
       }
       return NSAttributedString(string: string, attributes: attrs)
     } else {
@@ -147,80 +164,64 @@ public class HighlightingConfig {
                                 attributes:[.font: codeFont, .paragraphStyle: spacedParaStyle])
     }
   }
+}
+
+/// The style of text in code which is rendered as an attributed string.
+fileprivate struct HighlightStyle: ThemeStyle {
+  /// `color`
+  var foreground: HRColor? = nil
+  /// `background-color`
+  var background: HRColor? = nil
+  /// `background` or `background-color`. This is used for the background of the whole code
+  /// block (the color is `clear` if the value is not a color, e.g. a gradient).
+  var blockBackground: HRColor? = nil
+  /// `font-weight`: bold or not
+  var bold: Bool? = nil
+  /// `font-style`: italic or not
+  var italic: Bool? = nil
   
-  internal static func stripTheme(_ themeString : String) -> [String : [String: String]] {
-    let objcString: NSString = (themeString as NSString)
-    let cssRegex = try! NSRegularExpression(
-      pattern: "(?:(\\.[a-zA-Z0-9\\-_]*(?:[, ]\\.[a-zA-Z0-9\\-_]*)*)\\{([^\\}]*?)\\})",
-      options:[.caseInsensitive]
-    )
-    let results = cssRegex.matches(in: themeString,
-                                   options: [.reportCompletion],
-                                   range: NSMakeRange(0, objcString.length))
-    var resultDict = [String: [String: String]]()
-    for result in results {
-      if result.numberOfRanges == 3 {
-        var attributes = [String:String]()
-        let cssPairs = objcString.substring(with: result.range(at: 2)).components(separatedBy: ";")
-        for pair in cssPairs {
-          let cssPropComp = pair.components(separatedBy: ":")
-          if (cssPropComp.count == 2) {
-            attributes[cssPropComp[0]] = cssPropComp[1]
+  init() {}
+  
+  /// Creates the style for a rule; properties with values that are not understood are ignored.
+  init(declarations: [ThemeDeclaration]) {
+    for declaration in declarations {
+      let value = declaration.value
+      switch declaration.name {
+        case "color":
+          self.foreground = HRColor.from(cssColor: value) ?? self.foreground
+        case "background-color":
+          self.background = HRColor.from(cssColor: value) ?? self.background
+          self.blockBackground = HRColor.from(cssColor: value) ?? HRColor.clear
+        case "background":
+          self.blockBackground = HRColor.from(cssColor: value) ?? HRColor.clear
+        case "font-weight":
+          if let weight = Int(value) {
+            self.bold = weight >= 600
+          } else if value == "bold" || value == "bolder" {
+            self.bold = true
+          } else if value == "normal" || value == "lighter" {
+            self.bold = false
           }
-        }
-        if attributes.count > 0 {
-          let key = objcString.substring(with: result.range(at: 1))
-          if let existingAttributes = resultDict[key] {
-            resultDict[key] = existingAttributes.merging(attributes,
-                                                         uniquingKeysWith: { (first, _) in first })
-          } else {
-            resultDict[key] = attributes
+        case "font-style":
+          if value == "italic" || value.hasPrefix("oblique") {
+            self.italic = true
+          } else if value == "normal" {
+            self.italic = false
           }
-        }
+        default:
+          break
       }
     }
-    var returnDict: [String: [String: String]] = [:]
-    for (keys, result) in resultDict {
-      let keyArray = keys.replacingOccurrences(of: " ", with: ",").components(separatedBy: ",")
-      for key in keyArray {
-        var props = returnDict[key] ?? [String : String]()
-        for (pName, pValue) in result {
-          props.updateValue(pValue, forKey: pName)
-        }
-        returnDict[key] = props
-      }
-    }
-    return returnDict
   }
   
-  private static func strippedThemeToString(_ themeStringDict: [String : [String: String]]) -> String {
-    var resultString: String = ""
-    for (key, props) in themeStringDict {
-      resultString += key + "{"
-      for (cssProp, val) in props {
-        if key != ".hljs" ||
-           (cssProp.lowercased() != "background-color" && cssProp.lowercased() != "background") {
-          resultString += "\(cssProp):\(val);"
-        }
-      }
-      resultString += "}"
-    }
-    return resultString
-  }
-  
-  private static func attributeForCSSKey(_ key: String) -> NSAttributedString.Key {
-    switch key {
-      case "color":
-        return .foregroundColor
-      case "font-weight":
-        return .font
-      case "font-style":
-        return .font
-      case "background-color":
-        return .backgroundColor
-      default:
-        return .font
-    }
+  func overridden(by inner: HighlightStyle) -> HighlightStyle {
+    var result = self
+    result.foreground = inner.foreground ?? self.foreground
+    result.background = inner.background ?? self.background
+    result.blockBackground = inner.blockBackground ?? self.blockBackground
+    result.bold = inner.bold ?? self.bold
+    result.italic = inner.italic ?? self.italic
+    return result
   }
 }
 

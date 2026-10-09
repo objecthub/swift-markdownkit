@@ -24,7 +24,7 @@ import Foundation
 /// Struct `Text` is used to represent inline text. A `Text` struct consists of a sequence
 /// of `TextFragment` objects.
 ///
-public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugStringConvertible {
+public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   public typealias Index = ContiguousArray<TextFragment>.Index
   public typealias Iterator = ContiguousArray<TextFragment>.Iterator
 

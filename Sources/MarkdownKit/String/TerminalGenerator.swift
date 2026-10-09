@@ -27,12 +27,18 @@ import CommandLineKit
 /// extensible allowing subclasses of `StringGenerator` to override how individual Markdown
 /// structures are converted into strings.
 ///
-open class TerminalGenerator {
+/// Instances are immutable once they have been created and conform to `Sendable`, so a
+/// single instance (such as `TerminalGenerator.standard`) can be used from several threads or tasks
+/// at the same time. The conformance is `@unchecked` because the class is `open`: a
+/// subclass which adds mutable state has to synchronize it itself, and has to restate
+/// the conformance as `@unchecked Sendable`.
+///
+open class TerminalGenerator: @unchecked Sendable {
   
   /// A `TableDescriptor` value encapsulates all information needed to render
   /// a table, including metadata about each column (to determine how columns
   /// are organized).
-  public struct TableDescriptor {
+  public struct TableDescriptor: Sendable {
     let header: Row
     let alignments: Alignments
     let rows: Rows
@@ -40,8 +46,10 @@ open class TerminalGenerator {
   }
   
   /// `TableRenderer` objects are able to render tables as an array of strings where
-  /// each string is representing a line of text.
-  public protocol TableRenderer {
+  /// each string is representing a line of text. A generator can be used by several threads
+  /// at the same time, which is why renderers are `Sendable`: they have to be immutable or
+  /// synchronize their state.
+  public protocol TableRenderer: Sendable {
     func renderTable(_ descriptor: TableDescriptor,
                      using generate: (Text, Int) -> [AnsiText.Normalized],
                      in context: GeneratorContext) -> [AnsiText.Normalized]?
@@ -108,7 +116,7 @@ open class TerminalGenerator {
   public static let standard = TerminalGenerator(numColumns: 80)
   
   /// Configuration for the syntax highlighter.
-  public struct SyntaxHighlightingConfig {
+  public struct SyntaxHighlightingConfig: Sendable {
     /// Either a theme name or CSS to be used with `highlight.js`.
     public let theme: String
     
@@ -736,7 +744,7 @@ open class TerminalGenerator {
   ///       2 │ Michael Zimmermann │ 10/01/1977
   ///       3 │   Leonie Schmid    │ 19/12/1986
   ///  
-  open class MinimalisticTableRenderer: TableRenderer {
+  open class MinimalisticTableRenderer: TableRenderer, @unchecked Sendable {
     let borderProperties: TextProperties
     let headerProperties: TextProperties
     
@@ -853,9 +861,9 @@ open class TerminalGenerator {
   /// │                        │                                  tincidunt. │       │
   /// └────────────────────────┴─────────────────────────────────────────────┴───────┘
   /// 
-  open class FullTableRenderer: TableRenderer {
+  open class FullTableRenderer: TableRenderer, @unchecked Sendable {
     
-    public struct Delimiter {
+    public struct Delimiter: Sendable {
       public let left: Character
       public let right: Character
       public let mid: Character

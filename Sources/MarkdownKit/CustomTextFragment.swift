@@ -24,7 +24,7 @@ import Foundation
 /// Protocol `CustomTextFragment` defines the interface for custom Markdown text fragments
 /// that are implemented externally (i.e. not by the MarkdownKit framework).
 ///
-public protocol CustomTextFragment: CustomStringConvertible, CustomDebugStringConvertible {
+public protocol CustomTextFragment: CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   func equals(to other: CustomTextFragment) -> Bool
   func transform(via transformer: InlineTransformer) -> TextFragment
   func generateHtml(via htmlGen: HtmlGenerator) -> String

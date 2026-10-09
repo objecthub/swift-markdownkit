@@ -108,7 +108,7 @@ class MarkdownExtensionTests: XCTestCase, MarkdownKitFactory {
     }
   }
 
-  final class EmphasisTestMarkdownParser: MarkdownParser {
+  final class EmphasisTestMarkdownParser: MarkdownParser, @unchecked Sendable {
     override public class var defaultInlineTransformers: [InlineTransformer.Type] {
       return [DelimiterTestTransformer.self,
               CodeLinkHtmlTransformer.self,

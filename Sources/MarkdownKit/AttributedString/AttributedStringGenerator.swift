@@ -36,10 +36,19 @@
 /// The implementation is extensible allowing subclasses of `AttributedStringGenerator` to
 /// override how individual Markdown structures are converted into attributed strings.
 ///
-open class AttributedStringGenerator {
+/// Instances are immutable once they have been created and conform to `Sendable`, so a
+/// single instance (such as `AttributedStringGenerator.standard`) can be used from several threads or tasks
+/// at the same time. The conformance is `@unchecked` because the class is `open`: a
+/// subclass which adds mutable state has to synchronize it itself, and has to restate
+/// the conformance as `@unchecked Sendable`.
+/// Generating the HTML (`htmlGenerator`) is thread-safe. The synchronous methods (`generate(doc:)`
+/// etc.) hand the HTML to the system's HTML importer, which Apple documents as usable on the
+/// main thread only. From other threads, use `generateAsync`.
+///
+open class AttributedStringGenerator: @unchecked Sendable {
 
   /// Describes which images of one kind (stored locally or loaded from the web) may be loaded.
-  public enum ImageAccess: Equatable {
+  public enum ImageAccess: Equatable, Sendable {
     /// Images of this kind are never loaded; their alternative text is shown instead.
     case none
     /// Images of this kind are loaded without any restriction.
@@ -58,7 +67,7 @@ open class AttributedStringGenerator {
   /// Do not confuse them with `AttributedStringGenerator.Options`, which controls how the HTML
   /// is generated from the Markdown document. `RenderingOptions` control how the system turns
   /// the generated HTML into an attributed string and which resources it may load.
-  public struct RenderingOptions: Equatable {
+  public struct RenderingOptions: Equatable, Sendable {
 
     /// The default for `timeout`: 30 seconds.
     public static let defaultTimeout: TimeInterval = 30
@@ -372,7 +381,7 @@ open class AttributedStringGenerator {
   }
 
   /// Errors thrown by `generateAsync`.
-  public enum RenderingError: Error, Equatable, LocalizedError {
+  public enum RenderingError: Error, Equatable, LocalizedError, Sendable {
     /// Rendering HTML asynchronously is not available on this platform (e.g. tvOS and watchOS,
     /// which do not provide WebKit).
     case unsupportedPlatform
@@ -422,7 +431,7 @@ open class AttributedStringGenerator {
   
   /// Options for the attributed string generator. They control how the HTML is generated from
   /// a Markdown document. For options of rendering the generated HTML, see `RenderingOptions`.
-  public struct Options: OptionSet {
+  public struct Options: OptionSet, Sendable {
     public let rawValue: UInt
     
     public init(rawValue: UInt) {
@@ -433,7 +442,7 @@ open class AttributedStringGenerator {
   }
   
   /// Options for the rendering of table borders
-  public struct TableBorders: OptionSet {
+  public struct TableBorders: OptionSet, Sendable {
     public let rawValue: UInt
     
     public init(rawValue: UInt) {
@@ -450,7 +459,7 @@ open class AttributedStringGenerator {
   }
   
   /// Version of the attributed string generator
-  public enum Version {
+  public enum Version: Sendable {
     case preOS26
     case OS26
     
@@ -475,7 +484,7 @@ open class AttributedStringGenerator {
   }
   
   /// Configuration for the syntax highlighter.
-  public struct SyntaxHighlightingConfig {
+  public struct SyntaxHighlightingConfig: Sendable {
     /// Either a theme name or CSS to be used with `highlight.js`.
     public let theme: String
     
@@ -520,8 +529,8 @@ open class AttributedStringGenerator {
   /// Customized html generator to work around limitations of the current HTML to
   /// `NSAttributedString` conversion logic provided by the operating system. This
   /// should be used prior to macOS 26 and iOS 26
-  open class InternalHtmlGenerator: HtmlGenerator {
-    var outer: AttributedStringGenerator
+  open class InternalHtmlGenerator: HtmlGenerator, @unchecked Sendable {
+    let outer: AttributedStringGenerator
     
     /// The options used for restricting images. By default, those of `outer`.
     let renderingOptions: RenderingOptions
@@ -653,7 +662,7 @@ open class AttributedStringGenerator {
   /// Customized html generator to work around limitations of the current HTML to
   /// `NSAttributedString` conversion logic provided by the operating system. This
   /// should be used starting macOS 26 and iOS 26.
-  open class OS26HtmlGenerator: InternalHtmlGenerator {
+  open class OS26HtmlGenerator: InternalHtmlGenerator, @unchecked Sendable {
     open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
       switch block {
         case .list(let start, let tight, let blocks):
@@ -1357,7 +1366,7 @@ extension AttributedStringGenerator {
   ///   - options: Render options; if `nil`, `renderingOptions` is used.
   /// - Throws: An `RenderingError`.
   public func generateAsync(doc: Block,
-                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
     return try await self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(doc: doc)),
                                      options: options ?? self.renderingOptions)
   }
@@ -1365,7 +1374,7 @@ extension AttributedStringGenerator {
   /// Generates an attributed string from the given Markdown block without blocking the calling
   /// thread. See `generateAsync(doc:options:)`.
   public func generateAsync(block: Block,
-                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
     return try await self.renderHTML(
                        self.generateHtml(self.htmlGenerator(options: options).generate(block: block, parent: .none)),
                        options: options ?? self.renderingOptions)
@@ -1374,7 +1383,7 @@ extension AttributedStringGenerator {
   /// Generates an attributed string from the given Markdown blocks without blocking the calling
   /// thread. See `generateAsync(doc:options:)`.
   public func generateAsync(blocks: Blocks,
-                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
     return try await self.renderHTML(
                        self.generateHtml(self.htmlGenerator(options: options).generate(blocks: blocks, parent: .none)),
                        options: options ?? self.renderingOptions)
@@ -1398,7 +1407,7 @@ extension AttributedStringGenerator {
   ///   - completionHandler: Called with the attributed string or with an `RenderingError`.
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(doc: doc)),
                     options: options ?? self.renderingOptions,
                     completionHandler: completionHandler)
@@ -1409,7 +1418,7 @@ extension AttributedStringGenerator {
   /// `generateAsync(doc:options:completionHandler:)`.
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(block: block, parent: .none)),
                     options: options ?? self.renderingOptions,
                     completionHandler: completionHandler)
@@ -1420,7 +1429,7 @@ extension AttributedStringGenerator {
   /// `generateAsync(doc:options:completionHandler:)`.
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(blocks: blocks, parent: .none)),
                     options: options ?? self.renderingOptions,
                     completionHandler: completionHandler)
@@ -1434,9 +1443,14 @@ extension AttributedStringGenerator {
                            options: RenderingOptions,
                            watchdogGrace: TimeInterval = 5,
                            ignore: Bool = false,
-                           completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+                           completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     let state = RenderingState()
     state.install { result in
+      // The result is created by the system's HTML loader and not used by anybody else; it is
+      // handed over to the completion handler (which is also not used by anybody else
+      // after this point) on the main thread.
+      nonisolated(unsafe) let result = result
+      nonisolated(unsafe) let completionHandler = completionHandler
       DispatchQueue.main.async {
         completionHandler(result)
       }
@@ -1449,7 +1463,7 @@ extension AttributedStringGenerator {
   internal func renderHTML(_ html: String,
                            options: RenderingOptions,
                            watchdogGrace: TimeInterval = 5,
-                           ignore: Bool = false) async throws -> NSAttributedString {
+                           ignore: Bool = false) async throws -> sending NSAttributedString {
     if Task.isCancelled {
       throw RenderingError.cancelled
     }
@@ -1458,7 +1472,10 @@ extension AttributedStringGenerator {
       try await withCheckedThrowingContinuation {
         (continuation: CheckedContinuation<NSAttributedString, Error>) in
         state.install { result in
-          continuation.resume(with: result.mapError { $0 as Error })
+          // The attributed string is created by the system's HTML loader and not used by
+          // anybody else; it is handed over to the caller of `renderHTML`.
+          nonisolated(unsafe) let result = result.mapError { $0 as Error }
+          continuation.resume(with: result)
         }
         state.start(html, options: options, watchdogGrace: watchdogGrace, ignore: ignore)
       }
@@ -1555,21 +1572,21 @@ extension AttributedStringGenerator {
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(doc:)` instead.
   public func generateAsync(doc: Block,
-                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
 
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(block:)` instead.
   public func generateAsync(block: Block,
-                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
 
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(blocks:)` instead.
   public func generateAsync(blocks: Blocks,
-                            options: RenderingOptions? = nil) async throws -> NSAttributedString {
+                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
 
@@ -1577,7 +1594,7 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(doc:)` instead.
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     DispatchQueue.main.async {
       completionHandler(.failure(.unsupportedPlatform))
     }
@@ -1587,7 +1604,7 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(block:)` instead.
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     DispatchQueue.main.async {
       completionHandler(.failure(.unsupportedPlatform))
     }
@@ -1597,7 +1614,7 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(blocks:)` instead.
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     DispatchQueue.main.async {
       completionHandler(.failure(.unsupportedPlatform))
     }
