@@ -21,7 +21,7 @@ _Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it p
 <td width="50%" valign="top">
 3. &nbsp;<a href="#converting-markdown-into-other-formats">Converting Markdown into other formats</a><br />
 &nbsp;&nbsp; 3.1 &nbsp;<a href="#generating-text-html-and-attributed-strings">Generating text, HTML, and Attributed Strings</a><br />
-&nbsp;&nbsp; 3.2 &nbsp;<a href="#using-the-command-line-tool">Using the command-line tool</a><br />
+&nbsp;&nbsp; 3.2 &nbsp;<a href="#using-the-command-line-tools">Using the command-line tools</a><br />
 4. &nbsp;<a href="#displaying-markdown-with-swiftui">Displaying Markdown with SwiftUI</a><br />
 5. &nbsp;<a href="#known-issues">Known issues</a><br />
 6. &nbsp;<a href="#requirements">Requirements</a><br />
@@ -374,7 +374,7 @@ _Note:_ Without restrictions, do not use `generateAsync` with untrusted Markdown
 
 There are two generators for outputting formatted text. [`StringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/StringGenerator.swift) formats text based on the given Markdown and returns text that can be, e.g. edited in a text editor. [`TerminalGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/TerminalGenerator.swift) formats text for output in an ANSI-compliant terminal, using control sequences to mark up the text.
 
-### Using the command-line tool
+### Using the command-line tools
 
 The _Swift MarkdownKit_ Xcode project also implements a [very simple command-line tool](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKitProcess/main.swift) that outputs Markdown content either as HTML, RTF, or pretty-printed text, including the option to output ANSI-compliant markup. The tool either outputs a single Markdown text file into an output file or, when applied to a folder, outputs all Markdown files within the folder into output files in a target folder.
 
@@ -402,6 +402,23 @@ where: <format> is either 'text', 'ansi', 'html', 'rtf', or 'rtfd'
        <width>  defines a terminal width in columns for the formats 'text'
                 and 'ansi'
 ```
+
+A second tool, [`MarkdownTermViewer`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownTermViewer/main.swift), does not read any files. It prints a demo document with the features of `FullMarkdownParser` (the document displayed by the `MarkdownViewer` sample app: formatted text, tables, task lists, code blocks, ...) either as plain text (`StringGenerator`) or marked up with ANSI escape codes (`TerminalGenerator`). This is a quick way to see what the text generators produce:
+
+```sh
+> swift run MarkdownTermViewer --help
+USAGE: MarkdownTermViewer [<option> ...]
+OPTIONS:
+  -f, --format <format>
+      Output format: 'text' (plain text, default) or 'ansi' (marked up with ANSI escape codes).
+  -w, --width <columns>
+      Width in columns, at least 10 (default: the width of the terminal, or 80).
+  -h, --help
+      Prints this usage description.
+> swift run MarkdownTermViewer --format ansi --width 60
+```
+
+The output of `--format ansi` is only rendered correctly by a terminal. Xcode's console shows the escape sequences as raw characters.
 
 ## Displaying Markdown with SwiftUI
 
@@ -491,15 +508,15 @@ There are a number of limitations:
 ## Requirements
 
 The following technologies are needed to build the components of the _Swift MarkdownKit_ framework.
-The command-line tool can be compiled with the _Swift Package Manager_, so _Xcode_ is not strictly needed
-for that. Similarly, just for compiling the framework and trying the command-line tool in _Xcode_, the
+The command-line tools can be compiled with the _Swift Package Manager_, so _Xcode_ is not strictly needed
+for that. Similarly, just for compiling the framework and trying the command-line tools in _Xcode_, the
 _Swift Package Manager_ is not needed.
 
 - [Xcode 16](https://developer.apple.com/xcode/) or later (the framework is developed with Xcode 26)
 - [Swift 6](https://developer.apple.com/swift/) toolchain (the package is compiled in Swift 6 language mode; clients can use any language mode)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
-_Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting relies on JavaScriptCore and is not available on watchOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tool is only functional on macOS.
+_Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting relies on JavaScriptCore and is not available on watchOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tools are only functional on macOS.
 
 ## License
 

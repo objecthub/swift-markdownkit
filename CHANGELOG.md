@@ -15,6 +15,7 @@ Source-incompatible changes:
 Other changes:
 
 - New `FullMarkdownParser` (a subclass of `ExtendedMarkdownParser`) with all features of MarkdownKit: tables, definition lists, underlined text (`~underlined~`), struck-through text (`~~struck through~~`; `~~~` and longer runs are text) and task list items (`- [ ] to do`, `- [x] done`). New features will be added to it; `MarkdownParser` and `ExtendedMarkdownParser` behave as before. HTML uses `<u>`, `<del>` and `<input type="checkbox">`, attributed strings use ☐ and ☑, and the text generators write `[ ]` and `[x]`. `TerminalGenerator` has the new parameters `underlineProperties` and `strikethroughProperties`.
+- New command-line tool `MarkdownTermViewer` (Swift package product and Xcode target) prints the demo document of the `MarkdownViewer` app as plain text (`--format text`, the default) or with ANSI escape codes (`--format ansi`); `--width` sets the number of columns.
 - A table without rows is rendered without an empty `<tbody>` (by all parsers), like in GFM.
 - A block quote in an attributed string is a single table cell with a left border instead of three cells (`AttributedStringGenerator.quoteStyle` styles this cell). With the empty cells, text views clipped the first lines of a quote at some positions in a document.
 - `CustomTextFragment` has the new requirements `generateText(via: StringGenerator)` and `generateText(via: TerminalGenerator)`. They have default implementations (the raw text), so existing fragments keep working.

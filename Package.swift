@@ -46,6 +46,10 @@ let package = Package(
     .executable(
       name: "MarkdownKitProcess",
       targets: ["MarkdownKitProcess"]
+    ),
+    .executable(
+      name: "MarkdownTermViewer",
+      targets: ["MarkdownTermViewer"]
     )
   ],
   dependencies: [
@@ -172,6 +176,13 @@ let package = Package(
     ),
     .executableTarget(
       name: "MarkdownKitProcess",
+      dependencies: [
+        "MarkdownKit",
+        .product(name: "CommandLineKit", package: "swift-commandlinekit")
+      ]
+    ),
+    .executableTarget(
+      name: "MarkdownTermViewer",
       dependencies: [
         "MarkdownKit",
         .product(name: "CommandLineKit", package: "swift-commandlinekit")
