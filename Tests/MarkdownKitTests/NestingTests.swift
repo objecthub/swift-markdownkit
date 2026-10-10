@@ -322,6 +322,18 @@ class NestingTests: XCTestCase {
             parser: parser)
   }
 
+  func testVeryDeeplyNestedTaskListsDoNotOverflowTheStack() {
+    let parser = FullMarkdownParser.standard
+    process(String(repeating: "- ", count: 20_000) + "[ ] x", parser: parser)
+    process(String(repeating: "- [ ] ", count: 20_000) + "x", parser: parser)
+    process(String(repeating: "1. ", count: 20_000) + "[x] x", parser: parser)
+    process(String(repeating: "> - ", count: 10_000) + "[x] ~~x~~", parser: parser)
+    // The tasks of the deepest lists which are still nested are recognized
+    let doc = parser.parse(String(repeating: "- ", count: blockLimit) + "[x] x")
+    XCTAssertEqual(containerDepth(doc), blockLimit)
+    XCTAssertTrue(html(doc).contains("<input checked"))
+  }
+
   func testDeeplyNestedBlocksAndInlineMarkupTogetherDoNotOverflowTheStack() {
     // Worst case for the stack: the limits are reached for blocks and inline markup
     let input = String(repeating: "> - ", count: blockLimit) +

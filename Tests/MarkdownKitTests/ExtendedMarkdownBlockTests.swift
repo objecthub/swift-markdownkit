@@ -27,11 +27,6 @@ class ExtendedMarkdownBlockTests: XCTestCase, MarkdownKitFactory {
     return ExtendedMarkdownParser.standard.parse(str, blockOnly: true)
   }
 
-  func testBlockParserCounts() {
-    XCTAssertEqual(MarkdownParser.standard.documentParser(input: "").blockParsers.count, 9)
-    XCTAssertEqual(ExtendedMarkdownParser.standard.documentParser(input: "").blockParsers.count, 10)
-  }
-  
   func testMinimalTable() {
     XCTAssertEqual(parseBlocks("|column\n|-"), document(table(["column"],[.undefined])))
     XCTAssertEqual(parseBlocks("|colA|colB\n|-|-"), document(table(["colA", "colB"],

@@ -287,10 +287,45 @@ public enum ListDensity: Equatable, CustomStringConvertible, CustomDebugStringCo
 
 ///
 /// Enumeration of Markdown list types.
+///
+/// The type of a list item is the marker of the item: a bullet (`-`, `+` or `*`) or a number
+/// followed by `.` or `)`. A _task list item_ (supported by `FullMarkdownParser`) is a list item
+/// with a checkbox, such as `- [x] done`. Its type wraps the marker of the item, so a task
+/// list item still has a bullet or a number: `task(bullet("-"), checked: true)`. Use `marker`
+/// to find out the marker of an item, independently of whether it is a task.
 /// 
 public enum ListType: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
   case bullet(Character)
   case ordered(Int, Character)
+  /// A task list item with a checkbox, which is checked if `checked` is true. The first
+  /// parameter is the marker of the item (a `bullet` or an `ordered` list type).
+  indirect case task(ListType, checked: Bool)
+
+  /// The list type without the checkbox of a task list item: the `bullet` or `ordered` list
+  /// type for a task list item, and the list type itself for all other list types.
+  public var marker: ListType {
+    if case .task(let marker, _) = self {
+      return marker.marker
+    }
+    return self
+  }
+
+  /// True if this is the type of a task list item.
+  public var isTask: Bool {
+    if case .task(_, _) = self {
+      return true
+    }
+    return false
+  }
+
+  /// Is `true` if this is the type of a checked task list item, `false` if it is the type of
+  /// a task list item which is not checked, and `nil` if this is not the type of a task list item.
+  public var checked: Bool? {
+    if case .task(_, let checked) = self {
+      return checked
+    }
+    return nil
+  }
 
   public var startNumber: Int? {
     switch self {
@@ -298,11 +333,15 @@ public enum ListType: Equatable, CustomStringConvertible, CustomDebugStringConve
         return nil
       case .ordered(let start, _):
         return start
+      case .task(let marker, _):
+        return marker.startNumber
     }
   }
 
+  /// Items with compatible list types can be part of the same list. Whether an item is a task
+  /// list item does not matter.
   public func compatible(with other: ListType) -> Bool {
-    switch (self, other) {
+    switch (self.marker, other.marker) {
       case (.bullet(let lc), .bullet(let rc)):
         return lc == rc
       case (.ordered(_, let lc), .ordered(_, let rc)):
@@ -318,6 +357,8 @@ public enum ListType: Equatable, CustomStringConvertible, CustomDebugStringConve
         return "bullet(\(char.description))"
       case .ordered(let num, let delimiter):
         return "ordered(\(num), \(delimiter))"
+      case .task(let marker, let checked):
+        return "task(\(marker.description), checked: \(checked))"
     }
   }
 

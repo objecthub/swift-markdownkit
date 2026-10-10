@@ -60,6 +60,25 @@ open class HtmlGenerator: @unchecked Sendable {
     return self.generate(blocks: blocks, parent: .none)
   }
 
+  /// Generates the HTML for the checkbox of a task list item. A checked task list item has a
+  /// checked checkbox. The checkbox cannot be changed.
+  open func generate(taskCheckbox checked: Bool) -> String {
+    return checked ? "<input checked=\"\" disabled=\"\" type=\"checkbox\">"
+                   : "<input disabled=\"\" type=\"checkbox\">"
+  }
+  
+  /// Inserts `text` at the start of the HTML of a block sequence: after the `<p>` tag if it
+  /// starts with a paragraph, and in front of everything else.
+  func insert(_ text: String, intoFirstParagraphOf html: String) -> String {
+    if text.isEmpty {
+      return html
+    } else if html.hasPrefix("<p>") {
+      return "<p>" + text + html.dropFirst(3)
+    } else {
+      return text + html
+    }
+  }
+  
   open func generate(blocks: Blocks, parent: Parent, tight: Bool = false) -> String {
     var res = ""
     for block in blocks {
@@ -86,12 +105,17 @@ open class HtmlGenerator: @unchecked Sendable {
                  self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
                  "</ul>\n"
         }
-      case .listItem(_, _, let blocks):
+      case .listItem(let type, _, let blocks):
+        // The checkbox of a task list item is the first thing in its first paragraph
+        let checkbox = type.checked.map { self.generate(taskCheckbox: $0) + " " } ?? ""
         if tight, let text = blocks.text {
-          return "<li>" + self.generate(text: text) + "</li>\n"
+          return "<li>" + checkbox + self.generate(text: text) + "</li>\n"
         } else {
           return "<li>" +
-                 self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
+                 self.insert(checkbox,
+                             intoFirstParagraphOf: self.generate(blocks: blocks,
+                                                                 parent: .block(block, parent),
+                                                                 tight: tight)) +
                  "</li>\n"
         }
       case .paragraph(let text):

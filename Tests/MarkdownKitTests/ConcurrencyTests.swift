@@ -39,7 +39,8 @@ final class ConcurrencyTests: XCTestCase {
     "```c\n#include <stdio.h>\nint main(void) {\n  printf(\"hi\\n\");\n  return 0;\n}\n```\n",
     "<div class=\"a\">raw *html*</div>\n\nText with &amp; entities, hard break\\\nand more.\n",
     "Setext\n======\n\n    indented code\n\n---\n\n![image](image.png) and <http://example.com>\n",
-    "Some ~~struck through~~ and ~underlined~ text, with *emphasis* and a | table\n"
+    "Some ~~struck through~~ and ~underlined~ text, with *emphasis* and a | table\n",
+    "- [ ] to do\n- [x] done\n  - [ ] nested\n\n1. [x] one\n2. plain\n"
   ]
 
   /// Calls `body` for the numbers `0..<iterations` on several threads at the same time and

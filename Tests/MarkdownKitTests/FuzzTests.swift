@@ -58,7 +58,7 @@ class FuzzTests: XCTestCase {
     "\u{200D}", "\r\n", "\u{0}", "\u{1B}", "\u{202E}", "[x]: /u \"t\"", "[x]", "![i](u)",
     "<div>", "</div>", "<script>", "<x@y.z>", "Term\n: def",
     "| a | b |\n|---|:-:|\n| c |", "|---|", ":---:", "<br/>", "  \n", "\\\n", "<?", "?>",
-    "<![CDATA[", "]]>", "<!X", "'", "\"", "- [ ] t", "1. a\n2. b", "~~", "~a~", "~~a~~", "x~~",
+    "<![CDATA[", "]]>", "<!X", "'", "\"", "- [ ] t", "- [x] t", "1. [ ] t", "1. a\n2. b", "~~", "~a~", "~~a~~", "x~~",
     ">\t", "-\t", "\t-\t", "1.\t", "\t\t", " \t", "*\t", "  \n", "\\ \n", "`a\\\n"
   ]
 
@@ -146,7 +146,8 @@ class FuzzTests: XCTestCase {
     var compared = 0
     for _ in 0..<self.iterations {
       let input = self.randomInput(Self.tokens, &rng)
-      if input.contains("~") {
+      // Markup which only `FullMarkdownParser` knows: tildes and task list markers
+      if input.contains("~") || input.contains("[ ]") || input.contains("[x]") {
         continue
       }
       compared += 1

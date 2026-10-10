@@ -85,7 +85,7 @@ Orange
 : A large round juicy citrus fruit with a tough bright reddish-yellow rind.
 ```
 
-Class `FullMarkdownParser` supports everything that MarkdownKit implements. It is a subclass of `ExtendedMarkdownParser` (so it supports tables and definition lists) and adds inline markup for underlined text (`~underlined~`, text fragment `underline`) and struck-through text (`~~struck through~~`, text fragment `strikethrough`). Tildes can also be used within words (`foo~~bar~~baz`), but runs of three or more tildes are plain text, as in GitHub Flavored Markdown. Unlike GFM, a single tilde does not produce strikethrough but underlined text. `MarkdownParser` and `ExtendedMarkdownParser` do not know this markup and leave tildes as they are, so existing code does not change its behavior. New Markdown features will be added to `FullMarkdownParser`.
+Class `FullMarkdownParser` supports everything that MarkdownKit implements. It is a subclass of `ExtendedMarkdownParser` (so it supports tables and definition lists) and adds inline markup for underlined text (`~underlined~`, text fragment `underline`) and struck-through text (`~~struck through~~`, text fragment `strikethrough`), as well as task list items (`- [ ] to do` and `- [x] done`, list type `task`). Tildes can also be used within words (`foo~~bar~~baz`), but runs of three or more tildes are plain text, as in GitHub Flavored Markdown. Unlike GFM, a single tilde does not produce strikethrough but underlined text. A task list item is a list item whose text starts with `[ ]`, `[x]` or `[X]` and a space or tab; the type of such an item is `ListType.task`, which wraps the bullet or number of the item. The HTML generator creates a checkbox, the attributed string generator uses the characters ☐ and ☑, and the text generators write `[ ]` and `[x]` instead of the bullet. `MarkdownParser` and `ExtendedMarkdownParser` do not know this markup and leave tildes as they are, so existing code does not change its behavior. New Markdown features will be added to `FullMarkdownParser`.
 
 ```swift
 let markdown = FullMarkdownParser.standard.parse("Some ~~old~~ and ~important~ text")
@@ -485,7 +485,7 @@ The parser passes all 652 examples of the [CommonMark 0.31.2 specification](http
 
 There are a number of limitations:
 
-  - Extensions of GitHub Flavored Markdown other than tables and strikethrough (supported by `FullMarkdownParser`) are not supported: task lists, extended autolinks and footnotes.
+  - Extensions of GitHub Flavored Markdown other than tables, strikethrough and task lists (supported by `FullMarkdownParser`) are not supported: extended autolinks and footnotes.
   - The block parser keeps trailing spaces and backslashes at the end of the lines of a paragraph; whether a line ending is a hard line break is only decided by the inline parser (`EscapeTransformer`), because it depends on the inline markup (e.g. code spans). If you only parse the block structure (`blockOnly: true`), hard line breaks are not recognized.
 
 ## Requirements

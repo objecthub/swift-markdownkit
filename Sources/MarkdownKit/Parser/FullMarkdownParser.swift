@@ -28,8 +28,9 @@ import Foundation
 /// - Tables and definition lists (like `ExtendedMarkdownParser`)
 /// - Underlined text: `~underlined~`, represented as `TextFragment.underline`
 /// - Struck-through text: `~~struck through~~`, represented as `TextFragment.strikethrough`
+/// - Task list items: `- [ ] to do` and `- [x] done`, represented by `ListType.task`
 ///
-/// The syntax of tables and of struck-through text is the one of GitHub Flavored Markdown
+/// The syntax of tables, struck-through text and task lists is the one of GitHub Flavored Markdown
 /// (GFM), with two differences: GFM also treats a single tilde as strikethrough, whereas
 /// `FullMarkdownParser` uses it for underlined text; and `FullMarkdownParser` also supports
 /// definition lists, which GFM does not.
@@ -61,4 +62,10 @@ open class FullMarkdownParser: ExtendedMarkdownParser, @unchecked Sendable {
   }
 
   private static let singleton: FullMarkdownParser = FullMarkdownParser()
+
+  /// Factory method for inline parsing: the inline parser also recognizes task list items.
+  open override func inlineParser(inlineTransformers: [InlineTransformer.Type],
+                                  input: Block) -> InlineParser {
+    return TaskListInlineParser(inlineTransformers: inlineTransformers, input: input)
+  }
 }

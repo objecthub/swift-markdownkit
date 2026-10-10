@@ -500,8 +500,22 @@ open class StringGenerator: @unchecked Sendable {
         }
       case .ordered(let num, let ch):
         prefix = "\(num)\(ch) "
+      case .task(let marker, let checked):
+        // The checkbox replaces the bullet; an ordered item keeps its number. The checkbox
+        // is written in ASCII: the display width of symbols like ☐ and ☑ depends on the
+        // terminal and the font, which would misalign the lines of items.
+        let box = checked ? "[x]" : "[ ]"
+        if case .ordered(let num, let ch) = marker.marker {
+          prefix = "\(num)\(ch) \(box) "
+        } else {
+          prefix = "\(box) "
+        }
     }
-    let columns = columns ?? self.displayWidth(of: prefix)
+    var columns = columns ?? self.displayWidth(of: prefix)
+    if type.isTask {
+      // The text of the item follows the checkbox
+      columns = max(columns, self.displayWidth(of: prefix))
+    }
     return (String(repeating: " ", count: max(columns - self.displayWidth(of: prefix), 0)) + prefix,
             String(repeating: " ", count: max(columns, 2)))
   }

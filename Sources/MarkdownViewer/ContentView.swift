@@ -22,7 +22,7 @@ import SwiftUI
 import MarkdownKit
 
 struct ContentView: View {
-  let content = ExtendedMarkdownParser.standard.parse("""
+  let content = FullMarkdownParser.standard.parse("""
     # Critical Document Title
     
     ## Summary
@@ -46,12 +46,28 @@ struct ContentView: View {
     2. This is the second item
     3. This is the third item
     
-    Cras laoreet tellus dolor, ac `suscipit augue` molestie a.
+    Cras laoreet ~tellus dolor~, ac `suscipit augue` molestie a.
     Integer efficitur odio massa, in dictum arcu dictum in.
     Aliquam dapibus congue malesuada. Vestibulum dignissim
-    mauris id ipsum volutpat, in dignissim nisi luctus.
+    mauris ~~id ipsum volutpat~~, in dignissim nisi luctus.
     Praesent scelerisque nisi non porttitor dictum. Etiam
     finibus ac libero at rhoncus.
+    
+    ## Left To Do
+    
+    Some items are already done, others are still open:
+        
+    - [x] Review the **summary** of the document
+    - [x] ~~Remove~~ the duplicate section about `options` and verify the outcome.
+    - [ ] Check all links, in particular [objecthub.com](https://objecthub.com)
+    - [ ] Ask for a second opinion
+    
+    The final steps have to be completed in this order:
+    
+    1. [x] Collect the feedback of the reviewers
+    2. [x] Merge the changes into the final text and proof-read is one more time
+    3. [ ] Publish the document
+    4. [ ] Archive the _previous_ versions
     
     ## Final Remarks
     

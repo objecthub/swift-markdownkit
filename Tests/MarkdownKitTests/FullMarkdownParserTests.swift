@@ -337,4 +337,190 @@ final class FullMarkdownParserTests: XCTestCase {
     let text = TerminalGenerator.standard.generate(doc: doc)
     XCTAssertEqual(self.textProperties(text, of: "a\u{FFFD}b"), TextProperties.empty)
   }
+
+  // MARK: Task lists
+
+  func testTaskListItems() {
+    // The examples of the GFM specification
+    XCTAssertEqual(html("- [ ] foo\n- [x] bar"),
+                   "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> foo</li>\n" +
+                   "<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> bar</li>\n</ul>")
+    XCTAssertEqual(html("- [x] foo\n  - [ ] bar\n  - [x] baz\n- [ ] bim"),
+                   "<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> foo\n<ul>\n" +
+                   "<li><input disabled=\"\" type=\"checkbox\"> bar</li>\n" +
+                   "<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> baz</li>\n</ul>\n</li>\n" +
+                   "<li><input disabled=\"\" type=\"checkbox\"> bim</li>\n</ul>")
+  }
+
+  func testTaskListItemsWithAllKindsOfMarkers() {
+    for (markdown, expected) in [("* [X] caps", "<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> caps</li>\n</ul>"),
+                                 ("+ [ ] plus", "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> plus</li>\n</ul>"),
+                                 ("1. [x] a\n2. [ ] b", "<ol start=\"1\">\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> a</li>\n" +
+                                                         "<li><input disabled=\"\" type=\"checkbox\"> b</li>\n</ol>"),
+                                 ("10) [ ] x", "<ol start=\"10\">\n<li><input disabled=\"\" type=\"checkbox\"> x</li>\n</ol>"),
+                                 ("- [ ]\tTab", "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> Tab</li>\n</ul>"),
+                                 ("- [ ]    spaced", "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> spaced</li>\n</ul>")] {
+      XCTAssertEqual(html(markdown), expected, markdown.debugDescription)
+    }
+  }
+
+  func testTaskListItemsAreLikeOtherItems() {
+    // Loose lists: the checkbox is in the paragraph
+    XCTAssertEqual(html("- [ ] a\n\n- [x] b"),
+                   "<ul>\n<li><p><input disabled=\"\" type=\"checkbox\"> a</p>\n</li>\n" +
+                   "<li><p><input checked=\"\" disabled=\"\" type=\"checkbox\"> b</p>\n</li>\n</ul>")
+    // Task list items and other items can be mixed
+    XCTAssertEqual(html("- [ ] a\n- b\n- [x] c"),
+                   "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> a</li>\n<li>b</li>\n" +
+                   "<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> c</li>\n</ul>")
+    // The kind of list marker still determines the lists
+    XCTAssertEqual(html("+ [ ] a\n- [x] b"),
+                   "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> a</li>\n</ul>\n" +
+                   "<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> b</li>\n</ul>")
+    // Items with more than one line or block, and with markup
+    XCTAssertEqual(html("- [ ] a\n  b"), "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> a\nb</li>\n</ul>")
+    XCTAssertEqual(html("- [ ] *em* ~~s~~ [l](u)"),
+                   "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> <em>em</em> <del>s</del> " +
+                   "<a href=\"u\">l</a></li>\n</ul>")
+    XCTAssertEqual(html("> - [ ] x"),
+                   "<blockquote>\n<ul>\n<li><input disabled=\"\" type=\"checkbox\"> x</li>\n</ul>\n</blockquote>")
+    XCTAssertEqual(html("- [ ] a\n\n  more\n  - [x] b"),
+                   "<ul>\n<li><p><input disabled=\"\" type=\"checkbox\"> a</p>\n<p>more</p>\n<ul>\n" +
+                   "<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> b</li>\n</ul>\n</li>\n</ul>")
+  }
+
+  func testTextWhichIsNoTaskMarker() {
+    for markdown in ["- [x]foo", "- [y] foo", "- [] foo", "- [  ] foo", "- [ ]", "- [ ] ",
+                     "- foo [ ] bar", "- *[ ]* foo", "- a\n\n  [ ] b", "[ ] foo", "[x] foo"] {
+      let output = html(markdown)
+      XCTAssertFalse(output.contains("<input"), "\(markdown.debugDescription): \(output)")
+      // Without a task list marker, the result is the one of the extended parser
+      XCTAssertEqual(output, html(markdown, ExtendedMarkdownParser.standard),
+                     markdown.debugDescription)
+    }
+    // Definition lists are no lists of tasks
+    XCTAssertEqual(html("Term\n: [ ] def"), "<dl>\n<dt>Term</dt>\n<dd>[ ] def</dd>\n</dl>")
+    // The marker needs to be at the start of the text of the first paragraph
+    XCTAssertEqual(html("- [ ]\n  foo"), "<ul>\n<li>[ ]\nfoo</li>\n</ul>")
+  }
+
+  func testTaskListSyntaxTree() {
+    let doc = FullMarkdownParser.standard.parse("- [ ] a\n1. [x] b")
+    XCTAssertTrue(doc.debugDescription.contains("listItem(task(bullet(-), checked: false), "),
+                  doc.debugDescription)
+    XCTAssertTrue(doc.debugDescription.contains("listItem(task(ordered(1, .), checked: true), "),
+                  doc.debugDescription)
+    // The text of a task list item does not contain the marker
+    XCTAssertEqual(doc.string, "a\nb")
+    // With block parsing only, the marker is text
+    let blocks = FullMarkdownParser.standard.parse("- [x] a", blockOnly: true)
+    XCTAssertFalse(blocks.debugDescription.contains("task"))
+    XCTAssertTrue(blocks.debugDescription.contains("[x] a"))
+  }
+
+  func testSplitTaskMarker() {
+    func split(_ str: String, _ rest: TextFragment...) -> (checked: Bool, rest: String)? {
+      var text = Text(.text(Substring(str)))
+      for fragment in rest {
+        text.append(fragment: fragment)
+      }
+      return TaskListInlineParser.splitTaskMarker(of: text).map { ($0.checked, $0.rest.rawDescription) }
+    }
+    XCTAssertTrue(split("[ ] a")?.checked == false && split("[ ] a")?.rest == "a")
+    XCTAssertTrue(split("[x] a")?.checked == true && split("[X] a")?.checked == true)
+    XCTAssertEqual(split(" [ ] a")?.rest, nil)
+    XCTAssertEqual(split("[ ]\t \ta")?.rest, "a")
+    XCTAssertEqual(split("[ ] a", .softLineBreak, .text("b"))?.rest, "a b")
+    XCTAssertEqual(split("[ ] ", .emph(Text(.text("b"))))?.rest, "b")
+    XCTAssertNil(split("[ ]"))
+    XCTAssertNil(split("[ ]a"))
+    XCTAssertNil(split("[a] a"))
+    XCTAssertNil(TaskListInlineParser.splitTaskMarker(of: Text()))
+    XCTAssertNil(TaskListInlineParser.splitTaskMarker(of: Text(.emph(Text(.text("[ ] a"))))))
+  }
+
+  func testListTypeOfTaskListItems() {
+    let task = ListType.task(.ordered(3, "."), checked: true)
+    XCTAssertEqual(task.description, "task(ordered(3, .), checked: true)")
+    XCTAssertEqual(task.debugDescription, task.description)
+    XCTAssertEqual(task.startNumber, 3)
+    XCTAssertEqual(ListType.task(.bullet("*"), checked: false).startNumber, nil)
+    XCTAssertTrue(task.isTask)
+    XCTAssertFalse(ListType.bullet("-").isTask)
+    XCTAssertEqual(task.checked, true)
+    XCTAssertEqual(ListType.task(.bullet("-"), checked: false).checked, false)
+    XCTAssertNil(ListType.ordered(1, ".").checked)
+    XCTAssertEqual(task.marker, .ordered(3, "."))
+    XCTAssertEqual(ListType.bullet("+").marker, .bullet("+"))
+    XCTAssertEqual(ListType.task(.task(.bullet("-"), checked: true), checked: false).marker, .bullet("-"))
+    // Items are compatible if their markers are
+    XCTAssertTrue(task.compatible(with: .ordered(1, ".")))
+    XCTAssertTrue(ListType.bullet("-").compatible(with: .task(.bullet("-"), checked: false)))
+    XCTAssertTrue(ListType.task(.bullet("-"), checked: true)
+                    .compatible(with: .task(.bullet("-"), checked: false)))
+    XCTAssertFalse(task.compatible(with: .ordered(1, ")")))
+    XCTAssertFalse(task.compatible(with: .bullet("-")))
+    XCTAssertFalse(ListType.task(.bullet("-"), checked: true).compatible(with: .bullet("+")))
+    XCTAssertNotEqual(task, ListType.task(.ordered(3, "."), checked: false))
+    XCTAssertNotEqual(task, ListType.ordered(3, "."))
+  }
+
+  func testSafeModeKeepsTheCheckboxes() {
+    let doc = FullMarkdownParser.standard.parse("- [ ] a\n- [x] <i>b</i>")
+    XCTAssertEqual(HtmlGenerator(safeMode: true).generate(doc: doc),
+                   "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> a</li>\n" +
+                   "<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> " +
+                   "<!-- raw HTML omitted -->b<!-- raw HTML omitted --></li>\n</ul>\n")
+  }
+
+  private func lines(_ text: String) -> [String] {
+    return text.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+               .filter { !$0.isEmpty }
+  }
+
+  func testTaskListsInStringAndTerminalOutput() {
+    let doc = FullMarkdownParser.standard.parse(
+                "- [ ] foo\n- [x] bar\n  more\n- plain\n\n1. [x] one\n2. [ ] two\n10. [x] ten")
+    let expected = ["[ ] foo", "[x] bar more", "– plain", "1. [x] one", "2. [ ] two", "10. [x] ten"]
+    XCTAssertEqual(self.lines(StringGenerator.standard.generate(doc: doc)), expected)
+    XCTAssertEqual(self.lines(TerminalGenerator.standard.generate(doc: doc).segments
+                                .map { $0.1 }.joined()), expected)
+    // The text of an item is aligned with the first line
+    let multiline = FullMarkdownParser.standard.parse(
+                      "- [x] first line of an item which is rather long and needs to be wrapped")
+    let wrapped = StringGenerator(numColumns: 30).generate(doc: multiline)
+    let wrappedLines = wrapped.split(separator: "\n")
+    XCTAssertGreaterThan(wrappedLines.count, 1)
+    XCTAssertTrue(wrappedLines[0].contains("[x] first"))
+    let indent = wrappedLines[0].distance(from: wrappedLines[0].startIndex,
+                                          to: wrappedLines[0].firstIndex(of: "f")!)
+    XCTAssertEqual(wrappedLines[1].prefix(while: { $0 == " " }).count, indent)
+  }
+
+  @MainActor
+  func testTaskListsInAttributedStrings() throws {
+    let doc = FullMarkdownParser.standard.parse("- [ ] foo\n- [x] bar\n\n1. [x] one\n2. [ ] two")
+    for version in [AttributedStringGenerator.Version.OS26, .preOS26] {
+      let html = AttributedStringGenerator(version: version).htmlGenerator.generate(doc: doc)
+      XCTAssertFalse(html.contains("<input"), "\(version)")
+      let text = try XCTUnwrap(AttributedStringGenerator(version: version).generate(doc: doc)).string
+      for glyph in ["☐", "☑"] {
+        XCTAssertTrue(text.contains(glyph), "\(version): \(text.debugDescription)")
+      }
+      XCTAssertTrue(text.contains("☑ one") && text.contains("☐ two"), "\(version)")
+    }
+    // The bullets of the OS 26 lists are replaced by the checkboxes
+    let os26 = try XCTUnwrap(AttributedStringGenerator(version: .OS26).generate(doc: doc)).string
+    XCTAssertFalse(os26.contains("•"), os26.debugDescription)
+    XCTAssertTrue(os26.contains("☐") && os26.contains("foo"))
+    // A checkbox is wider than a bullet, so it gets a cell of its own with room for a gap
+    let generator = AttributedStringGenerator(version: .OS26)
+    let html = generator.htmlGenerator.generate(doc: doc)
+    XCTAssertTrue(html.contains("<td class=\"lcheck\"><b>☐</b></td>"), html)
+    XCTAssertTrue(html.contains("<td class=\"lcheck\"><b>☑</b></td>"), html)
+    XCTAssertFalse(html.contains("<td class=\"lbullet\">"), html)
+    XCTAssertTrue(generator.docStyle.contains("td.lcheck"))
+    let plain = FullMarkdownParser.standard.parse("- foo")
+    XCTAssertTrue(generator.htmlGenerator.generate(doc: plain).contains("<td class=\"lbullet\"><b>•</b></td>"))
+  }
 }

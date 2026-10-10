@@ -543,6 +543,12 @@ open class AttributedStringGenerator: @unchecked Sendable {
       super.init(safeMode: options.safeMode)
     }
 
+    /// The system's HTML importer ignores `<input>` elements, so the checkbox of a task list
+    /// item is a character.
+    open override func generate(taskCheckbox checked: Bool) -> String {
+      return checked ? "☑" : "☐"
+    }
+
     open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
       switch block {
         case .list(_, _, _):
@@ -682,28 +688,28 @@ open class AttributedStringGenerator: @unchecked Sendable {
                    self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
                    "</tbody></table><p class=\"spc\"></p>\n"
           }
-        case .listItem(.ordered(let n, let ch), _, let blocks):
-          if tight, let text = blocks.text {
-            return "<tr class=\"srow\">" +
-                   "<td class=\"lnumber\">\(n)\(ch)</td>" +
-                   "<td class=\"sitem\">\(self.generate(text: text))</td></tr>\n"
+        case .listItem(let type, _, let blocks):
+          // The checkbox of a task list item replaces the bullet; an ordered item keeps its
+          // number, and the checkbox is the first thing in its text.
+          let checkbox = type.checked.map { self.generate(taskCheckbox: $0) }
+          let marker: String
+          var prefix = ""
+          if case .ordered(let n, let ch) = type.marker {
+            marker = "<td class=\"lnumber\">\(n)\(ch)</td>"
+            prefix = checkbox.map { $0 + " " } ?? ""
           } else {
-            return "<tr class=\"crow\">" +
-                   "<td class=\"lnumber\">\(n)\(ch)</td>" +
-                   "<td class=\"citem\">" +
-                   self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
-                   "</td></tr>\n"
+            marker = checkbox.map { "<td class=\"lcheck\"><b>\($0)</b></td>" } ??
+                     "<td class=\"lbullet\"><b>•</b></td>"
           }
-        case .listItem(_, _, let blocks):
           if tight, let text = blocks.text {
-            return "<tr class=\"srow\">" +
-                   "<td class=\"lbullet\"><b>•</b></td>" +
-                   "<td class=\"sitem\">\(self.generate(text: text))</td></tr>\n"
+            return "<tr class=\"srow\">" + marker +
+                   "<td class=\"sitem\">\(prefix)\(self.generate(text: text))</td></tr>\n"
           } else {
-            return "<tr class=\"crow\">" +
-                   "<td class=\"lbullet\"><b>•</b></td>" +
-                   "<td class=\"citem\">" +
-                   self.generate(blocks: blocks, parent: .block(block, parent), tight: tight) +
+            return "<tr class=\"crow\">" + marker + "<td class=\"citem\">" +
+                   self.insert(prefix,
+                               intoFirstParagraphOf: self.generate(blocks: blocks,
+                                                                   parent: .block(block, parent),
+                                                                   tight: tight)) +
                    "</td></tr>\n"
           }
         case .indentedCode(let lines):
@@ -1037,6 +1043,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "tr.crow          { \(self.itemStyle) }\n" +
            "td.lnumber       { \(self.numberStyle) }\n" +
            "td.lbullet       { \(self.bulletStyle) }\n" +
+           "td.lcheck        { \(self.checkboxStyle) }\n" +
            "td.sitem         { \(self.simpleLiStyle) }\n" +
            "td.citem         { \(self.liStyle) }\n" +
            "td.codebox       { \(self.codeBoxStyle) }\n" +
@@ -1158,6 +1165,17 @@ open class AttributedStringGenerator: @unchecked Sendable {
     """
   }
   
+  /// The style of the cell with the checkbox of a task list item. The checkbox glyphs are wider
+  /// than a bullet, so the cell needs more room to leave a gap before the text of the item.
+  open var checkboxStyle: String {
+    return """
+      width: 2em;
+      padding: 0em 1.6em 0em 0.8em;
+      vertical-align: top;
+      text-align: left;
+    """
+  }
+
   open var numberStyle: String {
     return """
       width: 4em;

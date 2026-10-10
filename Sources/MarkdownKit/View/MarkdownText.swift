@@ -143,9 +143,11 @@ public struct MarkdownText: View {
   /// Creates a Markdown text view for the specified Markdown document as a string. See
   /// `init(_:waitingMessage:renderingOptions:)`.
   public init(string: String,
+              full: Bool = false,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
-    self.init(ExtendedMarkdownParser.standard.parse(string),
+    self.init(full ? FullMarkdownParser.standard.parse(string)
+                   : ExtendedMarkdownParser.standard.parse(string),
               waitingMessage: waitingMessage,
               renderingOptions: renderingOptions)
   }
@@ -155,9 +157,11 @@ public struct MarkdownText: View {
   /// scheme. If it is `nil`, the default generators are used (see
   /// `init(string:waitingMessage:renderingOptions:)`).
   public init(string: String,
+              full: Bool = false,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               generator: ((Block, ColorScheme) -> NSAttributedString?)?) {
-    self.init(ExtendedMarkdownParser.standard.parse(string),
+    self.init(full ? FullMarkdownParser.standard.parse(string)
+                   : ExtendedMarkdownParser.standard.parse(string),
               waitingMessage: waitingMessage,
               generator: generator)
   }
