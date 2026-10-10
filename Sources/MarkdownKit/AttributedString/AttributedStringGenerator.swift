@@ -1595,6 +1595,8 @@ extension AttributedStringGenerator {
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
                             completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+    // The completion handler is not used by anybody else
+    nonisolated(unsafe) let completionHandler = completionHandler
     DispatchQueue.main.async {
       completionHandler(.failure(.unsupportedPlatform))
     }
@@ -1605,6 +1607,8 @@ extension AttributedStringGenerator {
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
                             completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+    // The completion handler is not used by anybody else
+    nonisolated(unsafe) let completionHandler = completionHandler
     DispatchQueue.main.async {
       completionHandler(.failure(.unsupportedPlatform))
     }
@@ -1615,6 +1619,8 @@ extension AttributedStringGenerator {
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
                             completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+    // The completion handler is not used by anybody else
+    nonisolated(unsafe) let completionHandler = completionHandler
     DispatchQueue.main.async {
       completionHandler(.failure(.unsupportedPlatform))
     }
