@@ -572,10 +572,11 @@ open class AttributedStringGenerator: @unchecked Sendable {
                  super.generate(block: block, parent: .block(block, parent), tight: tight) +
                  "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
         case .blockquote(let blocks):
-          return "<table class=\"blockquote\"><tbody><tr>" +
-                 "<td class=\"quote\" /><td style=\"width: 0.5em;\" /><td>\n" +
+          // A single cell whose left border is the quote bar. Cells without content next to
+          // the text cell make the text views clip the first lines of the quote.
+          return "<table class=\"blockquote\"><tbody><tr><td class=\"quote\">" +
                  self.generate(blocks: blocks, parent: .block(block, parent)) +
-                 "</td></tr><tr style=\"height: 0;\"><td /><td /><td /></tr></tbody></table>\n"
+                 "</td></tr></tbody></table><p class=\"spc\"></p>\n"
         case .thematicBreak:
           return "<p><table style=\"width: 100%; margin-bottom: 3px;\"><tbody>" +
                  "<tr><td class=\"thematic\"></td></tr></tbody></table></p>\n"
@@ -1244,9 +1245,11 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "font-size: \(self.fontSize)px;"
   }
   
+  /// The style of the cell of a block quote: a left border in `blockquoteColor` and some space
+  /// between the border and the quoted text.
   open var quoteStyle: String {
-    return "background: \(self.blockquoteColor);" +
-           "width: 0.4em;"
+    return "border-left: 0.2em solid \(self.blockquoteColor);" +
+           "padding-left: 0.5em;"
   }
   
   open var imgStyle: String {

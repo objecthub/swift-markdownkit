@@ -60,6 +60,23 @@ class MarkdownASTests: XCTestCase {
       """)
   }
   
+  func testBlockquotesAreSingleCells() {
+    // The text views clip the first lines of a quote (at some positions in the document) if a
+    // quote consists of empty cells next to its text cell. The bar is the border of the cell.
+    XCTAssertEqual(generateHtml("> foo"),
+                   "<table class=\"blockquote\"><tbody><tr><td class=\"quote\"><p>foo</p>\n" +
+                   "</td></tr></tbody></table><p class=\"spc\"></p>")
+    let nested = generateHtml("> foo\n>\n> > bar")
+    XCTAssertTrue(nested.hasPrefix("<table class=\"blockquote\"><tbody><tr><td class=\"quote\">"),
+                  nested)
+    XCTAssertEqual(nested.components(separatedBy: "<td").count - 1, 2, nested)
+    XCTAssertFalse(nested.contains("<td />") || nested.contains("<tr style"), nested)
+    let generator = AttributedStringGenerator(blockquoteColor: "#123456")
+    XCTAssertTrue(generator.docStyle.contains("td.quote"), generator.docStyle)
+    XCTAssertTrue(generator.quoteStyle.contains("border-left: 0.2em solid #123456"),
+                  generator.quoteStyle)
+  }
+
   func testRelativeImageUrls() {
     XCTAssertEqual(generateHtml("![Test image](imagefile.png)"),
                    "<p><img src=\"imagefile.png\" alt=\"Test image\"/></p>")
