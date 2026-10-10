@@ -4,26 +4,22 @@
 
 Source-incompatible changes:
 
-- `CustomBlock`, `CustomTextFragment` and the `TableRenderer` protocols refine `Sendable`. Custom types have to be `Sendable` (an error in Swift 6 language mode).
-- Subclasses of the parsers and generators get the warning "must restate inherited '@unchecked Sendable' conformance" (in any language mode). Add `@unchecked Sendable` to the subclass.
-- `HighlightingConfig` and `AnsiHighlightingConfig` are structs now. A config whose properties are changed has to be a `var`, and changing a copy does not change the config of a generator.
-- `SyntaxHighlighter.proxy` is a constant (`static let`; it was a `static var` before 1.5).
-- `TextFragment` has the new cases `underline` and `strikethrough`, and `ListType` has the new case `task(_, checked:)`. `switch` statements over them have to handle the cases. The type of a task list item wraps the original one: use `ListType.marker` to get its bullet or number (`.bullet(…)` does not match it).
-- `HtmlGenerator.init()` is now `init(safeMode:)` with a default value. A subclass with `override init()` has to declare `init()` without `override`.
-- Coming from 1.4: see 1.5 below for changes of the output of the parsers and generators (e.g. `&amp;` in URLs, hard line breaks, tab stops, lists).
+- New enum cases `TextFragment.underline`, `TextFragment.strikethrough` and `ListType.task(_, checked:)`: `switch` statements over them have to handle the cases. The type of a task item wraps the original one, so use `ListType.marker` to get its bullet or number.
+- `CustomBlock`, `CustomTextFragment` and the `TableRenderer` protocols refine `Sendable`. Subclasses of parsers and generators get the warning "must restate inherited '@unchecked Sendable' conformance": add `@unchecked Sendable`.
+- `HighlightingConfig` and `AnsiHighlightingConfig` are structs (a changed config has to be a `var`), and `TerminalGenerator.init` has the new parameters `underlineProperties` and `strikethroughProperties` (subclasses overriding it have to adopt them).
+- Coming from 1.4: see 1.5 below for output changes of the parsers and generators. Also, `SyntaxHighlighter.proxy` is a `static let`, and `HtmlGenerator.init()` is `init(safeMode:)` (a subclass with `override init()` has to declare `init()` without `override`).
+
+New features:
+
+- `FullMarkdownParser` (a subclass of `ExtendedMarkdownParser`) supports all features of MarkdownKit: tables, definition lists, underline (`~x~`), strikethrough (`~~x~~`) and task lists (`- [ ] to do`, `- [x] done`). The other parsers are unchanged. HTML uses `<u>`, `<del>` and `<input type="checkbox">`, attributed strings ☐ and ☑, and the text generators `[ ]` and `[x]`. `MarkdownText(string:full:…)` uses it if `full` is `true`.
+- Highlighting themes are parsed and applied like CSS (whitespace, comments, `!important`, selectors and specificity). Before, competing rules were merged in a random order and some selector lists were dropped. Text can be bold and italic at once (`HighlightingConfig.boldItalicCodeFont`), and styling is about 25% faster.
+- New command-line tool `MarkdownTermViewer` prints the demo document of `MarkdownViewer` as plain text (`--format text`, the default) or with ANSI escape codes (`--format ansi`).
 
 Other changes:
 
-- New `FullMarkdownParser` (a subclass of `ExtendedMarkdownParser`) with all features of MarkdownKit: tables, definition lists, underlined text (`~underlined~`), struck-through text (`~~struck through~~`; `~~~` and longer runs are text) and task list items (`- [ ] to do`, `- [x] done`). New features will be added to it; `MarkdownParser` and `ExtendedMarkdownParser` behave as before. HTML uses `<u>`, `<del>` and `<input type="checkbox">`, attributed strings use ☐ and ☑, and the text generators write `[ ]` and `[x]`. `TerminalGenerator` has the new parameters `underlineProperties` and `strikethroughProperties`.
-- New command-line tool `MarkdownTermViewer` (Swift package product and Xcode target) prints the demo document of the `MarkdownViewer` app as plain text (`--format text`, the default) or with ANSI escape codes (`--format ansi`); `--width` sets the number of columns.
-- A table without rows is rendered without an empty `<tbody>` (by all parsers), like in GFM.
-- In attributed strings, the bullets and checkboxes of lists are right-aligned right before the text, like the numbers of ordered lists (they were centered and left-aligned), and the text of all kinds of lists starts at the same position. `AttributedStringGenerator.bulletStyle` and `checkboxStyle` changed accordingly.
-- A block quote in an attributed string is a single table cell with a left border instead of three cells (`AttributedStringGenerator.quoteStyle` styles this cell). With the empty cells, text views clipped the first lines of a quote at some positions in a document.
-- `CustomTextFragment` has the new requirements `generateText(via: StringGenerator)` and `generateText(via: TerminalGenerator)`. They have default implementations (the raw text), so existing fragments keep working.
-- MarkdownKit is compiled in Swift 6 language mode. Syntax trees, options, configurations, parsers, generators, table renderers and `SyntaxHighlighter` are `Sendable`, so they can be shared by threads and tasks (a `Block` can be parsed in a background task and used on the main actor). The classes are `open` and conform `@unchecked`: they are immutable, and subclasses with mutable state have to synchronize it. `generateAsync` returns `sending NSAttributedString`, and its completion handlers take a `sending` result.
-- Highlighting themes are parsed and applied like CSS. Custom themes can be formatted by hand (whitespace, comments, `!important`). Selectors are matched properly (`.a .b`, `.a > .b`, `.a.b`; the higher specificity wins, then the last rule), `@media` blocks are ignored, and a selector list ending with a compound selector is used completely. Before, competing rules were merged in a random order (the colors of a quarter of the bundled themes differed from run to run), and such selector lists were dropped in nine themes (e.g. the keyword color of `github-dark`). Text can be bold and italic at once (`HighlightingConfig.boldItalicCodeFont`), `font-weight: normal` and `text-decoration: none` switch styles off, changes of the fonts of a `HighlightingConfig` take effect, and `lightTheme` keeps the selectors. Styling is about 25% faster.
-- The framework builds for watchOS and tvOS again (it did not compile for watchOS since 1.5; `SyntaxHighlighter` is an empty placeholder type there now).
-- `SyntaxHighlighter` serializes its calls into JavaScript, so `SyntaxHighlighter.proxy` can be used from several threads. New `ConcurrencyTests` (run them with `swift test --sanitize=thread`).
+- MarkdownKit is compiled in Swift 6 language mode. Syntax trees, options, configurations, parsers, generators and `SyntaxHighlighter` are `Sendable` (e.g. a `Block` can be parsed in a background task); the classes are `open` and conform `@unchecked`. `generateAsync` returns `sending NSAttributedString`. `SyntaxHighlighter.proxy` can be used from several threads. New `ConcurrencyTests` (`swift test --sanitize=thread`).
+- Attributed strings: bullets and checkboxes are right-aligned before the text, like numbers (`bulletStyle`, `checkboxStyle`), and a block quote is a single table cell (`quoteStyle`), because empty cells made text views clip its first lines.
+- A table without rows has no empty `<tbody>`. `CustomTextFragment` has the new requirements `generateText(via:)` with default implementations. The framework builds for watchOS and tvOS again.
 
 ## 1.5 (2026-10-09)
 

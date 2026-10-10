@@ -141,7 +141,8 @@ public struct MarkdownText: View {
   }
   
   /// Creates a Markdown text view for the specified Markdown document as a string. See
-  /// `init(_:waitingMessage:renderingOptions:)`.
+  /// `init(_:waitingMessage:renderingOptions:)`. If `full` is set to true, `FullMarkdownParser`
+  /// is used to convert the string into a block; otherwise `ExtendedMarkdownParser` is used.
   public init(string: String,
               full: Bool = false,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
@@ -155,7 +156,9 @@ public struct MarkdownText: View {
   /// Creates a Markdown text view for the specified Markdown document as a string.
   /// `generator` creates the attributed string that is displayed for a document and a color
   /// scheme. If it is `nil`, the default generators are used (see
-  /// `init(string:waitingMessage:renderingOptions:)`).
+  /// `init(string:waitingMessage:renderingOptions:)`). If `full` is set to true,
+  /// `FullMarkdownParser` is used to convert the string into a block; otherwise
+  /// `ExtendedMarkdownParser` is used.
   public init(string: String,
               full: Bool = false,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
