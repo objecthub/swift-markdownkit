@@ -317,6 +317,10 @@ open class StringGenerator: @unchecked Sendable {
         return "*\(self.generate(text: text).joined(separator: " "))*"
       case .strong(let text):
         return "**\(self.generate(text: text).joined(separator: " "))**"
+      case .underline(let text):
+        return "~\(self.generate(text: text).joined(separator: " "))~"
+      case .strikethrough(let text):
+        return "~~\(self.generate(text: text).joined(separator: " "))~~"
       case .link(let text, let uri, _):
         let linkText = self.generate(text: text).joined(separator: " ")
         if let uri = uri {
@@ -343,7 +347,7 @@ open class StringGenerator: @unchecked Sendable {
       case .hardLineBreak:
         return nil
       case .custom(let customTextFragment):
-        return customTextFragment.rawDescription.sanitizingControlCharacters()
+        return customTextFragment.generateText(via: self)
     }
   }
   

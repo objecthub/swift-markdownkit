@@ -38,7 +38,8 @@ final class ConcurrencyTests: XCTestCase {
     "```swift\nlet x: Array<Int> = [1, 2, 3]\nprint(x.map { $0 * 2 })\n```\n",
     "```c\n#include <stdio.h>\nint main(void) {\n  printf(\"hi\\n\");\n  return 0;\n}\n```\n",
     "<div class=\"a\">raw *html*</div>\n\nText with &amp; entities, hard break\\\nand more.\n",
-    "Setext\n======\n\n    indented code\n\n---\n\n![image](image.png) and <http://example.com>\n"
+    "Setext\n======\n\n    indented code\n\n---\n\n![image](image.png) and <http://example.com>\n",
+    "Some ~~struck through~~ and ~underlined~ text, with *emphasis* and a | table\n"
   ]
 
   /// Calls `body` for the numbers `0..<iterations` on several threads at the same time and
@@ -74,6 +75,18 @@ final class ConcurrencyTests: XCTestCase {
       return html.generate(doc: block) == expected[n].0 &&
              text.generate(doc: block) == expected[n].1 &&
              terminal.generate(doc: block) == expected[n].2
+    }
+    XCTAssertEqual(failures, [])
+  }
+
+  func testSharedFullMarkdownParserCanBeUsedFromManyThreads() {
+    let docs = ConcurrencyTests.documents
+    let parser = FullMarkdownParser.standard
+    let expected = docs.map { HtmlGenerator.standard.generate(doc: parser.parse($0)) }
+    XCTAssertTrue(expected.contains { $0.contains("<del>") && $0.contains("<u>") })
+    let failures = self.concurrently(600) { i in
+      let n = i % docs.count
+      return HtmlGenerator.standard.generate(doc: parser.parse(docs[n])) == expected[n]
     }
     XCTAssertEqual(failures, [])
   }
@@ -225,6 +238,7 @@ final class ConcurrencyTests: XCTestCase {
     // Parsers and generators
     requireSendable(MarkdownParser.self)
     requireSendable(ExtendedMarkdownParser.self)
+    requireSendable(FullMarkdownParser.self)
     requireSendable(HtmlGenerator.self)
     requireSendable(StringGenerator.self)
     requireSendable(TerminalGenerator.self)

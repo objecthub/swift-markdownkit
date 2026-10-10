@@ -135,7 +135,7 @@ open class EmphasisTransformer: InlineTransformer {
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {
     switch fragment {
-      case .emph(_), .strong(_), .link(_, _, _), .image(_, _, _):
+      case .emph(_), .strong(_), .underline(_), .strikethrough(_), .link(_, _, _), .image(_, _, _):
         self.baseDepth += 1
         defer {
           self.baseDepth -= 1
@@ -148,7 +148,8 @@ open class EmphasisTransformer: InlineTransformer {
 
   private func depth(of fragment: TextFragment) -> Int {
     switch fragment {
-      case .emph(let text), .strong(let text), .link(let text, _, _), .image(let text, _, _):
+      case .emph(let text), .strong(let text), .underline(let text), .strikethrough(let text),
+           .link(let text, _, _), .image(let text, _, _):
         return 1 + text.reduce(0) { max($0, self.depth(of: $1)) }
       default:
         return 0

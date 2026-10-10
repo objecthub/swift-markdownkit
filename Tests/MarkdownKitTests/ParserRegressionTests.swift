@@ -390,7 +390,7 @@ class ParserRegressionTests: XCTestCase {
     XCTAssertEqual(extHtml("a | b\n--- | :"), "<p>a | b\n--- | :</p>")
     XCTAssertEqual(extHtml("a | b\n:- | -:"),
                    "<table><thead><tr>\n<th align=\"left\">a</th><th align=\"right\">b</th>\n" +
-                   "</tr></thead><tbody>\n</tbody></table>")
+                   "</tr></thead></table>")
   }
 
   func testRowEndingWithBackslashDoesNotSwallowLines() {

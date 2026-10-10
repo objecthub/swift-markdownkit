@@ -56,6 +56,10 @@ open class InlineTransformer {
         res.append(fragment: .emph(self.transform(inner)))
       case .strong(let inner):
         res.append(fragment: .strong(self.transform(inner)))
+      case .underline(let inner):
+        res.append(fragment: .underline(self.transform(inner)))
+      case .strikethrough(let inner):
+        res.append(fragment: .strikethrough(self.transform(inner)))
       case .link(let inner, let uri, let title):
         res.append(fragment: .link(self.transform(inner), uri, title))
       case .autolink(_, _):

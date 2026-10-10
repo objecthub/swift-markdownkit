@@ -405,6 +405,10 @@ open class LinkTransformer: InlineTransformer {
           if self.containsLink(inner) {
             return true
           }
+        case .underline(let inner), .strikethrough(let inner):
+          if self.containsLink(inner) {
+            return true
+          }
         case .link(_, _, _):
           return true
         case .autolink(_, _):

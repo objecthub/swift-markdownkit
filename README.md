@@ -85,6 +85,12 @@ Orange
 : A large round juicy citrus fruit with a tough bright reddish-yellow rind.
 ```
 
+Class `FullMarkdownParser` supports everything that MarkdownKit implements. It is a subclass of `ExtendedMarkdownParser` (so it supports tables and definition lists) and adds inline markup for underlined text (`~underlined~`, text fragment `underline`) and struck-through text (`~~struck through~~`, text fragment `strikethrough`). Tildes can also be used within words (`foo~~bar~~baz`), but runs of three or more tildes are plain text, as in GitHub Flavored Markdown. Unlike GFM, a single tilde does not produce strikethrough but underlined text. `MarkdownParser` and `ExtendedMarkdownParser` do not know this markup and leave tildes as they are, so existing code does not change its behavior. New Markdown features will be added to `FullMarkdownParser`.
+
+```swift
+let markdown = FullMarkdownParser.standard.parse("Some ~~old~~ and ~important~ text")
+```
+
 ### Configuring the parser
 
 The Markdown dialect supported by `MarkdownParser` is defined by two parameters: a sequence of _block parsers_ (each represented as a subclass of [`BlockParser`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/BlockParser.swift)), and a sequence of _inline transformers_ (each represented as a subclass of [`InlineTransformer`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/Parser/InlineTransformer.swift)). The initializer of class `MarkdownParser` accepts both components optionally. The default configuration (neither block parsers nor inline transformers are provided for the initializer) is able to handle Markdown based on the [CommonMark specification](https://commonmark.org).
@@ -122,7 +128,7 @@ open class ExtendedMarkdownParser: MarkdownParser {
 
 With version 1.1 of the MarkdownKit framework, it is now also possible to extend the abstract syntax supported by MarkdownKit. Both `Block` and `TextFragment` enumerations now include a `custom` case which refers to objects representing the extended syntax. These objects have to implement protocol [`CustomBlock`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/CustomBlock.swift) for blocks and [`CustomTextFragment`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/CustomTextFragment.swift) for text fragments.
 
-Here is a simple example how one can add support for "underline" (e.g. `this is ~underlined~ text`) and "strikethrough" (e.g. `this is using ~~strike-through~~`) by subclassing existing inline transformers.
+Here is a simple example how one can add support for "underline" (e.g. `this is ~underlined~ text`) and "strikethrough" (e.g. `this is using ~~strike-through~~`) by subclassing existing inline transformers. `FullMarkdownParser` supports this markup out of the box, with the text fragments `underline` and `strikethrough`; the example implements the same markup as a custom extension in order to show how the mechanism works. Use a different delimiter if you want to try it together with `FullMarkdownParser`.
 
 First, a new custom text fragment type has to be implemented for representing underlined and strike-through text. This is done with an enumeration which implements the `CustomTextFragment` protocol:
 
@@ -479,7 +485,7 @@ The parser passes all 652 examples of the [CommonMark 0.31.2 specification](http
 
 There are a number of limitations:
 
-  - Extensions of GitHub Flavored Markdown other than tables are not supported: task lists, strikethrough, extended autolinks and footnotes. See [Extending the parser](#extending-the-parser) for how to add strikethrough.
+  - Extensions of GitHub Flavored Markdown other than tables and strikethrough (supported by `FullMarkdownParser`) are not supported: task lists, extended autolinks and footnotes.
   - The block parser keeps trailing spaces and backslashes at the end of the lines of a paragraph; whether a line ending is a hard line break is only decided by the inline parser (`EscapeTransformer`), because it depends on the inline markup (e.g. code spans). If you only parse the block structure (`blockOnly: true`), hard line breaks are not recognized.
 
 ## Requirements

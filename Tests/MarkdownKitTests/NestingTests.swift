@@ -70,7 +70,8 @@ class NestingTests: XCTestCase {
 
   private func inlineDepth(_ fragment: TextFragment) -> Int {
     switch fragment {
-      case .emph(let text), .strong(let text), .link(let text, _, _), .image(let text, _, _):
+      case .emph(let text), .strong(let text), .underline(let text), .strikethrough(let text),
+           .link(let text, _, _), .image(let text, _, _):
         return 1 + self.inlineDepth(text)
       default:
         return 0
@@ -232,6 +233,27 @@ class NestingTests: XCTestCase {
     }
   }
 
+  func testUnderlineAndStrikethroughAreNestedUpToTheLimit() {
+    func nested(_ n: Int) -> String {
+      return (0..<n).map { $0 % 2 == 0 ? "~a " : "~~a " }.joined() + "x " +
+             (0..<n).reversed().map { $0 % 2 == 0 ? "a~ " : "a~~ " }.joined()
+    }
+    for n in [1, 5, inlineLimit - 1, inlineLimit, inlineLimit + 1, 3 * inlineLimit] {
+      let doc = FullMarkdownParser.standard.parse(nested(n))
+      XCTAssertEqual(inlineDepth(doc), min(n, inlineLimit), "n=\(n)")
+      XCTAssertTrue(html(doc).contains("x"), "n=\(n)")
+    }
+  }
+
+  func testNestingBudgetIsSharedByTildesAndOtherMarkup() {
+    let n = inlineLimit
+    let input = "~~" + String(repeating: "![*a ~", count: n) + "x" +
+                String(repeating: "a~ a* ](u)", count: n) + "~~"
+    let doc = FullMarkdownParser.standard.parse(input)
+    XCTAssertLessThanOrEqual(inlineDepth(doc), inlineLimit)
+    XCTAssertTrue(html(doc).contains("x"))
+  }
+
   func testNestingBudgetIsSharedByLinksAndEmphasis() {
     // Images (as many as allowed) with emphasis inside, and emphasis around them
     let n = inlineLimit
@@ -254,15 +276,18 @@ class NestingTests: XCTestCase {
   // MARK: Robustness on threads with a small stack
 
   /// Parses `input` and generates all kinds of output from the result on a small stack.
-  private func process(_ input: String, file: StaticString = #filePath, line: UInt = #line) {
+  private func process(_ input: String,
+                       parser: MarkdownParser = MarkdownParser.standard,
+                       file: StaticString = #filePath,
+                       line: UInt = #line) {
     var finished = false
     runOnSmallStack {
-      let doc = MarkdownParser.standard.parse(input)
+      let doc = parser.parse(input)
       _ = HtmlGenerator().generate(doc: doc)
       _ = StringGenerator.standard.generate(doc: doc)
       _ = TerminalGenerator.standard.generate(doc: doc)
       _ = "\(doc)"
-      _ = doc == MarkdownParser.standard.parse(input)
+      _ = doc == parser.parse(input)
       finished = true
     }
     XCTAssertTrue(finished, file: file, line: line)
@@ -283,6 +308,18 @@ class NestingTests: XCTestCase {
     process((0..<5_000).map { $0 % 2 == 0 ? "**a " : "__a " }.joined() + "x " +
             (0..<5_000).reversed().map { $0 % 2 == 0 ? "a** " : "a__ " }.joined())
     process(String(repeating: "![*a ", count: 3_000) + "x" + String(repeating: "* ](u)", count: 3_000))
+  }
+
+  func testVeryDeeplyNestedTildesDoNotOverflowTheStack() {
+    let parser = FullMarkdownParser.standard
+    process((0..<5_000).map { $0 % 2 == 0 ? "~a " : "~~a " }.joined() + "x " +
+            (0..<5_000).reversed().map { $0 % 2 == 0 ? "a~ " : "a~~ " }.joined(),
+            parser: parser)
+    process((0..<3_000).map { $0 % 3 == 0 ? "~~a " : ($0 % 3 == 1 ? "*a " : "[a ") }.joined() + "x " +
+            (0..<3_000).reversed().map { $0 % 3 == 0 ? "a~~ " : ($0 % 3 == 1 ? "a* " : "](u) ") }.joined(),
+            parser: parser)
+    process(String(repeating: "![~a ", count: 3_000) + "x" + String(repeating: "~ ](u)", count: 3_000),
+            parser: parser)
   }
 
   func testDeeplyNestedBlocksAndInlineMarkupTogetherDoNotOverflowTheStack() {

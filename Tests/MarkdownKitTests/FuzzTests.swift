@@ -58,7 +58,7 @@ class FuzzTests: XCTestCase {
     "\u{200D}", "\r\n", "\u{0}", "\u{1B}", "\u{202E}", "[x]: /u \"t\"", "[x]", "![i](u)",
     "<div>", "</div>", "<script>", "<x@y.z>", "Term\n: def",
     "| a | b |\n|---|:-:|\n| c |", "|---|", ":---:", "<br/>", "  \n", "\\\n", "<?", "?>",
-    "<![CDATA[", "]]>", "<!X", "'", "\"", "- [ ] t", "1. a\n2. b",
+    "<![CDATA[", "]]>", "<!X", "'", "\"", "- [ ] t", "1. a\n2. b", "~~", "~a~", "~~a~~", "x~~",
     ">\t", "-\t", "\t-\t", "1.\t", "\t\t", " \t", "*\t", "  \n", "\\ \n", "`a\\\n"
   ]
 
@@ -119,7 +119,8 @@ class FuzzTests: XCTestCase {
       if self.verbose {
         self.log("FUZZ #\(i): \(input.debugDescription)")
       }
-      for parser in [MarkdownParser.standard, ExtendedMarkdownParser.standard] {
+      for parser in [MarkdownParser.standard, ExtendedMarkdownParser.standard,
+                     FullMarkdownParser.standard] {
         let doc = parser.parse(input)
         _ = doc.description
         _ = doc.debugDescription
@@ -137,6 +138,23 @@ class FuzzTests: XCTestCase {
         _ = TerminalGenerator(numColumns: width, syntaxHighlighting: nil).generate(doc: doc)
       }
     }
+  }
+
+  /// Markup which only `FullMarkdownParser` knows is the only difference to the extended parser
+  func testFullMarkdownParserAgreesWithTheExtendedParserWithoutTheNewMarkup() {
+    var rng = Xorshift(seed: 7)
+    var compared = 0
+    for _ in 0..<self.iterations {
+      let input = self.randomInput(Self.tokens, &rng)
+      if input.contains("~") {
+        continue
+      }
+      compared += 1
+      XCTAssertEqual(HtmlGenerator.standard.generate(doc: FullMarkdownParser.standard.parse(input)),
+                     HtmlGenerator.standard.generate(doc: ExtendedMarkdownParser.standard.parse(input)),
+                     input.debugDescription)
+    }
+    XCTAssertGreaterThan(compared, self.iterations / 5)
   }
 
   func testRandomCodeBlocksDoNotCrashSyntaxHighlighting() throws {

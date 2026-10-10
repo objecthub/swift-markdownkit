@@ -79,6 +79,12 @@ open class TerminalGenerator: @unchecked Sendable {
   /// The text properties for inline strong text.
   public let strongProperties: TextProperties
   
+  /// The text properties for underlined text.
+  public let underlineProperties: TextProperties
+  
+  /// The text properties for struck-through text.
+  public let strikethroughProperties: TextProperties
+  
   /// The text properties for definition terms.
   public let defTermProperties: TextProperties
   
@@ -172,6 +178,8 @@ open class TerminalGenerator: @unchecked Sendable {
               codeBlockLangProperties: TextProperties? = nil,
               emphasisProperties: TextProperties? = nil,
               strongProperties: TextProperties? = nil,
+              underlineProperties: TextProperties? = nil,
+              strikethroughProperties: TextProperties? = nil,
               defTermProperties: TextProperties? = nil,
               defDescrProperties: TextProperties? = nil,
               blockquoteProperties: TextProperties? = nil,
@@ -203,6 +211,9 @@ open class TerminalGenerator: @unchecked Sendable {
     self.codeBlockLangProperties = codeBlockLangProperties == nil ? .grey : codeBlockLangProperties!
     self.emphasisProperties = emphasisProperties == nil ? .italic : emphasisProperties!
     self.strongProperties = strongProperties == nil ? .bold : strongProperties!
+    self.underlineProperties = underlineProperties == nil ? .underline : underlineProperties!
+    self.strikethroughProperties = strikethroughProperties == nil ? .strikethrough
+                                                                  : strikethroughProperties!
     self.defTermProperties = defTermProperties == nil ? TextProperties(textColor: .grey,
                                                                        textStyles: [.bold])
                                                       : defTermProperties!
@@ -515,6 +526,14 @@ open class TerminalGenerator: @unchecked Sendable {
         var nested = self.generate(text: text).joined(separator: " ")
         nested.apply(properties: self.strongProperties)
         return nested
+      case .underline(let text):
+        var nested = self.generate(text: text).joined(separator: " ")
+        nested.apply(properties: self.underlineProperties)
+        return nested
+      case .strikethrough(let text):
+        var nested = self.generate(text: text).joined(separator: " ")
+        nested.apply(properties: self.strikethroughProperties)
+        return nested
       case .link(let text, let uri, _):
         let linkText = self.generate(text: text).joined(separator: " ")
         if let uri = uri {
@@ -547,7 +566,7 @@ open class TerminalGenerator: @unchecked Sendable {
       case .hardLineBreak:
         return nil
       case .custom(let customTextFragment):
-        return AnsiText.Normalized(customTextFragment.rawDescription.sanitizingControlCharacters())
+        return customTextFragment.generateText(via: self)
     }
   }
   

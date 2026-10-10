@@ -155,17 +155,22 @@ open class HtmlGenerator: @unchecked Sendable {
           html += "<th\(suffix(i))\(self.generate(text: head))</th>"
           i += 1
         }
-        html += "\n</tr></thead><tbody>\n"
-        for row in rows {
-          html += "<tr>"
-          i = 0
-          for cell in row {
-            html += "<td\(suffix(i))\(self.generate(text: cell))</td>"
-            i += 1
+        html += "\n</tr></thead>"
+        // A table without rows has no body
+        if !rows.isEmpty {
+          html += "<tbody>\n"
+          for row in rows {
+            html += "<tr>"
+            i = 0
+            for cell in row {
+              html += "<td\(suffix(i))\(self.generate(text: cell))</td>"
+              i += 1
+            }
+            html += "</tr>\n"
           }
-          html += "</tr>\n"
+          html += "</tbody>"
         }
-        html += "</tbody></table>\n"
+        html += "</table>\n"
         return html
       case .definitionList(let defs):
         var html = "<dl>\n"
@@ -209,6 +214,10 @@ open class HtmlGenerator: @unchecked Sendable {
         return "<em>" + self.generate(text: text) + "</em>"
       case .strong(let text):
         return "<strong>" + self.generate(text: text) + "</strong>"
+      case .underline(let text):
+        return "<u>" + self.generate(text: text) + "</u>"
+      case .strikethrough(let text):
+        return "<del>" + self.generate(text: text) + "</del>"
       case .link(let text, let uri, let title):
         return "<a href=\"\(self.hrefAttribute(uri ?? ""))\"\(self.titleAttribute(title))>" +
                self.generate(text: text) + "</a>"

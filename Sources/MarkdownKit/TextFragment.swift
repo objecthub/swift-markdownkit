@@ -30,6 +30,10 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
   case code(Substring)
   case emph(Text)
   case strong(Text)
+  /// Underlined text; supported by `FullMarkdownParser` (`~text~`)
+  case underline(Text)
+  /// Struck-through text; supported by `FullMarkdownParser` (`~~text~~`)
+  case strikethrough(Text)
   case link(Text, String?, String?)
   case autolink(AutolinkType, Substring)
   case image(Text, String?, String?)
@@ -51,6 +55,10 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
         return "*\(text.description)*"
       case .strong(let text):
         return "**\(text.description)**"
+      case .underline(let text):
+        return "~\(text.description)~"
+      case .strikethrough(let text):
+        return "~~\(text.description)~~"
       case .link(let text, let uri, let title):
         return "[\(text.description)](\(uri?.description ?? "") \(title?.description ?? ""))"
       case .autolink(_, let uri):
@@ -82,6 +90,10 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
       case .emph(let text):
         return text.rawDescription
       case .strong(let text):
+        return text.rawDescription
+      case .underline(let text):
+        return text.rawDescription
+      case .strikethrough(let text):
         return text.rawDescription
       case .link(let text, _, _):
         return text.rawDescription
@@ -128,6 +140,10 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
         return "emph(\(text.debugDescription))"
       case .strong(let text):
         return "strong(\(text.debugDescription))"
+      case .underline(let text):
+        return "underline(\(text.debugDescription))"
+      case .strikethrough(let text):
+        return "strikethrough(\(text.debugDescription))"
       case .link(let text, let uri, let title):
         return "link(\(text.debugDescription), " +
                "\(uri?.debugDescription ?? "nil"), \(title?.debugDescription ?? "nil"))"
@@ -159,6 +175,10 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
       case (.emph(let ltext), .emph(let rtext)):
         return ltext == rtext
       case (.strong(let ltext), .strong(let rtext)):
+        return ltext == rtext
+      case (.underline(let ltext), .underline(let rtext)):
+        return ltext == rtext
+      case (.strikethrough(let ltext), .strikethrough(let rtext)):
         return ltext == rtext
       case (.link(let ltext, let ls1, let ls2), .link(let rtext, let rs1, let rs2)):
         return ltext == rtext && ls1 == rs1 && ls2 == rs2

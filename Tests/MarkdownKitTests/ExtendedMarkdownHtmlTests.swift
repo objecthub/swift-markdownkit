@@ -39,8 +39,7 @@ class ExtendedMarkdownHtmlTests: XCTestCase, MarkdownKitFactory {
                                 " -------- | --------\n"),
                    "<table><thead><tr>\n" +
                    "<th>Column A</th><th>Column B</th>\n" +
-                   "</tr></thead><tbody>\n" +
-                   "</tbody></table>")
+                   "</tr></thead></table>")   // a table without rows has no body
     XCTAssertEqual(generateHtml(" Column A | Column B\n" +
                                 " -------- | --------\n" +
                                 "     1    |     2   \n"),

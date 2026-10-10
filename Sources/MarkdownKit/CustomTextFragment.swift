@@ -19,6 +19,7 @@
 //
 
 import Foundation
+import CommandLineKit
 
 ///
 /// Protocol `CustomTextFragment` defines the interface for custom Markdown text fragments
@@ -32,4 +33,24 @@ public protocol CustomTextFragment: CustomStringConvertible, CustomDebugStringCo
   func generateHtml(via htmlGen: HtmlGenerator, and attrGen: AttributedStringGenerator?) -> String
   #endif
   var rawDescription: String { get }
+  
+  /// Generates the plain text for this fragment in the text of a `StringGenerator`. This
+  /// method has a default implementation, which returns `rawDescription` (without control
+  /// characters), so it has to be implemented only to render markup in plain text.
+  func generateText(via generator: StringGenerator) -> String
+  
+  /// Generates the styled text for this fragment in the text of a `TerminalGenerator`. This
+  /// method has a default implementation, which returns `rawDescription` (without control
+  /// characters), so it has to be implemented only to style the text on terminals.
+  func generateText(via generator: TerminalGenerator) -> AnsiText.Normalized
+}
+
+extension CustomTextFragment {
+  public func generateText(via generator: StringGenerator) -> String {
+    return self.rawDescription.sanitizingControlCharacters()
+  }
+  
+  public func generateText(via generator: TerminalGenerator) -> AnsiText.Normalized {
+    return AnsiText.Normalized(self.rawDescription.sanitizingControlCharacters())
+  }
 }

@@ -597,17 +597,22 @@ open class AttributedStringGenerator: @unchecked Sendable {
             html += "<th\(suffix(i))\(self.generate(text: head))&nbsp;</th>"
             i += 1
           }
-          html += "\n</tr></thead><tbody>\n"
-          for row in rows {
-            html += "<tr class=\"mrow\">"
-            i = 0
-            for cell in row {
-              html += "<td class=\"mcell\"\(suffix(i))\(self.generate(text: cell))&nbsp;</td>"
-              i += 1
+          html += "\n</tr></thead>"
+          // A table without rows has no body
+          if !rows.isEmpty {
+            html += "<tbody>\n"
+            for row in rows {
+              html += "<tr class=\"mrow\">"
+              i = 0
+              for cell in row {
+                html += "<td class=\"mcell\"\(suffix(i))\(self.generate(text: cell))&nbsp;</td>"
+                i += 1
+              }
+              html += "</tr>\n"
             }
-            html += "</tr>\n"
+            html += "</tbody>"
           }
-          html += "</tbody></table><p style=\"margin: 0;\" />\n"
+          html += "</table><p style=\"margin: 0;\" />\n"
           return html
         case .definitionList(let defs):
           var html = "<dl>\n"
