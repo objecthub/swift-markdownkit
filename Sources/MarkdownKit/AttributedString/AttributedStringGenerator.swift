@@ -1157,23 +1157,28 @@ open class AttributedStringGenerator: @unchecked Sendable {
     """
   }
   
+  /// The style of the cell with the bullet of a list item. It has the size of the cell of a
+  /// number (see `numberStyle`) and, like a number, the bullet is aligned to the right, so it is
+  /// right before the text of the item and the text of all kinds of lists starts at the same
+  /// position. The text views scale the width of the cell with the width of the list, up to the
+  /// width defined here. Therefore, it needs to leave enough room for a narrow list.
   open var bulletStyle: String {
     return """
-      width: 2em;
-      padding: 0em 0.8em;
+      width: 4em;
+      padding: 0em 0.4em 0em 0em;
       vertical-align: top;
-      text-align: center;
+      text-align: right;
     """
   }
   
-  /// The style of the cell with the checkbox of a task list item. The checkbox glyphs are wider
-  /// than a bullet, so the cell needs more room to leave a gap before the text of the item.
+  /// The style of the cell with the checkbox of a task list item. See `bulletStyle`. The cell
+  /// has the same size, but a little more space between the checkbox and the text.
   open var checkboxStyle: String {
     return """
-      width: 2em;
-      padding: 0em 1.6em 0em 0.8em;
+      width: 3.9em;
+      padding: 0em 0.5em 0em 0em;
       vertical-align: top;
-      text-align: left;
+      text-align: right;
     """
   }
 

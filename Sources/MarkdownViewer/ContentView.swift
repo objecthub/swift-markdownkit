@@ -53,6 +53,14 @@ struct ContentView: View {
     Praesent scelerisque nisi non porttitor dictum. Etiam
     finibus ac libero at rhoncus.
     
+    * This is the first item
+    * This is the second item
+    * This is the third item
+    
+    Lorem ipsum dolor sit amet, **consectetur adipiscing** elit.
+    Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
+    ligula. Mauris et orci ut lectus convallis euismod.
+    
     ## Left To Do
     
     Some items are already done, others are still open:
