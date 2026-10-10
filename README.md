@@ -2,7 +2,7 @@
 
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fobjecthub%2Fswift-markdownkit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/objecthub/swift-markdownkit) [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fobjecthub%2Fswift-markdownkit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/objecthub/swift-markdownkit) [![IDE: Xcode 26](https://img.shields.io/badge/IDE-Xcode%2026-orange.svg?style=flat)](https://developer.apple.com/xcode/) [![Package managers: SwiftPM, Carthage](https://img.shields.io/badge/Package%20managers-SwiftPM,%20Carthage-green.svg?style=flat)](https://github.com/Carthage/Carthage) [![License: Apache](http://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat)](https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/LICENSE)
 
-_Swift MarkdownKit_ is a framework for parsing, processing and displaying text in [Markdown](https://daringfireball.net/projects/markdown/) format. The supported syntax is based on the [CommonMark Markdown specification](https://commonmark.org) (version 0.31.2; see [Known issues](#known-issues) for the few deviations). _Swift MarkdownKit_ also provides two extended versions of the parser: `ExtendedMarkdownParser` (tables and definition lists) and `FullMarkdownParser` (additionally underline, strikethrough, and task lists).
+_Swift MarkdownKit_ is a framework for parsing, processing and displaying text in [Markdown](https://daringfireball.net/projects/markdown/) format. The supported syntax is based on the [CommonMark Markdown specification](https://commonmark.org) (version 0.31.2). _Swift MarkdownKit_ also provides two extended versions of the parser: `ExtendedMarkdownParser` (tables and definition lists) and `FullMarkdownParser` (additionally underline, strikethrough, and task lists).
 
 _Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it provides a parser for parsing strings into abstract syntax trees, and comes with generators for creating output in plain text, HTML and [attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring). There is also a generator which can be used to display Markdown documents in ANSI-compliant terminals.
 
@@ -15,6 +15,8 @@ Here is an overview of the supported Markdown features. The parser classes suppo
 - Strikethrough text: `~~struck through~~` (`FullMarkdownParser`)
 - Task lists: `- [ ] to do` and `- [x] done` (`FullMarkdownParser`)
 - Custom syntax defined by [extending the parser](#extending-the-parser)
+
+&nbsp;
 
 <table width="100%">
 <tr><th colspan="2">Table of contents</th></tr>
