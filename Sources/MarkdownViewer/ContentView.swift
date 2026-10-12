@@ -61,6 +61,18 @@ struct ContentView: View {
     Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
     ligula. Mauris et orci ut lectus convallis euismod.
     
+    ```mermaid
+    sequenceDiagram
+        autonumber
+        actor User
+        participant Frontend
+        participant Database
+        User->>Frontend: Request Data
+        Frontend->>Database: Query Records
+        Database-->>Frontend: Return Data
+        Frontend-->>User: Show Results
+    ```
+    
     ## Left To Do
     
     Some items are already done, others are still open:
@@ -158,13 +170,25 @@ struct ContentView: View {
     Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
     ligula. Mauris et orci ut lectus convallis euismod.
     
+    ## A Diagram
+    
+    Fenced code blocks with language `mermaid` are drawn as diagrams:
+    
+    ```mermaid
+    graph LR
+      A[Markdown] --> B(Parser)
+      B --> C{Generator}
+      C -->|attributed string| D[Text view]
+      C -->|HTML| E[Web page]
+    ```
+    
     ***
     
     This is the end.
     """)
   
   var body: some View {
-    MarkdownText(self.content)
+    MarkdownText(self.content, mermaid: .default)
       .padding()
   }
 }

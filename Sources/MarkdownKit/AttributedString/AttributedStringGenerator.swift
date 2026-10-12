@@ -530,17 +530,51 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// `NSAttributedString` conversion logic provided by the operating system. This
   /// should be used prior to macOS 26 and iOS 26
   open class InternalHtmlGenerator: HtmlGenerator, @unchecked Sendable {
-    let outer: AttributedStringGenerator
+    public let outer: AttributedStringGenerator
     
     /// The options used for restricting images. By default, those of `outer`.
-    let renderingOptions: RenderingOptions
-    
+    public let renderingOptions: RenderingOptions
+
+    /// The Mermaid diagrams which this generator has put into the HTML (as placeholders).
+    /// `AttributedStringGenerator` replaces the placeholders with images once the system has
+    /// created the attributed string.
+    public let diagrams: MermaidDiagramContext
+
     public init(outer: AttributedStringGenerator, renderingOptions: RenderingOptions? = nil) {
       let options = renderingOptions ?? outer.renderingOptions
       self.outer = outer
       self.renderingOptions = options
+      self.diagrams = MermaidDiagramContext(maxWidth: outer.mermaidConfig?.maxWidth)
       // Safe mode is independent of the access control of images
       super.init(safeMode: options.safeMode)
+    }
+
+    /// Returns the HTML for a fenced code block if it is a Mermaid diagram that has been
+    /// rendered (see `AttributedStringGenerator.prepareDiagrams`): a paragraph with a
+    /// placeholder, which is later replaced by the image. Returns `nil` otherwise.
+    func diagramHtml(info: String?, lines: Lines) -> String? {
+      guard Block.isMermaid(info: info),
+            let config = self.outer.mermaidConfig,
+            let renderer = self.outer.diagramRenderer,
+            let image = renderer.cachedImage(for: Block.mermaidSource(of: lines),
+                                             config: config) else {
+        return nil
+      }
+      return "<p style=\"text-align: center;\">" + self.diagrams.placeholder(for: image) + "</p>\n"
+    }
+
+    /// Returns a note for a Mermaid diagram which Mermaid has rejected; it is shown above the
+    /// code of the diagram. Returns the empty string for all other code blocks.
+    func diagramFailureHtml(info: String?, lines: Lines) -> String {
+      guard Block.isMermaid(info: info),
+            let config = self.outer.mermaidConfig,
+            let renderer = self.outer.diagramRenderer,
+            let failure = renderer.cachedFailure(for: Block.mermaidSource(of: lines),
+                                                 config: config) else {
+        return ""
+      }
+      return "<p><i>Diagram could not be rendered: " +
+             failure.summary.encodingPredefinedXmlEntities() + "</i></p>\n"
     }
 
     /// The system's HTML importer ignores `<input>` elements, so the checkbox of a task list
@@ -565,8 +599,20 @@ open class AttributedStringGenerator: @unchecked Sendable {
           } else {
             return "<p>" + self.generate(text: text) + "</p>\n"
           }
-        case .indentedCode(_),
-             .fencedCode(_, _):
+        case .fencedCode(let info, let lines):
+          // A rendered diagram replaces the code
+          if let diagram = self.diagramHtml(info: info, lines: lines) {
+            return diagram
+          }
+          // A diagram which is not drawn is ordinary code (the base generator would generate
+          // a `pre` element with class `mermaid`, which only makes sense in a web browser)
+          let code: Block = Block.isMermaid(info: info) ? .fencedCode(nil, lines) : block
+          return self.diagramFailureHtml(info: info, lines: lines) +
+                 "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
+                 "<td class=\"codebox\">" +
+                 super.generate(block: code, parent: .block(block, parent), tight: tight) +
+                 "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
+        case .indentedCode(_):
           return "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
                  "<td class=\"codebox\">" +
                  super.generate(block: block, parent: .block(block, parent), tight: tight) +
@@ -736,7 +782,12 @@ open class AttributedStringGenerator: @unchecked Sendable {
           let middle = "<pre>" + markup + code + "</code></pre>\n"
           return begin + middle + end
         case .fencedCode(let lang, let lines):
-          let begin = "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
+          // A rendered diagram replaces the code
+          if let diagram = self.diagramHtml(info: lang, lines: lines) {
+            return diagram
+          }
+          let begin = self.diagramFailureHtml(info: lang, lines: lines) +
+                      "<table style=\"width: 100%; margin-bottom: 3px;\"><tbody><tr>" +
                       "<td class=\"codebox\">"
           let end = "</td></tr></tbody></table><p style=\"margin: 0;\" />\n"
           var code = lines.joined(separator: "")
@@ -746,8 +797,6 @@ open class AttributedStringGenerator: @unchecked Sendable {
           let language = lang?.split(whereSeparator: \.isWhitespace).first.map(String.init)
           if self.outer.ignoredLanguages.contains(language ?? "") {
             middle = "<pre><code>" + code.encodingPredefinedXmlEntities() + "</code></pre>\n"
-          } else if let lang, lang == "mermaid" {
-            middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
           } else {
             var markup = "<code>"
             // Code is only highlighted if syntax highlighting is enabled (`syntaxHighlighting`
@@ -768,15 +817,11 @@ open class AttributedStringGenerator: @unchecked Sendable {
             middle = "<pre>" + markup + code + "</code></pre>\n"
           }
           #else
-          if let lang, lang == "mermaid" {
-            middle = "<pre class=\"mermaid\">" + code.encodingPredefinedXmlEntities() + "</pre>\n"
-          } else {
-            var markup = "<code>"
-            if let lang, let clazz = Sanitizer.languageClass(for: lang) {
-              markup = "<code class=\"language-\(clazz)\">"
-            }
-            middle = "<pre>" + markup + code.encodingPredefinedXmlEntities() + "</code></pre>\n"
+          var markup = "<code>"
+          if let lang, let clazz = Sanitizer.languageClass(for: lang) {
+            markup = "<code class=\"language-\(clazz)\">"
           }
+          middle = "<pre>" + markup + code.encodingPredefinedXmlEntities() + "</code></pre>\n"
           #endif
           return begin + middle + end
         default:
@@ -838,7 +883,17 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// If `nil`, falls back to `SyntaxHighlighter.proxy`.
   public let syntaxHighlighter: SyntaxHighlighter?
   #endif
-  
+
+  /// Configures how Mermaid diagrams are rendered. If `nil` (the default), the content of
+  /// fenced code blocks with language `mermaid` is shown as code. Otherwise, such blocks show
+  /// the diagram, as soon as it has been rendered (see `prepareDiagrams(in:)` and
+  /// `generateAsync(doc:options:)`); until then, and for diagrams that cannot be rendered, the
+  /// block is shown as code. Diagrams are only supported on macOS and iOS.
+  public let mermaidConfig: MermaidConfig?
+
+  /// The renderer that draws the diagrams. If `nil`, `MermaidRenderer.shared` is used.
+  public let mermaidRenderer: MermaidRenderer?
+
   /// The border color (used for code blocks and for thematic breaks).
   public let borderColor: String
 
@@ -887,6 +942,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
               codeBlockBackground: String = mdDefaultBackgroundColor,
               syntaxHighlighting: SyntaxHighlightingConfig? = .default,
               syntaxHighlighter: SyntaxHighlighter? = nil,
+              mermaid: MermaidConfig? = nil,
+              mermaidRenderer: MermaidRenderer? = nil,
               borderColor: String = "#cccccc",
               blockquoteColor: String = "#abe",
               h1Color: String = mdDefaultColor,
@@ -945,6 +1002,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
       self.highlightIndentedCodeBlocks = false
     }
     #endif
+    self.mermaidConfig = mermaid
+    self.mermaidRenderer = mermaidRenderer
     self.borderColor = borderColor
     self.blockquoteColor = blockquoteColor
     self.h1Color = h1Color
@@ -958,19 +1017,30 @@ open class AttributedStringGenerator: @unchecked Sendable {
     self.renderingOptions = renderingOptions
   }
 
-  /// Generates an attributed string from the given Markdown document
+  /// Generates an attributed string from the given Markdown document.
+  ///
+  /// Mermaid diagrams (if enabled with the parameter `mermaid:`) are only included if they
+  /// have been rendered before, see `prepareDiagrams(in:)`.
   open func generate(doc: Block) -> NSAttributedString? {
-    return self.generateAttributedString(self.htmlGenerator.generate(doc: doc))
+    let generator = self.htmlGenerator
+    return self.insertingDiagrams(into: self.generateAttributedString(generator.generate(doc: doc)),
+                                  from: generator)
   }
 
   /// Generates an attributed string from the given Markdown block
   open func generate(block: Block) -> NSAttributedString? {
-    return self.generateAttributedString(self.htmlGenerator.generate(block: block, parent: .none))
+    let generator = self.htmlGenerator
+    return self.insertingDiagrams(
+             into: self.generateAttributedString(generator.generate(block: block, parent: .none)),
+             from: generator)
   }
 
   /// Generates an attributed string from the given Markdown blocks
   open func generate(blocks: Blocks) -> NSAttributedString? {
-    return self.generateAttributedString(self.htmlGenerator.generate(blocks: blocks, parent: .none))
+    let generator = self.htmlGenerator
+    return self.insertingDiagrams(
+             into: self.generateAttributedString(generator.generate(blocks: blocks, parent: .none)),
+             from: generator)
   }
   
   private func generateAttributedString(_ htmlBody: String) -> NSAttributedString? {
@@ -1397,27 +1467,40 @@ extension AttributedStringGenerator {
   ///   - options: Render options; if `nil`, `renderingOptions` is used.
   /// - Throws: An `RenderingError`.
   public func generateAsync(doc: Block,
-                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
-    return try await self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(doc: doc)),
-                                     options: options ?? self.renderingOptions)
+                            options: RenderingOptions? = nil) async throws
+                         -> sending NSAttributedString {
+    await self.prepareDiagrams(in: doc)
+    let generator = self.htmlGenerator(options: options)
+    let html = self.generateHtml(generator.generate(doc: doc))
+    return self.addingDiagrams(
+             to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
+             from: generator)
   }
 
   /// Generates an attributed string from the given Markdown block without blocking the calling
   /// thread. See `generateAsync(doc:options:)`.
   public func generateAsync(block: Block,
-                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
-    return try await self.renderHTML(
-                       self.generateHtml(self.htmlGenerator(options: options).generate(block: block, parent: .none)),
-                       options: options ?? self.renderingOptions)
+                            options: RenderingOptions? = nil) async throws
+                         -> sending NSAttributedString {
+    await self.prepareDiagrams(in: block)
+    let generator = self.htmlGenerator(options: options)
+    let html = self.generateHtml(generator.generate(block: block, parent: .none))
+    return self.addingDiagrams(
+             to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
+             from: generator)
   }
 
   /// Generates an attributed string from the given Markdown blocks without blocking the calling
   /// thread. See `generateAsync(doc:options:)`.
   public func generateAsync(blocks: Blocks,
-                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
-    return try await self.renderHTML(
-                       self.generateHtml(self.htmlGenerator(options: options).generate(blocks: blocks, parent: .none)),
-                       options: options ?? self.renderingOptions)
+                            options: RenderingOptions? = nil) async throws
+                         -> sending NSAttributedString {
+    await self.prepareDiagrams(in: blocks)
+    let generator = self.htmlGenerator(options: options)
+    let html = self.generateHtml(generator.generate(blocks: blocks, parent: .none))
+    return self.addingDiagrams(
+             to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
+             from: generator)
   }
 
   // MARK: Asynchronous API with completion handlers
@@ -1438,10 +1521,12 @@ extension AttributedStringGenerator {
   ///   - completionHandler: Called with the attributed string or with an `RenderingError`.
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
-    self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(doc: doc)),
-                    options: options ?? self.renderingOptions,
-                    completionHandler: completionHandler)
+                            completionHandler: @escaping (sending Result<NSAttributedString,
+                                                                         RenderingError>) -> Void) {
+    self.renderAsync(options: options,
+                     prepare: { await $0.prepareDiagrams(in: doc) },
+                     html: { $0.generate(doc: doc) },
+                     completion: completionHandler)
   }
 
   /// Generates an attributed string from the given Markdown block without blocking the calling
@@ -1449,10 +1534,12 @@ extension AttributedStringGenerator {
   /// `generateAsync(doc:options:completionHandler:)`.
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
-    self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(block: block, parent: .none)),
-                    options: options ?? self.renderingOptions,
-                    completionHandler: completionHandler)
+                            completionHandler: @escaping (sending Result<NSAttributedString,
+                                                                         RenderingError>) -> Void) {
+    self.renderAsync(options: options,
+                     prepare: { await $0.prepareDiagrams(in: block) },
+                     html: { $0.generate(block: block, parent: .none) },
+                     completion: completionHandler)
   }
 
   /// Generates an attributed string from the given Markdown blocks without blocking the calling
@@ -1460,30 +1547,69 @@ extension AttributedStringGenerator {
   /// `generateAsync(doc:options:completionHandler:)`.
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
-    self.renderHTML(self.generateHtml(self.htmlGenerator(options: options).generate(blocks: blocks, parent: .none)),
-                    options: options ?? self.renderingOptions,
-                    completionHandler: completionHandler)
+                            completionHandler: @escaping (sending Result<NSAttributedString,
+                                                                         RenderingError>) -> Void) {
+    self.renderAsync(options: options,
+                     prepare: { await $0.prepareDiagrams(in: blocks) },
+                     html: { $0.generate(blocks: blocks, parent: .none) },
+                     completion: completionHandler)
   }
 
   // MARK: Rendering
 
-  /// Renders `html` and calls `completionHandler` (asynchronously, on the main thread) with
+  /// Renders the HTML for a document, block or blocks, which `html` creates with the HTML
+  /// generator that is passed to it, and reports the result via `completionHandler`. If Mermaid
+  /// diagrams are enabled, `prepare` is called first (it renders the diagrams, which takes
+  /// time) and the placeholders of the diagrams are replaced in the result.
+  private func renderAsync(
+      options: RenderingOptions?,
+      prepare: @escaping @Sendable (AttributedStringGenerator) async -> Bool,
+      html: @escaping @Sendable (HtmlGenerator) -> String,
+      completion: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+    let renderingOptions = options ?? self.renderingOptions
+    if self.mermaidConfig == nil {
+      self.renderHTML(self.generateHtml(html(self.htmlGenerator(options: options))),
+                      options: renderingOptions,
+                      completion: completion)
+    } else {
+      // The completion handler is not used by anybody else
+      nonisolated(unsafe) let completion = completion
+      Task {
+        _ = await prepare(self)
+        let generator = self.htmlGenerator(options: options)
+        let document = self.generateHtml(html(generator))
+        self.renderHTML(document, options: renderingOptions) { result in
+          switch result {
+            case .success(let string):
+              // The attributed string is created by the system's HTML loader and not used by
+              // anybody else
+              nonisolated(unsafe) let string = string
+              completion(.success(self.insertingDiagrams(into: string, from: generator) ?? string))
+            case .failure(let error):
+              completion(.failure(error))
+          }
+        }
+      }
+    }
+  }
+
+  /// Renders `html` and calls `completion` (asynchronously, on the main thread) with
   /// the result.
   internal func renderHTML(_ html: String,
                            options: RenderingOptions,
                            watchdogGrace: TimeInterval = 5,
                            ignore: Bool = false,
-                           completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+                           completion: @escaping (sending Result<NSAttributedString,
+                                                                 RenderingError>) -> Void) {
     let state = RenderingState()
     state.install { result in
       // The result is created by the system's HTML loader and not used by anybody else; it is
       // handed over to the completion handler (which is also not used by anybody else
       // after this point) on the main thread.
       nonisolated(unsafe) let result = result
-      nonisolated(unsafe) let completionHandler = completionHandler
+      nonisolated(unsafe) let completion = completion
       DispatchQueue.main.async {
-        completionHandler(result)
+        completion(result)
       }
     }
     state.start(html, options: options, watchdogGrace: watchdogGrace, ignore: ignore)
@@ -1571,7 +1697,8 @@ extension AttributedStringGenerator {
             string: html,
             options: options.renderingOptions(forLoadFromHTML: true)) { string, _, error in
           if let error = error {
-            if let wkError = error as? WKError, wkError.code == .attributedStringContentLoadTimedOut {
+            if let wkError = error as? WKError,
+               wkError.code == .attributedStringContentLoadTimedOut {
               self.finish(.failure(.timedOut))
             } else {
               self.finish(.failure(.renderingFailed(error)))
@@ -1603,21 +1730,24 @@ extension AttributedStringGenerator {
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(doc:)` instead.
   public func generateAsync(doc: Block,
-                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
+                            options: RenderingOptions? = nil) async throws
+                         -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
 
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(block:)` instead.
   public func generateAsync(block: Block,
-                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
+                            options: RenderingOptions? = nil) async throws
+                         -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
 
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(blocks:)` instead.
   public func generateAsync(blocks: Blocks,
-                            options: RenderingOptions? = nil) async throws -> sending NSAttributedString {
+                            options: RenderingOptions? = nil) async throws
+                         -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
 
@@ -1625,7 +1755,8 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(doc:)` instead.
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString,
+                                                                         RenderingError>) -> Void) {
     // The completion handler is not used by anybody else
     nonisolated(unsafe) let completionHandler = completionHandler
     DispatchQueue.main.async {
@@ -1637,7 +1768,8 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(block:)` instead.
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString,
+                                                                         RenderingError>) -> Void) {
     // The completion handler is not used by anybody else
     nonisolated(unsafe) let completionHandler = completionHandler
     DispatchQueue.main.async {
@@ -1649,7 +1781,8 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(blocks:)` instead.
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
-                            completionHandler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+                            completionHandler: @escaping (sending Result<NSAttributedString,
+                                                                         RenderingError>) -> Void) {
     // The completion handler is not used by anybody else
     nonisolated(unsafe) let completionHandler = completionHandler
     DispatchQueue.main.async {

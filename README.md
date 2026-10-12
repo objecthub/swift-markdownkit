@@ -384,6 +384,27 @@ Independently of the location checks, every image that is checked must also have
 
 _Note:_ Without restrictions, do not use `generateAsync` with untrusted Markdown, as it then loads remote resources (images, style sheets) that the HTML refers to.
 
+#### Drawing Mermaid diagrams
+
+Fenced code blocks with the language `mermaid` are [Mermaid](https://mermaid.js.org) diagrams. `HtmlGenerator` passes them on in a `<pre class="mermaid">` element for web pages that load Mermaid. `AttributedStringGenerator` can draw them if it is created with the parameter `mermaid:`, which takes a `MermaidConfig` (the default is `nil`, in which case the diagram is shown as code):
+
+```swift
+let generator = AttributedStringGenerator(mermaid: .default)   // or .dark for a dark background
+let attributedStr = try await generator.generateAsync(doc: markdown)
+```
+
+Mermaid is a JavaScript library which needs the layout engine of a web browser to measure text. In contrast to syntax highlighting, which runs Highlight.js in JavaScriptCore, the diagrams are therefore drawn by `MermaidRenderer`, which loads the `mermaid.min.js` that ships with _MarkdownKit_ into a headless `WKWebView` and turns each diagram into a PNG image with transparent background. Diagrams are only supported on macOS and iOS; on other platforms, and for diagrams which Mermaid rejects (the generator then adds the error message above the code), the code is shown.
+
+Rendering takes time, so it is asynchronous:
+
+  - `generateAsync` renders all diagrams of the document before it generates the attributed string.
+  - `generate(doc:)` cannot wait for a web view; it shows the diagrams that have been rendered before, and code for the others. Call `await generator.prepareDiagrams(in: doc)` first to render them (it returns `true` if it rendered anything, i.e. if `generate(doc:)` now gives a different result).
+  - `MarkdownText(_:mermaid:)` shows the code first and replaces it with the diagram once it is available. In dark mode it uses `MermaidConfig.darkVariant`.
+
+Rendered diagrams, and the errors of diagrams which Mermaid rejected, are kept in memory by the `MermaidRenderer` (`MermaidRenderer.shared` by default; pass `mermaidRenderer:` to the generator for another one), keyed by the diagram and the configuration (theme, theme variables, font family, scale and width). The cache holds at most 128 results and 64 MiB of images by default and drops the ones that were used least recently; `MermaidRenderer(mermaidJSURL:maxCachedDiagrams:maxCacheBytes:)` sets other limits. Keep `maxCachedDiagrams` at least as large as the number of diagrams in your largest document, since a diagram is only shown while it is in the cache. `MermaidRenderer.render(_:config:)` can also be used without a generator to get the PNG of a diagram. A `MermaidConfig` selects the Mermaid `theme` and `themeVariables`, the `fontFamily`, the `scale` (pixels per point, default 2), the layout `width` (default 800 points), a `maxWidth` for the diagram in the attributed string, and the `timeout` per diagram. A diagram that is wider than the text view is scaled down to fit when the text is laid out.
+
+The web view cannot access the network or local files and has no connection to the rest of the application, and Mermaid runs with `securityLevel: 'strict'`. It is created when the first diagram is rendered and released after 60 seconds without requests; create the `MermaidRenderer` with `idleTime:` to change that (`0` releases it as soon as no request is waiting, `.infinity` never releases it). Replace `Sources/MarkdownKit/Mermaid/mermaid.min.js` to use another version of Mermaid; it has to be a build that defines the global `mermaid`. A `MermaidRenderer` reads the 2.7 MB file once and keeps it in memory; create it with `cachesScript: false` (`MermaidRenderer(mermaidJSURL:cachesScript:)`) to read the file again whenever the web view is created instead.
+
 There are two generators for outputting formatted text. [`StringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/StringGenerator.swift) formats text based on the given Markdown and returns text that can be, e.g. edited in a text editor. [`TerminalGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/TerminalGenerator.swift) formats text for output in an ANSI-compliant terminal, using control sequences to mark up the text.
 
 ### Using the command-line tools
@@ -442,7 +463,8 @@ The initializer of [`MarkdownText`](https://github.com/objecthub/swift-markdownk
 struct MarkdownText: View {
   init(_ text: Block,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-       renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+       renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
+       mermaid: MermaidConfig? = nil) {
     ...
   }
   init(_ text: Block,
@@ -452,7 +474,8 @@ struct MarkdownText: View {
   }
   init(string: String,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-       renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+       renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
+       mermaid: MermaidConfig? = nil) {
     ...
   }
   init(string: String,
@@ -528,7 +551,7 @@ _Swift Package Manager_ is not needed.
 - [Swift 6](https://developer.apple.com/swift/) toolchain (the package is compiled in Swift 6 language mode; clients can use any language mode)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
-_Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting relies on JavaScriptCore and is not available on watchOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tools are only functional on macOS.
+_Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting relies on JavaScriptCore and is not available on watchOS. Mermaid diagrams rely on WebKit and are only available on macOS and iOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tools are only functional on macOS.
 
 ## License
 
@@ -537,6 +560,8 @@ _MarkdownKit_ is released under an [Apache License 2.0](https://github.com/objec
 _MarkdownKit_ contains some code snippets from [HighlighterSwift](https://github.com/smittytone/HighlighterSwift) which is licensed under an [MIT license](https://github.com/smittytone/HighlighterSwift/blob/main/LICENCE.md). _HighlighterSwift_ is © 2026, Tony Smith. Portions are © 2016, Juan Pablo Illanes.
 
 The _MarkdownKit_ framework comes with a copy of [Highlight.js](https://github.com/highlightjs/highlight.js/). _Highlight.js_ is released under a [BSD License](https://github.com/highlightjs/highlight.js/blob/main/LICENSE).
+
+The _MarkdownKit_ framework also comes with a copy of [Mermaid](https://github.com/mermaid-js/mermaid). _Mermaid_ is released under an [MIT License](https://github.com/mermaid-js/mermaid/blob/develop/LICENSE).
 
 ## Copyright
 

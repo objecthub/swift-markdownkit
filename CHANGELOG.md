@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1 (unreleased)
+
+- `AttributedStringGenerator` can draw [Mermaid](https://mermaid.js.org) diagrams (fenced code blocks with language `mermaid`) if it is created with the new parameter `mermaid:` (a `MermaidConfig`; `nil` by default, which shows the diagram as code like any other code block). The diagrams are drawn by the new `MermaidRenderer`, which runs the bundled `mermaid.min.js` in a headless `WKWebView` (macOS and iOS only) and caches the PNG images. `generateAsync` renders the diagrams first; `generate(doc:)` shows the ones that were rendered before, which `prepareDiagrams(in:)` does ahead of time. Before, such blocks showed up as unstyled text in the attributed string (a `<pre class="mermaid">` element which nothing turned into a diagram).
+- `MarkdownText(_:mermaid:)` and `MarkdownText(string:mermaid:)` show diagrams, rendered in the background, with the dark theme in dark mode (`MermaidConfig.darkVariant`).
+- The bundle is located by the new internal `MarkdownKitResources` (before, by `SyntaxHighlighter`); the resources `mermaid.min.js` (Mermaid 11.6.0) and its license were added.
+
 ## 2.0 (2026-10-10)
 
 Source-incompatible changes:

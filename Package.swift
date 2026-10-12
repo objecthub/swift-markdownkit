@@ -63,9 +63,11 @@ let package = Package(
       ],
       exclude: [
         "Info.plist",
-        "Highlighter/LICENSE (highlight js)"
+        "Highlighter/LICENSE (highlight js)",
+        "Mermaid/LICENSE (mermaid)"
       ],
       resources: [
+        .copy("Mermaid/mermaid.min.js"),
         .copy("Highlighter/highlight.min.js"),
         .copy("Highlighter/Themes/a11y-dark.css"),
         .copy("Highlighter/Themes/a11y-light.css"),

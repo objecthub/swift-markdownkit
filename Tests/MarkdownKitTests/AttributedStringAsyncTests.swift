@@ -545,7 +545,7 @@ final class AttributedStringAsyncTests: XCTestCase {
                            options: RenderingOptions(timeout: 0.05),
                            watchdogGrace: 0.05,
                            ignore: true,
-                           completionHandler: handler)
+                           completion: handler)
     }
     XCTAssertEqual(outcome.calls, 1)
     XCTAssertTrue(outcome.onMainThread)

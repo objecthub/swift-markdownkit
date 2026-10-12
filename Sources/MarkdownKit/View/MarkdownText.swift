@@ -27,7 +27,8 @@ public struct MarkdownText: View {
   
   /// Creates the attributed string generator for dark mode with the given rendering options.
   private static func makeDarkGenerator(
-                        _ renderingOptions: AttributedStringGenerator.RenderingOptions)
+                        _ renderingOptions: AttributedStringGenerator.RenderingOptions,
+                        mermaid: MermaidConfig? = nil)
                       -> AttributedStringGenerator {
     return AttributedStringGenerator(
       fontColor: "#FFF",
@@ -35,6 +36,7 @@ public struct MarkdownText: View {
       codeBlockFontColor: "#FF6",
       codeBlockBackground: "#333",
       syntaxHighlighting: .defaultDark,
+      mermaid: mermaid?.darkVariant,
       borderColor: "#BBB",
       h1Color: "#FFF",
       h2Color: "#FFF",
@@ -46,30 +48,55 @@ public struct MarkdownText: View {
   /// Default `AttributedStringGenerator` implementation for dark mode
   private static let darkGenerator = MarkdownText.makeDarkGenerator(.trusted)
   
+  /// Returns the default generators for light and dark mode for the given rendering options
+  /// and Mermaid configuration.
+  private static func makeGenerators(
+                        _ renderingOptions: AttributedStringGenerator.RenderingOptions,
+                        mermaid: MermaidConfig?)
+                      -> (light: AttributedStringGenerator, dark: AttributedStringGenerator) {
+    if mermaid == nil && renderingOptions == .trusted {
+      return (AttributedStringGenerator.standard, MarkdownText.darkGenerator)
+    } else {
+      return (AttributedStringGenerator(mermaid: mermaid, renderingOptions: renderingOptions),
+              MarkdownText.makeDarkGenerator(renderingOptions, mermaid: mermaid))
+    }
+  }
+  
   /// Returns the function which generates attributed strings with the default generators for
   /// the given rendering options. This is `internal` so that tests can call it.
   static func defaultGenerator(
-                        _ renderingOptions: AttributedStringGenerator.RenderingOptions)
+                        _ renderingOptions: AttributedStringGenerator.RenderingOptions,
+                        mermaid: MermaidConfig? = nil)
                       -> (Block, ColorScheme) -> NSAttributedString? {
-    if renderingOptions == .trusted {
-      return { doc, colorScheme in
-        switch colorScheme {
-          case .dark:
-            return MarkdownText.darkGenerator.generate(doc: doc)
-          default:
-            return AttributedStringGenerator.standard.generate(doc: doc)
-        }
+    let generators = MarkdownText.makeGenerators(renderingOptions, mermaid: mermaid)
+    return { doc, colorScheme in
+      switch colorScheme {
+        case .dark:
+          return generators.dark.generate(doc: doc)
+        default:
+          return generators.light.generate(doc: doc)
       }
-    } else {
-      let lightGenerator = AttributedStringGenerator(renderingOptions: renderingOptions)
-      let darkGenerator = MarkdownText.makeDarkGenerator(renderingOptions)
-      return { doc, colorScheme in
-        switch colorScheme {
-          case .dark:
-            return darkGenerator.generate(doc: doc)
-          default:
-            return lightGenerator.generate(doc: doc)
-        }
+    }
+  }
+  
+  /// Returns the function which renders the Mermaid diagrams of a document for the default
+  /// generators with the given rendering options. It returns `true` if diagrams were rendered,
+  /// i.e. if the document needs to be generated again. Returns `nil` if diagrams are disabled.
+  /// This is `internal` so that tests can call it.
+  static func defaultPreparer(
+                        _ renderingOptions: AttributedStringGenerator.RenderingOptions,
+                        mermaid: MermaidConfig?)
+                      -> (@Sendable (Block, ColorScheme) async -> Bool)? {
+    guard mermaid != nil else {
+      return nil
+    }
+    let generators = MarkdownText.makeGenerators(renderingOptions, mermaid: mermaid)
+    return { doc, colorScheme in
+      switch colorScheme {
+        case .dark:
+          return await generators.dark.prepareDiagrams(in: doc)
+        default:
+          return await generators.light.prepareDiagrams(in: doc)
       }
     }
   }
@@ -81,6 +108,11 @@ public struct MarkdownText: View {
   
   /// The generator for turning markdown into a `NSAttributedString` object
   private let generator: (Block, ColorScheme) -> NSAttributedString?
+  
+  /// Renders the Mermaid diagrams of the markdown document (which takes some time) so that the
+  /// generator can include them. Returns `true` if the attributed string has to be generated
+  /// again. `nil` if the view does not show diagrams.
+  private let prepare: (@Sendable (Block, ColorScheme) async -> Bool)?
   
   /// What to display until the markdown document has been converted into an
   /// attributed string.
@@ -101,10 +133,12 @@ public struct MarkdownText: View {
   /// The designated initializer.
   private init(content: Block,
                waitingMessage: NSAttributedString,
-               generator: @escaping (Block, ColorScheme) -> NSAttributedString?) {
+               generator: @escaping (Block, ColorScheme) -> NSAttributedString?,
+               prepare: (@Sendable (Block, ColorScheme) async -> Bool)? = nil) {
     self.content = content
     self.waitingMessage = waitingMessage
     self.generator = generator
+    self.prepare = prepare
   }
   
   /// Creates a Markdown text view for the specified Markdown document. The view uses the
@@ -121,12 +155,19 @@ public struct MarkdownText: View {
   ///   - text: The Markdown document.
   ///   - waitingMessage: What is displayed until the document has been converted.
   ///   - renderingOptions: The options for rendering the generated HTML.
+  ///
+  /// If `mermaid` is not `nil`, fenced code blocks with language `mermaid` are shown as
+  /// diagrams. They are rendered in the background: the view first shows the diagram as code
+  /// and replaces it with the diagram once it has been rendered. In dark mode,
+  /// `MermaidConfig.darkVariant` is used. Diagrams are only supported on macOS and iOS.
   public init(_ text: Block,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-              renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+              renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
+              mermaid: MermaidConfig? = nil) {
     self.init(content: text,
               waitingMessage: waitingMessage,
-              generator: MarkdownText.defaultGenerator(renderingOptions))
+              generator: MarkdownText.defaultGenerator(renderingOptions, mermaid: mermaid),
+              prepare: MarkdownText.defaultPreparer(renderingOptions, mermaid: mermaid))
   }
   
   /// Creates a Markdown text view for the specified Markdown document. `generator` creates
@@ -146,11 +187,13 @@ public struct MarkdownText: View {
   public init(string: String,
               full: Bool = false,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-              renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted) {
+              renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
+              mermaid: MermaidConfig? = nil) {
     self.init(full ? FullMarkdownParser.standard.parse(string)
                    : ExtendedMarkdownParser.standard.parse(string),
               waitingMessage: waitingMessage,
-              renderingOptions: renderingOptions)
+              renderingOptions: renderingOptions,
+              mermaid: mermaid)
   }
   
   /// Creates a Markdown text view for the specified Markdown document as a string.
@@ -194,6 +237,21 @@ public struct MarkdownText: View {
       self.lastUsedColorScheme = self.colorScheme
       self.attributedText = self.generator(self.content, self.colorScheme)
     }
+    // Mermaid diagrams take time to render. They are rendered after the text has been shown for
+    // the first time; the text is generated again once there are new diagrams.
+    .task(id: DiagramRequest(content: self.content, colorScheme: self.colorScheme)) {
+      if let prepare = self.prepare,
+         await prepare(self.content, self.colorScheme),
+         !Task.isCancelled {
+        self.attributedText = self.generator(self.content, self.colorScheme)
+      }
+    }
+  }
+  
+  /// Identifies the diagrams that need to be rendered: those of a document for a color scheme.
+  private struct DiagramRequest: Equatable {
+    let content: Block
+    let colorScheme: ColorScheme
   }
 }
 

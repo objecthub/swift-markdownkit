@@ -63,57 +63,9 @@ public typealias TextStorageEditActions = NSTextStorage.EditActions
 /// 
 public final class SyntaxHighlighter: @unchecked Sendable {
 
-  /// Locates the bundle containing this package's highlighting resources
-  /// (`highlight.min.js` and the theme `.css` files).
-  ///
-  /// `Bundle.module`, SwiftPM's generated accessor, assumes the resource bundle
-  /// ships right next to the compiled binary under a fixed name and calls
-  /// `fatalError` if it isn't found there — which is unrecoverable. That
-  /// assumption breaks whenever this package is resolved through SwiftPM (which
-  /// sets `SWIFT_PACKAGE` and is what selects `Bundle.module` in the first
-  /// place) but then repackaged by a tool that doesn't preserve loose resource
-  /// bundles, e.g. Carthage producing an xcframework from a project that
-  /// depends on MarkdownKit via Xcode's own Package Dependencies. To stay
-  /// usable in that case, this searches the same candidate locations
-  /// `Bundle.module` would, then falls back to treating resources as having
-  /// been copied directly into the consuming target/framework (no nested
-  /// bundle at all), instead of crashing the host app.
-  static nonisolated let resourceBundle: Bundle? = {
-  #if SWIFT_PACKAGE
-    let bundleName = "MarkdownKit_MarkdownKit"
-    let overrides: [URL]
-    #if DEBUG
-      // The 'PACKAGE_RESOURCE_BUNDLE_PATH' name is preferred since the expected value
-      // is a path. The check for 'PACKAGE_RESOURCE_BUNDLE_URL' will be removed when all
-      // clients have switched over. This removal is tracked by rdar://107766372.
-      if let override = ProcessInfo.processInfo.environment["PACKAGE_RESOURCE_BUNDLE_PATH"]
-                     ?? ProcessInfo.processInfo.environment["PACKAGE_RESOURCE_BUNDLE_URL"] {
-        overrides = [URL(fileURLWithPath: override)]
-      } else {
-        overrides = []
-      }
-    #else
-      overrides = []
-    #endif
-    let candidates = overrides + [
-      // Bundle should be present here when the package is linked into an App.
-      Bundle.main.resourceURL,
-      // Bundle should be present here when the package is linked into a framework.
-      Bundle(for: SyntaxHighlighter.self).resourceURL,
-      // For command-line tools.
-      Bundle.main.bundleURL,
-    ]
-    for candidate in candidates {
-      let bundlePath = candidate?.appendingPathComponent(bundleName + ".bundle")
-      if let bundle = bundlePath.flatMap(Bundle.init(url:)) {
-        return bundle
-      }
-    }
-    return Bundle(identifier: "net.objecthub.MarkdownKit")
-  #else
-    return Bundle(for: SyntaxHighlighter.self)
-  #endif
-  }()
+  /// The bundle containing this package's highlighting resources (`highlight.min.js` and the
+  /// theme `.css` files). See `MarkdownKitResources.bundle` for how it is located.
+  static nonisolated let resourceBundle: Bundle? = MarkdownKitResources.bundle
 
   /// The shared singleton instance of `SyntaxHighlighter`.
   ///
