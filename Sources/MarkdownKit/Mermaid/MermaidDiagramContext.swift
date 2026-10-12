@@ -106,8 +106,12 @@ public final class MermaidDiagramContext: @unchecked Sendable {
   /// Diagrams which are wider than this (in points) are scaled down to this width.
   let maxWidth: CGFloat?
 
-  init(maxWidth: CGFloat?) {
+  /// The least space in points between a diagram and the text above and below it.
+  let spacing: CGFloat
+
+  init(maxWidth: CGFloat?, spacing: CGFloat) {
     self.maxWidth = maxWidth
+    self.spacing = spacing
   }
 
   /// True if no diagram was placed into the HTML.
@@ -154,8 +158,32 @@ public final class MermaidDiagramContext: @unchecked Sendable {
                           attachment: self.attachment(for: entry.image))
       replacement.addAttributes(attributes, range: NSRange(location: 0, length: replacement.length))
       result.replaceCharacters(in: range, with: replacement)
+      self.addSpacing(to: result, aroundParagraphAt: range.location)
     }
     return result
+  }
+
+  /// Makes sure that there is at least `spacing` points between the paragraph at `location`
+  /// and the paragraphs above and below it. The paragraph spacing of the neighbors counts, like
+  /// the margins of paragraphs in a web page do. The system's HTML importer does not provide
+  /// this: it ignores the top margin of a paragraph.
+  private func addSpacing(to text: NSMutableAttributedString, aroundParagraphAt location: Int) {
+    let paragraph = (text.string as NSString).paragraphRange(for: NSRange(location: location,
+                                                                          length: 1))
+    func style(at index: Int) -> NSParagraphStyle? {
+      return text.attribute(.paragraphStyle, at: index, effectiveRange: nil) as? NSParagraphStyle
+    }
+    let current = style(at: paragraph.location)
+    let result = (current?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+    if paragraph.location > 0 {
+      let above = style(at: paragraph.location - 1)?.paragraphSpacing ?? 0
+      result.paragraphSpacingBefore = max(result.paragraphSpacingBefore, self.spacing - above)
+    }
+    if paragraph.upperBound < text.length {
+      let below = style(at: paragraph.upperBound)?.paragraphSpacingBefore ?? 0
+      result.paragraphSpacing = max(result.paragraphSpacing, self.spacing - below)
+    }
+    text.addAttribute(.paragraphStyle, value: result, range: paragraph)
   }
 
   /// Creates the attachment for a diagram.

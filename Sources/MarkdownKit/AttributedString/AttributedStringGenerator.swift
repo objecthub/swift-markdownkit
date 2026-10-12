@@ -544,7 +544,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
       let options = renderingOptions ?? outer.renderingOptions
       self.outer = outer
       self.renderingOptions = options
-      self.diagrams = MermaidDiagramContext(maxWidth: outer.mermaidConfig?.maxWidth)
+      self.diagrams = MermaidDiagramContext(maxWidth: outer.mermaidConfig?.maxWidth,
+                                            spacing: outer.mermaidConfig?.spacing ?? 0)
       // Safe mode is independent of the access control of images
       super.init(safeMode: options.safeMode)
     }

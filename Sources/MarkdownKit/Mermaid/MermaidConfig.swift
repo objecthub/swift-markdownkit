@@ -58,12 +58,26 @@ public struct MermaidConfig: Hashable, Sendable {
   public var scale: CGFloat
 
   /// The width in points of the page which the diagrams are laid out on. Diagrams are never
-  /// scaled up; a diagram that is wider than this gets scaled down to fit. The default is 800.
+  /// scaled up; a diagram that is wider than this gets scaled down to fit (the image is wider
+  /// by the `margin` on both sides). The default is 800.
   public var width: CGFloat
+
+  /// The margin in points around the diagram. Mermaid leaves empty space around its diagrams
+  /// which depends on the type of the diagram (a sequence diagram that starts with an actor,
+  /// for example, has about 100 points of it on the left). It is removed from the image, and
+  /// this margin, which stops antialiased edges from being cut off, is added instead. If `nil`,
+  /// the image keeps the margins that Mermaid has created. The default is 8.
+  public var margin: CGFloat?
 
   /// If not `nil`, diagrams wider than this many points are scaled down to this width when
   /// they are placed into an attributed string. This does not change the image itself.
   public var maxWidth: CGFloat?
+
+  /// The least space in points between a diagram in an attributed string and the text above
+  /// and below it. As between the paragraphs of a web page, the space which the neighboring
+  /// paragraphs have anyway counts: the distance is the larger one of this value and the
+  /// paragraph spacing of the text. The default is 16.
+  public var spacing: CGFloat
 
   /// The maximal time in seconds that rendering one diagram may take. The default is 5.
   public var timeout: TimeInterval
@@ -74,14 +88,18 @@ public struct MermaidConfig: Hashable, Sendable {
               fontFamily: String? = nil,
               scale: CGFloat = 2,
               width: CGFloat = 800,
+              margin: CGFloat? = 8,
               maxWidth: CGFloat? = nil,
+              spacing: CGFloat = 16,
               timeout: TimeInterval = 5) {
     self.theme = theme
     self.themeVariables = themeVariables
     self.fontFamily = fontFamily
     self.scale = scale
     self.width = width
+    self.margin = margin
     self.maxWidth = maxWidth
+    self.spacing = spacing
     self.timeout = timeout
   }
 
@@ -107,13 +125,14 @@ public struct MermaidConfig: Hashable, Sendable {
   }
 
   /// The parts of the configuration which determine what a rendered diagram looks like. The
-  /// others (`maxWidth` and `timeout`) do not change the image.
+  /// others (`maxWidth`, `spacing` and `timeout`) do not change the image.
   internal struct RenderKey: Hashable, Sendable {
     let theme: Theme
     let themeVariables: [String: String]
     let fontFamily: String?
     let scale: CGFloat
     let width: CGFloat
+    let margin: CGFloat?
   }
 
   internal var renderKey: RenderKey {
@@ -121,6 +140,7 @@ public struct MermaidConfig: Hashable, Sendable {
                      themeVariables: self.themeVariables,
                      fontFamily: self.fontFamily,
                      scale: self.scale > 0 ? self.scale : 2,
-                     width: self.width > 0 ? self.width : 800)
+                     width: self.width > 0 ? self.width : 800,
+                     margin: self.margin.map { max(0, $0) })
   }
 }

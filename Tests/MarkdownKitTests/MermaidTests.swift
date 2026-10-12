@@ -163,6 +163,7 @@ final class MermaidTests: XCTestCase {
     let base = MermaidConfig()
     var other = base
     other.maxWidth = 200
+    other.spacing = 40
     other.timeout = 3
     XCTAssertNotEqual(base, other)
     XCTAssertEqual(base.renderKey, other.renderKey)
@@ -171,6 +172,21 @@ final class MermaidTests: XCTestCase {
     other = base
     other.scale = 3
     XCTAssertNotEqual(base.renderKey, other.renderKey)
+    // The margin is part of the image
+    other = base
+    other.margin = 10
+    XCTAssertNotEqual(base.renderKey, other.renderKey)
+    other.margin = nil
+    XCTAssertNotEqual(base.renderKey, other.renderKey)
+    XCTAssertEqual(MermaidConfig(margin: -3).renderKey, MermaidConfig(margin: 0).renderKey)
+  }
+
+  func testDefaultMarginAndSpacing() {
+    XCTAssertEqual(MermaidConfig.default.margin, 4)
+    XCTAssertEqual(MermaidConfig.default.spacing, 14)
+    XCTAssertEqual(MermaidConfig.default.darkVariant.margin, 4)
+    XCTAssertEqual(MermaidConfig(margin: nil, spacing: 3).darkVariant.spacing, 3)
+    XCTAssertNil(MermaidConfig(margin: nil).darkVariant.margin)
   }
 
   // MARK: Generated HTML
@@ -314,6 +330,66 @@ final class MermaidTests: XCTestCase {
                                              glyphPosition: .zero,
                                              characterIndex: 0)
     XCTAssertEqual(narrow, CGRect(x: 0, y: 0, width: 200, height: 100))
+  }
+
+  /// The paragraph style at the beginning of the text run that contains `fragment`.
+  private func paragraphStyle(of fragment: String, in string: NSAttributedString) throws -> NSParagraphStyle {
+    let range = (string.string as NSString).range(of: fragment)
+    XCTAssertNotEqual(range.location, NSNotFound, fragment)
+    return try XCTUnwrap(string.attribute(.paragraphStyle, at: range.location,
+                                          effectiveRange: nil) as? NSParagraphStyle)
+  }
+
+  @MainActor
+  func testDiagramsKeepTheirDistanceToTheText() throws {
+    let renderer = try self.makeRenderer()
+    let source = "graph TD\n  A --> B\n"
+    for spacing in [CGFloat(0), 14, 30] {
+      let config = MermaidConfig(spacing: spacing)
+      renderer.store(try self.makeImage(width: 100, height: 40), for: source, config: config)
+      let generator = AttributedStringGenerator(mermaid: config, mermaidRenderer: renderer)
+      let markdown = "Text above.\n\n```mermaid\n\(source)```\n\n## Heading below\n\nText at the end.\n"
+      let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+      let above = try self.paragraphStyle(of: "Text above.", in: result)
+      let below = try self.paragraphStyle(of: "Heading below", in: result)
+      let diagram = try XCTUnwrap(result.attribute(
+        .paragraphStyle, at: try XCTUnwrap(self.attachments(in: result).first).range.location,
+        effectiveRange: nil) as? NSParagraphStyle)
+      // The space above and below is the larger one of the spacing and the paragraph spacing
+      // that the text has anyway
+      let gapAbove = above.paragraphSpacing + diagram.paragraphSpacingBefore
+      let gapBelow = diagram.paragraphSpacing + below.paragraphSpacingBefore
+      XCTAssertEqual(gapAbove, max(spacing, above.paragraphSpacing), accuracy: 0.001, "spacing \(spacing)")
+      XCTAssertEqual(gapBelow, max(spacing, 9.796875), accuracy: 0.001, "spacing \(spacing)")
+      XCTAssertEqual(diagram.alignment, .center)
+      // The space between the other paragraphs does not change
+      XCTAssertEqual(above.paragraphSpacingBefore, 0)
+      XCTAssertEqual(below.paragraphSpacingBefore, 0)
+    }
+  }
+
+  @MainActor
+  func testDiagramsAtTheBeginningAndEndOfTheTextAndNextToEachOther() throws {
+    let renderer = try self.makeRenderer()
+    let first = "graph TD\n  A --> B\n"
+    let second = "graph LR\n  X --> Y\n"
+    let config = MermaidConfig(spacing: 20)
+    renderer.store(try self.makeImage(width: 100, height: 40), for: first, config: config)
+    renderer.store(try self.makeImage(width: 100, height: 40), for: second, config: config)
+    let generator = AttributedStringGenerator(mermaid: config, mermaidRenderer: renderer)
+    let markdown = "```mermaid\n\(first)```\n\n```mermaid\n\(second)```\n"
+    let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+    let found = self.attachments(in: result)
+    XCTAssertEqual(found.count, 2)
+    let styles = try found.map { (range, _) in
+      try XCTUnwrap(result.attribute(.paragraphStyle, at: range.location,
+                                     effectiveRange: nil) as? NSParagraphStyle)
+    }
+    // No extra space at the beginning and the end of the text
+    XCTAssertEqual(styles[0].paragraphSpacingBefore, 0)
+    XCTAssertEqual(styles[1].paragraphSpacing, 9.796875, accuracy: 0.001)
+    // The space between the diagrams is the spacing
+    XCTAssertEqual(styles[0].paragraphSpacing + styles[1].paragraphSpacingBefore, 20, accuracy: 0.001)
   }
 
   #if os(macOS)
@@ -586,13 +662,70 @@ final class MermaidTests: XCTestCase {
     XCTAssertEqual(larger.scale, 3)
     XCTAssertEqual(try self.inspect(png: larger.pngData).width,
                    Int((larger.size.width * 3).rounded(.up)))
-    XCTAssertEqual(larger.size, light.size)
+    // The size in points is the same, up to the rounding of the pixels of the trimmed image
+    XCTAssertEqual(larger.size.width, light.size.width, accuracy: 1)
+    XCTAssertEqual(larger.size.height, light.size.height, accuracy: 1)
     // A narrow page scales a wide diagram down
     let wide = "graph LR\n" + (0..<12).map { "  N\($0)[A fairly long label \($0)] --> N\($0 + 1)[Next]\n" }.joined()
     let natural = try await renderer.render(wide, config: MermaidConfig(width: 1600))
     let narrow = try await renderer.render(wide, config: MermaidConfig(width: 400))
     XCTAssertGreaterThan(natural.size.width, 400)
-    XCTAssertLessThanOrEqual(narrow.size.width, 400)
+    XCTAssertLessThanOrEqual(narrow.size.width, 400 + 2 * 4, "the width of the page plus the margins")
+  }
+
+  /// The number of pixels without content (transparent) at each side of a PNG.
+  private func emptyMargins(png: Data) throws -> (left: Int, right: Int, top: Int, bottom: Int) {
+    let source = try XCTUnwrap(CGImageSourceCreateWithData(png as CFData, nil))
+    let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+    let width = image.width, height = image.height
+    let context = try XCTUnwrap(CGContext(data: nil, width: width, height: height,
+                                          bitsPerComponent: 8, bytesPerRow: width * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+    context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    let pixels = try XCTUnwrap(context.data).bindMemory(to: UInt8.self, capacity: width * height * 4)
+    var minX = width, maxX = -1, minY = height, maxY = -1
+    for y in 0..<height {
+      for x in 0..<width where pixels[(y * width + x) * 4 + 3] > 4 {
+        minX = min(minX, x)
+        maxX = max(maxX, x)
+        minY = min(minY, y)
+        maxY = max(maxY, y)
+      }
+    }
+    return (minX, width - 1 - maxX, minY, height - 1 - maxY)
+  }
+
+  func testEmptySpaceAroundDiagramsIsReplacedByTheMargin() async throws {
+    let renderer = try XCTUnwrap(MermaidRenderer.shared)
+    // A sequence diagram that starts with an actor has a lot of empty space at the left
+    let diagram = "sequenceDiagram\n  actor User\n  participant Frontend\n  User->>Frontend: Request\n"
+    let untrimmed = try await renderer.render(diagram, config: MermaidConfig(margin: nil))
+    let before = try self.emptyMargins(png: untrimmed.pngData)
+    XCTAssertGreaterThan(before.left, 60 * 2, "Mermaid has no empty space at the left of this diagram any more")
+    // With the default margin of 4 points (8 pixels), all four sides have the same margin
+    let trimmed = try await renderer.render(diagram)
+    let margins = try self.emptyMargins(png: trimmed.pngData)
+    XCTAssertEqual(margins.left, 8)
+    XCTAssertEqual(margins.right, 8)
+    XCTAssertEqual(margins.top, 8)
+    XCTAssertEqual(margins.bottom, 8)
+    XCTAssertLessThan(trimmed.size.width, untrimmed.size.width - 60)
+    let png = try self.inspect(png: trimmed.pngData)
+    XCTAssertEqual(png.width, Int((trimmed.size.width * 2).rounded()))
+    XCTAssertEqual(png.height, Int((trimmed.size.height * 2).rounded()))
+    // Other margins
+    let none = try await renderer.render(diagram, config: MermaidConfig(margin: 0))
+    let noMargins = try self.emptyMargins(png: none.pngData)
+    XCTAssertEqual([noMargins.left, noMargins.right, noMargins.top, noMargins.bottom], [0, 0, 0, 0])
+    XCTAssertEqual(none.size.width, trimmed.size.width - 8, accuracy: 0.5)
+    let large = try await renderer.render(diagram, config: MermaidConfig(scale: 3, margin: 10))
+    let largeMargins = try self.emptyMargins(png: large.pngData)
+    XCTAssertEqual([largeMargins.left, largeMargins.right, largeMargins.top, largeMargins.bottom], [30, 30, 30, 30])
+    // A diagram which is already tight keeps its look
+    let flowchart = try await renderer.render(self.flowchart, config: MermaidConfig(margin: 4))
+    let flowchartMargins = try self.emptyMargins(png: flowchart.pngData)
+    XCTAssertEqual([flowchartMargins.left, flowchartMargins.right], [8, 8])
   }
 
   func testInvalidSyntaxIsReportedAndRemembered() async throws {
