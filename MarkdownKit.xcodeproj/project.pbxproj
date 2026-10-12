@@ -165,7 +165,7 @@
 		CCA2A4BD2FB3CAD600A8B92E /* GeneratorContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */; };
 		CCA2A4BF2FB3CB5500A8B92E /* TableDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */; };
 		CCAA1B739CA9AE7FBC0ECF35 /* FullMarkdownParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC90EDCADA563271F64CBE29 /* FullMarkdownParserTests.swift */; };
-		CCAF00012FD00000AAAA0002 /* MarkdownKitResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0001 /* MarkdownKitResources.swift */; };
+		CCAF00012FD00000AAAA0002 /* Resources.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0001 /* Resources.swift */; };
 		CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */; };
 		CCAF00032FD00000AAAA0002 /* MermaidError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00032FD00000AAAA0001 /* MermaidError.swift */; };
 		CCAF00042FD00000AAAA0002 /* MermaidRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00042FD00000AAAA0001 /* MermaidRenderer.swift */; };
@@ -173,6 +173,7 @@
 		CCAF00062FD00000AAAA0002 /* MermaidDiagrams.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00062FD00000AAAA0001 /* MermaidDiagrams.swift */; };
 		CCAF00072FD00000AAAA0002 /* mermaid.min.js in Resources */ = {isa = PBXBuildFile; fileRef = CCAF00072FD00000AAAA0001 /* mermaid.min.js */; };
 		CCAF00092FD00000AAAA0002 /* MermaidTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00092FD00000AAAA0001 /* MermaidTests.swift */; };
+		CCAF000A2FD00000AAAA0002 /* MermaidDiagramContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF000A2FD00000AAAA0001 /* MermaidDiagramContext.swift */; };
 		CCB033CF227CDB2F00E1C4DC /* MarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */; };
 		CCB033D0227CDB2F00E1C4DC /* AtxHeadingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C8227CDB2F00E1C4DC /* AtxHeadingParser.swift */; };
 		CCB033D1227CDB2F00E1C4DC /* CodeBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB033C9227CDB2F00E1C4DC /* CodeBlockParser.swift */; };
@@ -209,7 +210,6 @@
 		CCE764F230A2A4B1008AD5AD /* CommonMarkSpecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE7649130E74826008AD5AD /* CommonMarkSpecTests.swift */; };
 		CCECE46CE11EF5C4F6629203 /* LineEmphasisTransformers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3D98BC0BDFBF3196E021EC /* LineEmphasisTransformers.swift */; };
 		CCEF3E3127CA6B8800FB56EB /* MarkdownASTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */; };
-		CCAF000A2FD00000AAAA0002 /* MermaidDiagramContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF000A2FD00000AAAA0001 /* MermaidDiagramContext.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -445,7 +445,7 @@
 		CC90EDCADA563271F64CBE29 /* FullMarkdownParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullMarkdownParserTests.swift; sourceTree = "<group>"; };
 		CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorContext.swift; sourceTree = "<group>"; };
 		CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableDescriptor.swift; sourceTree = "<group>"; };
-		CCAF00012FD00000AAAA0001 /* MarkdownKitResources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownKitResources.swift; sourceTree = "<group>"; };
+		CCAF00012FD00000AAAA0001 /* Resources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resources.swift; sourceTree = "<group>"; };
 		CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidConfig.swift; sourceTree = "<group>"; };
 		CCAF00032FD00000AAAA0001 /* MermaidError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidError.swift; sourceTree = "<group>"; };
 		CCAF00042FD00000AAAA0001 /* MermaidRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidRenderer.swift; sourceTree = "<group>"; };
@@ -454,6 +454,7 @@
 		CCAF00072FD00000AAAA0001 /* mermaid.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = mermaid.min.js; sourceTree = "<group>"; };
 		CCAF00082FD00000AAAA0001 /* LICENSE (mermaid) */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LICENSE (mermaid)"; sourceTree = "<group>"; };
 		CCAF00092FD00000AAAA0001 /* MermaidTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidTests.swift; sourceTree = "<group>"; };
+		CCAF000A2FD00000AAAA0001 /* MermaidDiagramContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidDiagramContext.swift; sourceTree = "<group>"; };
 		CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MarkdownParser.swift; sourceTree = "<group>"; };
 		CCB033C8227CDB2F00E1C4DC /* AtxHeadingParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AtxHeadingParser.swift; sourceTree = "<group>"; };
 		CCB033C9227CDB2F00E1C4DC /* CodeBlockParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CodeBlockParser.swift; sourceTree = "<group>"; };
@@ -489,7 +490,6 @@
 		CCE930A8E075A56C6B789D2B /* FullMarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullMarkdownParser.swift; sourceTree = "<group>"; };
 		CCEBA3644C0F9718837E6A98 /* ParserFeatureScopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserFeatureScopeTests.swift; sourceTree = "<group>"; };
 		CCEF3E3027CA6B8800FB56EB /* MarkdownASTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownASTests.swift; sourceTree = "<group>"; };
-		CCAF000A2FD00000AAAA0001 /* MermaidDiagramContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidDiagramContext.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -599,7 +599,7 @@
 				CCD0746722A060CF0053B73C /* Text.swift */,
 				CC088C0A22DB74090059460E /* TextFragment.swift */,
 				CC87987F264B434F006950A7 /* CustomTextFragment.swift */,
-				CCAF00012FD00000AAAA0001 /* MarkdownKitResources.swift */,
+				CCAF00012FD00000AAAA0001 /* Resources.swift */,
 				CC8CBC1A22862F4F0084683B /* Parser */,
 				CC8307402FC0F49200FDD777 /* Highlighter */,
 				CCAF00FF2FD00000AAAA0001 /* Mermaid */,
@@ -1181,7 +1181,7 @@
 				CCC48BF525D880FA00D082AD /* String+Entities.swift in Sources */,
 				CCB033D2227CDB2F00E1C4DC /* BlockParser.swift in Sources */,
 				CC8308212FC591EB00FDD777 /* AnsiHighlightingConfig.swift in Sources */,
-				CCAF00012FD00000AAAA0002 /* MarkdownKitResources.swift in Sources */,
+				CCAF00012FD00000AAAA0002 /* Resources.swift in Sources */,
 				CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */,
 				CCAF00032FD00000AAAA0002 /* MermaidError.swift in Sources */,
 				CCAF00042FD00000AAAA0002 /* MermaidRenderer.swift in Sources */,

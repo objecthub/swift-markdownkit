@@ -48,7 +48,7 @@ final class MermaidWebSession {
 
   /// If true, the JavaScript that is injected into every page (Mermaid and the glue code) is
   /// kept after it has been read, so that creating another page does not read the file again
-  /// on the main thread. This takes about 2.7 MB of memory for as long as the session exists.
+  /// on the main thread. This takes about 3.6 MB of memory for as long as the session exists.
   /// If false, the file is read whenever a page is created, and nothing is kept.
   private let cachesScript: Bool
 

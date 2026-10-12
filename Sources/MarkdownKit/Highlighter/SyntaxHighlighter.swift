@@ -64,8 +64,8 @@ public typealias TextStorageEditActions = NSTextStorage.EditActions
 public final class SyntaxHighlighter: @unchecked Sendable {
 
   /// The bundle containing this package's highlighting resources (`highlight.min.js` and the
-  /// theme `.css` files). See `MarkdownKitResources.bundle` for how it is located.
-  static nonisolated let resourceBundle: Bundle? = MarkdownKitResources.bundle
+  /// theme `.css` files). See `Resources.bundle` for how it is located.
+  static nonisolated let resourceBundle: Bundle? = Resources.bundle
 
   /// The shared singleton instance of `SyntaxHighlighter`.
   ///

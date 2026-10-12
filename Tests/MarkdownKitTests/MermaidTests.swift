@@ -46,7 +46,7 @@ final class MermaidTests: XCTestCase {
   /// A renderer for tests that put images into its cache by hand. The script is never run.
   private func makeRenderer(maxCachedDiagrams: Int = MermaidRenderer.defaultMaxCachedDiagrams,
                             maxCacheBytes: Int = MermaidRenderer.defaultMaxCacheBytes) throws -> MermaidRenderer {
-    let url = try XCTUnwrap(MarkdownKitResources.bundle?.url(forResource: "mermaid.min",
+    let url = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min",
                                                               withExtension: "js"))
     return try XCTUnwrap(MermaidRenderer(mermaidJSURL: url,
                                          maxCachedDiagrams: maxCachedDiagrams,
@@ -622,7 +622,7 @@ final class MermaidTests: XCTestCase {
 
   @MainActor
   func testScriptIsCachedUnlessDisabled() async throws {
-    let url = try XCTUnwrap(MarkdownKitResources.bundle?.url(forResource: "mermaid.min",
+    let url = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min",
                                                               withExtension: "js"))
     // Caching is the default
     let caching = MermaidWebSession(scriptURL: url)
@@ -649,7 +649,7 @@ final class MermaidTests: XCTestCase {
 
   @MainActor
   func testWebPageIsReleasedWhenItIsIdle() async throws {
-    let url = try XCTUnwrap(MarkdownKitResources.bundle?.url(forResource: "mermaid.min",
+    let url = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min",
                                                               withExtension: "js"))
     // By default, the page is kept for a while
     let normal = MermaidWebSession(scriptURL: url)

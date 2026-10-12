@@ -1,5 +1,5 @@
 //
-//  MarkdownKitResources.swift
+//  Resources.swift
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 12/10/2026.
@@ -24,7 +24,7 @@ import Foundation
 /// Gives access to the resources that ship with this package: `highlight.min.js` and the
 /// highlighting themes (see `SyntaxHighlighter`), and `mermaid.min.js` (see `MermaidRenderer`).
 ///
-enum MarkdownKitResources {
+enum Resources {
 
   /// Only used to find the bundle of this module via `Bundle(for:)`.
   private final class BundleToken {}

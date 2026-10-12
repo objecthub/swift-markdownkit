@@ -77,7 +77,7 @@ public final class MermaidRenderer: @unchecked Sendable {
   ///   is only created when the first diagram is rendered.
   public static let shared: MermaidRenderer? = {
   #if canImport(WebKit) && (os(macOS) || os(iOS))
-    guard let url = MarkdownKitResources.bundle?.url(forResource: "mermaid.min",
+    guard let url = Resources.bundle?.url(forResource: "mermaid.min",
                                                      withExtension: "js") else {
       return nil
     }
@@ -239,7 +239,7 @@ public final class MermaidRenderer: @unchecked Sendable {
   /// - Parameters:
   ///   - mermaidJSURL: The location of the JavaScript library.
   ///   - cachesScript: If `true` (the default), the library is read once and kept in memory
-  ///                   (about 2.7 MB for `mermaid.min.js`) for as long as the renderer exists.
+  ///                   (about 3.6 MB for `mermaid.min.js`) for as long as the renderer exists.
   ///                   This makes creating the web view, which happens for the first diagram
   ///                   and again after the web view was released or failed, a little faster.
   ///                   If `false`, the file is read every time a web view is created, and
