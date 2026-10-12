@@ -59,7 +59,7 @@ final class MermaidTests: XCTestCase {
   }
 
   /// A PNG of the given size (in pixels) which is filled with one color.
-  private func makePNG(width: Int, height: Int) throws -> Data {
+  private func makePNG(width: Int, height: Int, dpi: Double = 72) throws -> Data {
     let context = try XCTUnwrap(CGContext(data: nil, width: width, height: height,
                                           bitsPerComponent: 8, bytesPerRow: 0,
                                           space: CGColorSpaceCreateDeviceRGB(),
@@ -70,14 +70,18 @@ final class MermaidTests: XCTestCase {
     let data = NSMutableData()
     let destination = try XCTUnwrap(CGImageDestinationCreateWithData(
                                       data, UTType.png.identifier as CFString, 1, nil))
-    CGImageDestinationAddImage(destination, image, nil)
+    // The resolution gives the image its size in points, like the images of MermaidRenderer
+    CGImageDestinationAddImage(destination, image,
+                               [kCGImagePropertyDPIWidth: dpi,
+                                kCGImagePropertyDPIHeight: dpi] as CFDictionary)
     XCTAssertTrue(CGImageDestinationFinalize(destination))
     return data as Data
   }
 
   /// A fake rendering result which is `width` x `height` points large.
   private func makeImage(width: Int, height: Int, scale: CGFloat = 2) throws -> MermaidImage {
-    return MermaidImage(pngData: try self.makePNG(width: width * Int(scale), height: height * Int(scale)),
+    return MermaidImage(pngData: try self.makePNG(width: width * Int(scale), height: height * Int(scale),
+                                                  dpi: 72 * Double(scale)),
                         size: CGSize(width: width, height: height),
                         scale: scale)
   }
@@ -393,6 +397,34 @@ final class MermaidTests: XCTestCase {
   }
 
   #if os(macOS)
+  @MainActor
+  func testRtfdContainsDiagramsAndRtfDoesNot() throws {
+    let renderer = try self.makeRenderer()
+    let source = "graph TD\n  A --> B\n"
+    renderer.store(try self.makeImage(width: 100, height: 40), for: source, config: .default)
+    let generator = AttributedStringGenerator(mermaid: .default, mermaidRenderer: renderer)
+    let result = try XCTUnwrap(generator.generate(
+                                 doc: self.parse("Before.\n\n```mermaid\n\(source)```\n\nAfter.\n")))
+    let range = NSRange(location: 0, length: result.length)
+    // An RTFD document has a file for the image, and the size of the image
+    let wrapper = try result.fileWrapper(from: range,
+                                         documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
+    let files = try XCTUnwrap(wrapper.fileWrappers)
+    let png = try XCTUnwrap(files.first { $0.key != "TXT.rtf" }?.value.regularFileContents)
+    XCTAssertEqual(png.prefix(4), Data([0x89, 0x50, 0x4E, 0x47]))
+    let text = String(decoding: try XCTUnwrap(files["TXT.rtf"]?.regularFileContents), as: UTF8.self)
+    XCTAssertTrue(text.contains("\\NeXTGraphic"))
+    XCTAssertTrue(text.contains("\\width2000 \\height800"), "100 x 40 points are 2000 x 800 twips")
+    // An RTF file cannot contain images: the system leaves out the diagram
+    let rtf = try result.data(from: range,
+                              documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
+    let rtfText = String(decoding: rtf, as: UTF8.self)
+    XCTAssertFalse(rtfText.contains("NeXTGraphic"))
+    XCTAssertFalse(rtfText.contains("\\pict"))
+    XCTAssertTrue(rtfText.contains("Before."))
+    XCTAssertTrue(rtfText.contains("After."))
+  }
+
   @MainActor
   func testTextViewShowsDiagramsScaledToItsWidth() throws {
     let renderer = try self.makeRenderer()

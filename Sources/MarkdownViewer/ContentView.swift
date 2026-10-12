@@ -61,17 +61,22 @@ struct ContentView: View {
     Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
     ligula. Mauris et orci ut lectus convallis euismod.
     
-    ```mermaid
-    sequenceDiagram
-        autonumber
-        actor User
-        participant Frontend
-        participant Database
-        User->>Frontend: Request Data
-        Frontend->>Database: Query Records
-        Database-->>Frontend: Return Data
-        Frontend-->>User: Show Results
-    ```
+    1. Let's see if this works also in a list
+    2. And here is the diagram:
+    
+       > ```mermaid
+       > sequenceDiagram
+       >     autonumber
+       >     actor User
+       >     participant Frontend
+       >     participant Database
+       >     User->>Frontend: Request Data
+       >     Frontend->>Database: Query Records
+       >     Database-->>Frontend: Return Data
+       >     Frontend-->>User: Show Results
+       > ```
+       >
+       > This is a _Mermaid_ diagram rendered inlined.
     
     ## Left To Do
     

@@ -65,10 +65,27 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CC72626D22F318C0001AB6D9"
             BuildableName = "MarkdownKitProcess"
-            BlueprintName = "MarkdownKitProcess"
             ReferencedContainer = "container:MarkdownKit.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "--format rtfd"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--overwrite"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;$(PROJECT_DIR)/Examples/Demo.md&quot;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/tmp/Demo.rtfd"
+            isEnabled = "YES">
+         </CommandLineArgument>
+      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
