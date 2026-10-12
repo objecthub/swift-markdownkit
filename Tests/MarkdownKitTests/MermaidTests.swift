@@ -1070,6 +1070,170 @@ final class MermaidTests: XCTestCase {
     XCTAssertNil(renderer.cachedImage(for: self.flowchart))
   }
 
+  // MARK: Completion handlers
+
+  /// What a completion handler observed.
+  private struct Delivery<Value: Sendable>: Sendable {
+    let value: Value
+    /// The handler was called on the main thread.
+    let onMainThread: Bool
+    /// The handler was called after the method which takes it had returned.
+    let afterReturn: Bool
+  }
+
+  /// Calls `prepareDiagrams(in:completionHandler:)` for `doc`, or for its blocks, and waits for
+  /// the completion handler (a second call of the handler makes the test fail).
+  @MainActor
+  private func prepare(_ generator: AttributedStringGenerator,
+                       _ doc: Block,
+                       blocks: Bool = false,
+                       from queue: DispatchQueue? = nil) async -> Delivery<Bool> {
+    return await withCheckedContinuation { continuation in
+      let returned = ReturnFlag()
+      let start = { @Sendable in
+        let handler: (Bool) -> Void = { rendered in
+          continuation.resume(returning: Delivery(value: rendered,
+                                                  onMainThread: Thread.isMainThread,
+                                                  afterReturn: returned.value))
+        }
+        if blocks, case .document(let content) = doc {
+          generator.prepareDiagrams(in: content, completionHandler: handler)
+        } else {
+          generator.prepareDiagrams(in: doc, completionHandler: handler)
+        }
+        returned.value = true
+      }
+      if let queue {
+        queue.async(execute: start)
+      } else {
+        start()
+      }
+    }
+  }
+
+  /// A flag that is set from one thread and read from another.
+  private final class ReturnFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var flag = false
+    var value: Bool {
+      get {
+        self.lock.lock()
+        defer {
+          self.lock.unlock()
+        }
+        return self.flag
+      }
+      set {
+        self.lock.lock()
+        defer {
+          self.lock.unlock()
+        }
+        self.flag = newValue
+      }
+    }
+  }
+
+  @MainActor
+  func testPrepareDiagramsWithCompletionHandler() async throws {
+    let renderer = try XCTUnwrap(MermaidRenderer.shared)
+    renderer.clearCache()
+    let generator = AttributedStringGenerator(mermaid: .default)
+    let doc = self.parse("```mermaid\n\(self.flowchart)```\n")
+    XCTAssertEqual(self.attachments(in: try XCTUnwrap(generator.generate(doc: doc))).count, 0)
+    // The diagram is rendered; afterwards, the synchronous method includes it
+    let first = await self.prepare(generator, doc)
+    XCTAssertTrue(first.value)
+    XCTAssertTrue(first.onMainThread)
+    XCTAssertTrue(first.afterReturn, "the handler was called before the method returned")
+    XCTAssertEqual(self.attachments(in: try XCTUnwrap(generator.generate(doc: doc))).count, 1)
+    // Nothing is left to be done, and the handler is still called asynchronously
+    let second = await self.prepare(generator, doc)
+    XCTAssertFalse(second.value)
+    XCTAssertTrue(second.onMainThread)
+    XCTAssertTrue(second.afterReturn, "the handler was called before the method returned")
+    // The variant for blocks
+    let other = self.parse("```mermaid\n\(self.sequence)```\n")
+    let blocks = await self.prepare(generator, other, blocks: true)
+    XCTAssertTrue(blocks.value)
+    XCTAssertTrue(blocks.onMainThread)
+    XCTAssertTrue(blocks.afterReturn)
+    XCTAssertNotNil(renderer.cachedImage(for: self.sequence))
+    let blocksAgain = await self.prepare(generator, other, blocks: true)
+    XCTAssertFalse(blocksAgain.value)
+    XCTAssertTrue(blocksAgain.afterReturn)
+  }
+
+  @MainActor
+  func testPrepareDiagramsCompletionHandlerIsCalledOnTheMainThreadFromAnyThread() async throws {
+    let renderer = try XCTUnwrap(MermaidRenderer.shared)
+    renderer.clearCache()
+    let generator = AttributedStringGenerator(mermaid: .default)
+    let doc = self.parse("```mermaid\n\(self.flowchart)```\n")
+    let result = await self.prepare(generator, doc, from: DispatchQueue.global())
+    XCTAssertTrue(result.value)
+    XCTAssertTrue(result.onMainThread)
+    XCTAssertNotNil(renderer.cachedImage(for: self.flowchart))
+  }
+
+  @MainActor
+  func testPrepareDiagramsCompletionHandlerOfAGeneratorWithoutDiagrams() async throws {
+    let renderer = try XCTUnwrap(MermaidRenderer.shared)
+    renderer.clearCache()
+    let doc = self.parse("```mermaid\n\(self.flowchart)```\n")
+    let result = await self.prepare(AttributedStringGenerator(), doc)
+    XCTAssertFalse(result.value)
+    XCTAssertTrue(result.onMainThread)
+    XCTAssertTrue(result.afterReturn, "the handler was called before the method returned")
+    XCTAssertNil(renderer.cachedImage(for: self.flowchart))
+  }
+
+  /// Calls `render(_:config:completionHandler:)` and waits for the completion handler.
+  @MainActor
+  private func render(_ source: String,
+                      with renderer: MermaidRenderer) async -> Delivery<Result<MermaidImage, MermaidError>> {
+    return await withCheckedContinuation { continuation in
+      let returned = ReturnFlag()
+      renderer.render(source) { result in
+        continuation.resume(returning: Delivery(value: result,
+                                                onMainThread: Thread.isMainThread,
+                                                afterReturn: returned.value))
+      }
+      returned.value = true
+    }
+  }
+
+  @MainActor
+  func testRenderWithCompletionHandler() async throws {
+    let renderer = try XCTUnwrap(MermaidRenderer.shared)
+    renderer.clearCache()
+    let first = await self.render(self.flowchart, with: renderer)
+    let image = try first.value.get()
+    XCTAssertGreaterThan(image.size.width, 20)
+    XCTAssertGreaterThan(image.size.height, 20)
+    XCTAssertTrue(first.onMainThread)
+    XCTAssertTrue(first.afterReturn, "the handler was called before the method returned")
+    XCTAssertEqual(renderer.cachedImage(for: self.flowchart), image)
+    // A cached image is delivered asynchronously, too
+    let second = await self.render(self.flowchart, with: renderer)
+    XCTAssertEqual(try second.value.get(), image)
+    XCTAssertTrue(second.onMainThread)
+    XCTAssertTrue(second.afterReturn, "the handler was called before the method returned")
+    // A diagram which Mermaid rejects
+    let invalid = await self.render(self.broken, with: renderer)
+    guard case .failure(.syntaxError(let message)) = invalid.value else {
+      return XCTFail("unexpected result \(invalid.value)")
+    }
+    XCTAssertFalse(message.isEmpty)
+    XCTAssertTrue(invalid.onMainThread)
+    XCTAssertTrue(invalid.afterReturn)
+    // The error is delivered asynchronously when it is cached, too
+    let again = await self.render(self.broken, with: renderer)
+    guard case .failure(.syntaxError) = again.value else {
+      return XCTFail("unexpected result \(again.value)")
+    }
+    XCTAssertTrue(again.afterReturn)
+  }
+
   #endif
 }
 

@@ -322,7 +322,8 @@ public final class MermaidRenderer: @unchecked Sendable {
   }
 
   /// Renders a diagram and returns its image. If the diagram has been rendered before, the
-  /// cached image is returned at once.
+  /// cached image is returned at once. Code which does not use Swift concurrency can use
+  /// `render(_:config:completionHandler:)`.
   ///
   /// - Parameters:
   ///   - source: The Mermaid diagram description (e.g. `"graph TD\n  A --> B"`).
@@ -354,5 +355,38 @@ public final class MermaidRenderer: @unchecked Sendable {
   #else
     throw MermaidError.unsupportedPlatform
   #endif
+  }
+
+  /// Renders a diagram without blocking the calling thread and reports the result via a
+  /// completion handler. This is the variant of `render(_:config:)` for code which does not
+  /// use Swift concurrency; see there for details.
+  ///
+  /// `completionHandler` is called exactly once, asynchronously (also if the image is cached
+  /// already, or if diagrams are not supported on this platform), and always on the main
+  /// thread, so it is safe to update the user interface or state which is confined to the main
+  /// thread from it.
+  ///
+  /// - Parameters:
+  ///   - source: The Mermaid diagram description (e.g. `"graph TD\n  A --> B"`).
+  ///   - config: The configuration for the rendering.
+  ///   - completionHandler: Called with the image or with a `MermaidError`.
+  public func render(_ source: String,
+                     config: MermaidConfig = .default,
+                     completionHandler: @escaping (Result<MermaidImage, MermaidError>) -> Void) {
+    // The completion handler is not used by anybody else
+    nonisolated(unsafe) let handler = completionHandler
+    Task {
+      let result: Result<MermaidImage, MermaidError>
+      do {
+        result = .success(try await self.render(source, config: config))
+      } catch let error as MermaidError {
+        result = .failure(error)
+      } catch {
+        result = .failure(.renderingFailed(error.localizedDescription))
+      }
+      DispatchQueue.main.async {
+        handler(result)
+      }
+    }
   }
 }

@@ -226,7 +226,8 @@ extension AttributedStringGenerator {
   ///
   /// This does nothing if the generator was created without the `mermaid:` parameter. Diagrams
   /// which Mermaid cannot render are skipped (they are shown as code), so this never fails.
-  /// The asynchronous methods `generateAsync(doc:)` etc. call this themselves.
+  /// The asynchronous methods `generateAsync(doc:)` etc. call this themselves. Code which does
+  /// not use Swift concurrency can use `prepareDiagrams(in:completionHandler:)`.
   ///
   /// - Returns: `true` if at least one diagram was rendered by this call, i.e. if the result of
   ///            `generate(doc:)` is different from before.
@@ -245,6 +246,45 @@ extension AttributedStringGenerator {
       return false
     }
     return await self.prepareDiagrams(sources: blocks.mermaidSources)
+  }
+
+  /// Renders the Mermaid diagrams in `doc` without blocking the calling thread and reports the
+  /// result via a completion handler. This is the variant of `prepareDiagrams(in:)` for code
+  /// which does not use Swift concurrency; see there for details. Once the handler has been
+  /// called, `generate(doc:)` includes the diagrams.
+  ///
+  /// `completionHandler` is called exactly once, asynchronously (also if the generator was
+  /// created without the `mermaid:` parameter, or if all diagrams are rendered already), and
+  /// always on the main thread, so it is safe to update the user interface or state which is
+  /// confined to the main thread from it.
+  ///
+  /// - Parameters:
+  ///   - doc: The Markdown document.
+  ///   - completionHandler: Called with `true` if at least one diagram was rendered by this
+  ///                        call, i.e. if the result of `generate(doc:)` is different from
+  ///                        before.
+  public func prepareDiagrams(in doc: Block, completionHandler: @escaping (Bool) -> Void) {
+    // The completion handler is not used by anybody else
+    nonisolated(unsafe) let handler = completionHandler
+    Task {
+      let rendered = await self.prepareDiagrams(in: doc)
+      DispatchQueue.main.async {
+        handler(rendered)
+      }
+    }
+  }
+
+  /// Renders the Mermaid diagrams in `blocks` and reports the result via a completion handler.
+  /// See `prepareDiagrams(in:completionHandler:)`.
+  public func prepareDiagrams(in blocks: Blocks, completionHandler: @escaping (Bool) -> Void) {
+    // The completion handler is not used by anybody else
+    nonisolated(unsafe) let handler = completionHandler
+    Task {
+      let rendered = await self.prepareDiagrams(in: blocks)
+      DispatchQueue.main.async {
+        handler(rendered)
+      }
+    }
   }
 
   private func prepareDiagrams(sources: [String]) async -> Bool {
