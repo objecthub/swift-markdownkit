@@ -578,6 +578,19 @@ open class AttributedStringGenerator: @unchecked Sendable {
              failure.summary.encodingPredefinedXmlEntities() + "</i></p>\n"
     }
 
+    /// Inserts a spacer paragraph in front of every level 1 and level 2 heading that follows
+    /// other content (see `AttributedStringGenerator.h1GapStyle` and `h2GapStyle`).
+    open override func generate(blocks: Blocks, parent: Parent, tight: Bool = false) -> String {
+      var res = ""
+      for block in blocks {
+        if !res.isEmpty, case .heading(let level, _) = block, level == 1 || level == 2 {
+          res += "<p class=\"h\(level)gap\"></p>\n"
+        }
+        res += self.generate(block: block, parent: parent, tight: tight)
+      }
+      return res
+    }
+
     /// The system's HTML importer ignores `<input>` elements, so the checkbox of a task list
     /// item is a character.
     open override func generate(taskCheckbox checked: Bool) -> String {
@@ -1097,6 +1110,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "h2               { \(self.h2Style) }\n" +
            "h3               { \(self.h3Style) }\n" +
            "h4               { \(self.h4Style) }\n" +
+           "p.h1gap          { \(self.h1GapStyle) }\n" +
+           "p.h2gap          { \(self.h2GapStyle) }\n" +
            "p                { \(self.pStyle) }\n" +
            "ul               { \(self.ulStyle) }\n" +
            "ol               { \(self.olStyle) }\n" +
@@ -1168,6 +1183,21 @@ open class AttributedStringGenerator: @unchecked Sendable {
     return "font-size: \(self.fontSize + 1)px;" +
            "color: \(self.h4Color);" +
            "margin: 0.5em 0 0.3em 0;"
+  }
+
+  /// The style of the empty paragraph that is inserted in front of a level 1 heading, which is
+  /// not the first block of the document (or of a block quote, or list item). It adds space
+  /// above the heading: the HTML importer ignores the top margin of the heading itself, so
+  /// that the space above it would only be the bottom margin of the previous paragraph. The
+  /// height of the space is about 1.2 times the font size.
+  open var h1GapStyle: String {
+    return "font-size: 8px; margin: 0em; padding: 0em;"
+  }
+
+  /// The style of the empty paragraph that is inserted in front of a level 2 heading, which is
+  /// not the first block of the document (or of a block quote, or list item). See `h1GapStyle`.
+  open var h2GapStyle: String {
+    return "font-size: 4px; margin: 0em; padding: 0em;"
   }
 
   open var pStyle: String {

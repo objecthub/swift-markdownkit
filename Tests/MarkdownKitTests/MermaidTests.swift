@@ -182,9 +182,9 @@ final class MermaidTests: XCTestCase {
   }
 
   func testDefaultMarginAndSpacing() {
-    XCTAssertEqual(MermaidConfig.default.margin, 4)
-    XCTAssertEqual(MermaidConfig.default.spacing, 14)
-    XCTAssertEqual(MermaidConfig.default.darkVariant.margin, 4)
+    XCTAssertEqual(MermaidConfig.default.margin, 8)
+    XCTAssertEqual(MermaidConfig.default.spacing, 16)
+    XCTAssertEqual(MermaidConfig.default.darkVariant.margin, 8)
     XCTAssertEqual(MermaidConfig(margin: nil, spacing: 3).darkVariant.spacing, 3)
     XCTAssertNil(MermaidConfig(margin: nil).darkVariant.margin)
   }
@@ -670,7 +670,8 @@ final class MermaidTests: XCTestCase {
     let natural = try await renderer.render(wide, config: MermaidConfig(width: 1600))
     let narrow = try await renderer.render(wide, config: MermaidConfig(width: 400))
     XCTAssertGreaterThan(natural.size.width, 400)
-    XCTAssertLessThanOrEqual(narrow.size.width, 400 + 2 * 4, "the width of the page plus the margins")
+    XCTAssertLessThanOrEqual(narrow.size.width, 400 + 2 * MermaidConfig.default.margin!,
+                             "the width of the page plus the margins")
   }
 
   /// The number of pixels without content (transparent) at each side of a PNG.
@@ -703,13 +704,14 @@ final class MermaidTests: XCTestCase {
     let untrimmed = try await renderer.render(diagram, config: MermaidConfig(margin: nil))
     let before = try self.emptyMargins(png: untrimmed.pngData)
     XCTAssertGreaterThan(before.left, 60 * 2, "Mermaid has no empty space at the left of this diagram any more")
-    // With the default margin of 4 points (8 pixels), all four sides have the same margin
+    // With the default margin, all four sides have the same margin (at 2 pixels per point)
+    let margin = Int(MermaidConfig.default.margin! * 2)
     let trimmed = try await renderer.render(diagram)
     let margins = try self.emptyMargins(png: trimmed.pngData)
-    XCTAssertEqual(margins.left, 8)
-    XCTAssertEqual(margins.right, 8)
-    XCTAssertEqual(margins.top, 8)
-    XCTAssertEqual(margins.bottom, 8)
+    XCTAssertEqual(margins.left, margin)
+    XCTAssertEqual(margins.right, margin)
+    XCTAssertEqual(margins.top, margin)
+    XCTAssertEqual(margins.bottom, margin)
     XCTAssertLessThan(trimmed.size.width, untrimmed.size.width - 60)
     let png = try self.inspect(png: trimmed.pngData)
     XCTAssertEqual(png.width, Int((trimmed.size.width * 2).rounded()))
@@ -718,7 +720,7 @@ final class MermaidTests: XCTestCase {
     let none = try await renderer.render(diagram, config: MermaidConfig(margin: 0))
     let noMargins = try self.emptyMargins(png: none.pngData)
     XCTAssertEqual([noMargins.left, noMargins.right, noMargins.top, noMargins.bottom], [0, 0, 0, 0])
-    XCTAssertEqual(none.size.width, trimmed.size.width - 8, accuracy: 0.5)
+    XCTAssertEqual(none.size.width, trimmed.size.width - 2 * MermaidConfig.default.margin!, accuracy: 0.5)
     let large = try await renderer.render(diagram, config: MermaidConfig(scale: 3, margin: 10))
     let largeMargins = try self.emptyMargins(png: large.pngData)
     XCTAssertEqual([largeMargins.left, largeMargins.right, largeMargins.top, largeMargins.bottom], [30, 30, 30, 30])
