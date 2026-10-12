@@ -200,7 +200,7 @@ final class MermaidTests: XCTestCase {
                     renderer: MermaidRenderer? = nil) -> String {
     let generator = AttributedStringGenerator(version: version, mermaid: mermaid,
                                               mermaidRenderer: renderer)
-    return generator.htmlGenerator.generate(doc: self.parse(markdown))
+    return generator.htmlGenerator().generate(doc: self.parse(markdown))
   }
 
   func testDiagramsAreOffByDefault() {
@@ -620,6 +620,40 @@ final class MermaidTests: XCTestCase {
       XCTAssertFalse((error.errorDescription ?? "").isEmpty)
     }
     XCTAssertEqual(MermaidError.syntaxError("first\nsecond").summary, "first")
+  }
+
+  // MARK: Results of rendering
+
+  @MainActor
+  func testPinnedResultsAreUsedBeforeTheCache() async throws {
+    // The cache of the renderer is empty
+    let renderer = try self.makeRenderer()
+    let generator = AttributedStringGenerator(mermaid: .default, mermaidRenderer: renderer)
+    let source = "graph TD\n  A --> B\n"
+    let doc = self.parse("```mermaid\n\(source)```\n\n```mermaid\n\(self.broken)```\n\n" +
+                         "```mermaid\ngraph LR\n  X --> Y\n```\n")
+    var results = MermaidDiagramResults()
+    results.images[source] = try self.makeImage(width: 100, height: 40)
+    results.failures[self.broken] = .syntaxError("Parse error on line 2:\n  details")
+    for version in [AttributedStringGenerator.Version.OS26, .preOS26] {
+      let html = AttributedStringGenerator(version: version, mermaid: .default, mermaidRenderer: renderer)
+                   .htmlGenerator(options: nil, pinning: results)
+                   .generate(doc: doc)
+      // The diagram with an image is replaced by a placeholder, the rejected one gets its note,
+      // and the third one, which is not known, is shown as code
+      XCTAssertEqual(html.components(separatedBy: "MKD").count - 1, 1, "\(version)")
+      XCTAssertTrue(html.contains("Diagram could not be rendered: Parse error on line 2:"), "\(version)")
+      XCTAssertTrue(html.contains("flowchart TD"), "\(version)")
+      XCTAssertTrue(html.contains("graph LR"), "\(version)")
+      XCTAssertFalse(html.contains("graph TD"), "\(version)")
+    }
+    // Without them, nothing is known
+    XCTAssertFalse(generator.htmlGenerator().generate(doc: doc).contains("MKD"))
+    // Results from a generator, and from a document, of a generator without diagrams
+    let plain = await AttributedStringGenerator().diagramResults(in: doc)
+    XCTAssertTrue(plain.images.isEmpty)
+    XCTAssertTrue(plain.failures.isEmpty)
+    XCTAssertFalse(plain.rendered)
   }
 
   // MARK: Rendering in a web view
@@ -1068,6 +1102,71 @@ final class MermaidTests: XCTestCase {
     let rendered = await AttributedStringGenerator().prepareDiagrams(in: doc)
     XCTAssertFalse(rendered)
     XCTAssertNil(renderer.cachedImage(for: self.flowchart))
+  }
+
+  /// A document with four diagrams, of which three are different; the first is repeated.
+  private func documentWithManyDiagrams(extra: String = "") -> Block {
+    let pie = "pie title Pets\n  \"Dogs\" : 386\n  \"Cats\" : 85\n"
+    return self.parse(extra + "```mermaid\n\(self.flowchart)```\n\ntext\n\n" +
+                      "```mermaid\n\(self.sequence)```\n\n```mermaid\n\(pie)```\n\n" +
+                      "```mermaid\n\(self.flowchart)```\n")
+  }
+
+  func testGenerateAsyncShowsAllDiagramsWhateverTheSizeOfTheCache() async throws {
+    // The cache holds one result, but the document has four diagrams
+    let small = try self.makeRenderer(maxCachedDiagrams: 1)
+    let generator = AttributedStringGenerator(mermaid: .default, mermaidRenderer: small)
+    let doc = self.documentWithManyDiagrams()
+    let result = try await generator.generateAsync(doc: doc)
+    XCTAssertEqual(self.attachments(in: result).count, 4)
+    XCTAssertTrue(result.string.contains("text"))
+    XCTAssertEqual(small.cachedDiagramCount, 1)
+    // The variants for blocks and with a completion handler
+    guard case .document(let blocks) = doc else {
+      return XCTFail("not a document")
+    }
+    let fromBlocks = try await generator.generateAsync(blocks: blocks)
+    XCTAssertEqual(self.attachments(in: fromBlocks).count, 4)
+    let fromBlock = try await generator.generateAsync(block: doc)
+    XCTAssertEqual(self.attachments(in: fromBlock).count, 4)
+    let count: Int = try await withCheckedThrowingContinuation { continuation in
+      generator.generateAsync(doc: doc) { result in
+        switch result {
+          case .success(let string):
+            continuation.resume(returning: self.attachments(in: string).count)
+          case .failure(let error):
+            continuation.resume(throwing: error)
+        }
+      }
+    }
+    XCTAssertEqual(count, 4)
+  }
+
+  func testGenerateAsyncShowsTheErrorsOfDiagramsWhateverTheSizeOfTheCache() async throws {
+    let small = try self.makeRenderer(maxCachedDiagrams: 1)
+    let generator = AttributedStringGenerator(mermaid: .default, mermaidRenderer: small)
+    // The error of the first diagram is not in the cache any more when the HTML is generated
+    let doc = self.documentWithManyDiagrams(extra: "```mermaid\n\(self.broken)```\n\n")
+    let result = try await generator.generateAsync(doc: doc)
+    XCTAssertEqual(self.attachments(in: result).count, 4)
+    XCTAssertTrue(result.string.contains("Diagram could not be rendered"))
+    XCTAssertTrue(result.string.contains("A --> --> B"), "the code of the diagram is shown")
+    XCTAssertNil(small.cachedFailure(for: self.broken))
+  }
+
+  @MainActor
+  func testSynchronousGenerationOnlyShowsDiagramsWhichAreInTheCache() async throws {
+    // This is why the cache should have room for the diagrams of the documents that are
+    // displayed with `generate(doc:)`; `generateAsync` does not depend on it
+    let small = try self.makeRenderer(maxCachedDiagrams: 1)
+    let generator = AttributedStringGenerator(mermaid: .default, mermaidRenderer: small)
+    let doc = self.documentWithManyDiagrams()
+    await generator.prepareDiagrams(in: doc)
+    XCTAssertEqual(self.attachments(in: try XCTUnwrap(generator.generate(doc: doc))).count, 1)
+    let roomy = try self.makeRenderer(maxCachedDiagrams: 10)
+    let other = AttributedStringGenerator(mermaid: .default, mermaidRenderer: roomy)
+    await other.prepareDiagrams(in: doc)
+    XCTAssertEqual(self.attachments(in: try XCTUnwrap(other.generate(doc: doc))).count, 4)
   }
 
   // MARK: Completion handlers

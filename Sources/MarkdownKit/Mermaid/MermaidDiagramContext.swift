@@ -30,6 +30,26 @@ import UIKit
 import UniformTypeIdentifiers
 
 ///
+/// The results of rendering the diagrams of a document (via some "prepare" method), by the
+/// source of the diagram: the images of the diagrams that were rendered, and the errors of
+/// the diagrams which Mermaid rejected. An HTML generator that was given them (see
+/// `MermaidDiagramContext.pin(_:)`) does not depend on the cache of the `MermaidRenderer`,
+/// which may drop some of them in the meantime.
+///
+struct MermaidDiagramResults: Sendable {
+
+  /// The images of the diagrams.
+  var images: [String: MermaidImage] = [:]
+
+  /// The errors of the diagrams which Mermaid rejected.
+  var failures: [String: MermaidError] = [:]
+
+  /// True if at least one diagram was rendered while the results were collected, i.e. if it was
+  /// not in the cache of the renderer.
+  var rendered = false
+}
+
+///
 /// Keeps track of the diagrams which an HTML generator has put into the HTML. The system's HTML
 /// importer cannot place images with a given size (it ignores the size attributes, and the
 /// resolution of an image is interpreted differently on macOS and iOS), so the HTML contains a
@@ -102,6 +122,8 @@ public final class MermaidDiagramContext: @unchecked Sendable {
   private let lock = NSLock()
   private let nonce = UUID().uuidString.replacingOccurrences(of: "-", with: "")
   private var entries: [Entry] = []
+  private var pinnedImages: [String: MermaidImage] = [:]
+  private var pinnedFailures: [String: MermaidError] = [:]
 
   /// Diagrams which are wider than this (in points) are scaled down to this width.
   let maxWidth: CGFloat?
@@ -112,6 +134,36 @@ public final class MermaidDiagramContext: @unchecked Sendable {
   init(maxWidth: CGFloat?, spacing: CGFloat) {
     self.maxWidth = maxWidth
     self.spacing = spacing
+  }
+
+  /// Remembers the results of rendering the diagrams of a document. The HTML generator uses them
+  /// before it looks into the cache of the renderer, whose entries may have been dropped since
+  /// the diagrams were rendered if the document has many diagrams.
+  func pin(_ results: MermaidDiagramResults) {
+    self.lock.lock()
+    defer {
+      self.lock.unlock()
+    }
+    self.pinnedImages.merge(results.images) { _, new in new }
+    self.pinnedFailures.merge(results.failures) { _, new in new }
+  }
+
+  /// The pinned image of the diagram with the given source.
+  func pinnedImage(for source: String) -> MermaidImage? {
+    self.lock.lock()
+    defer {
+      self.lock.unlock()
+    }
+    return self.pinnedImages[source]
+  }
+
+  /// The pinned error of the diagram with the given source.
+  func pinnedFailure(for source: String) -> MermaidError? {
+    self.lock.lock()
+    defer {
+      self.lock.unlock()
+    }
+    return self.pinnedFailures[source]
   }
 
   /// True if no diagram was placed into the HTML.
@@ -154,8 +206,7 @@ public final class MermaidDiagramContext: @unchecked Sendable {
       }
       var attributes = result.attributes(at: range.location, effectiveRange: nil)
       attributes[.attachment] = nil
-      let replacement = NSMutableAttributedString(
-                          attachment: self.attachment(for: entry.image))
+      let replacement = NSMutableAttributedString(attachment: self.attachment(for: entry.image))
       replacement.addAttributes(attributes, range: NSRange(location: 0, length: replacement.length))
       result.replaceCharacters(in: range, with: replacement)
       self.addSpacing(to: result, aroundParagraphAt: range.location)
@@ -222,7 +273,8 @@ extension AttributedStringGenerator {
 
   /// Renders the Mermaid diagrams in `doc` (the content of the fenced code blocks with language
   /// `mermaid`) so that `generate(doc:)`, which cannot wait for a diagram to be drawn, can
-  /// include them. The images are kept in the cache of the generator's `MermaidRenderer`.
+  /// include them. The images are kept in the cache of the generator's `MermaidRenderer`, as far
+  /// as it has room for them: `generate(doc:)` only shows the diagrams that are in the cache.
   ///
   /// This does nothing if the generator was created without the `mermaid:` parameter. Diagrams
   /// which Mermaid cannot render are skipped (they are shown as code), so this never fails.
@@ -288,23 +340,64 @@ extension AttributedStringGenerator {
   }
 
   private func prepareDiagrams(sources: [String]) async -> Bool {
+    return await self.diagramResults(sources: sources).rendered
+  }
+
+  /// Renders the diagrams with the given sources, which are not in the cache of the renderer
+  /// yet, and returns the results for all of them. They are also kept in the cache (as far as it
+  /// has room for them).
+  func diagramResults(sources: [String]) async -> MermaidDiagramResults {
+    var results = MermaidDiagramResults()
     guard let config = self.mermaidConfig, let renderer = self.diagramRenderer else {
-      return false
+      return results
     }
-    var rendered = false
     for source in sources {
-      if renderer.cachedImage(for: source, config: config) != nil ||
-         renderer.cachedFailure(for: source, config: config) != nil {
-        continue
-      }
-      if Task.isCancelled {
+      if let image = renderer.cachedImage(for: source, config: config) {
+        results.images[source] = image
+      } else if let failure = renderer.cachedFailure(for: source, config: config) {
+        results.failures[source] = failure
+      } else if Task.isCancelled {
         break
-      }
-      if (try? await renderer.render(source, config: config)) != nil {
-        rendered = true
+      } else {
+        do {
+          results.images[source] = try await renderer.render(source, config: config)
+          results.rendered = true
+        } catch let error as MermaidError {
+          // Only the errors of the diagrams are remembered; the diagram is shown as code
+          if case .syntaxError = error {
+            results.failures[source] = error
+          }
+        } catch {
+          // The diagram is shown as code
+        }
       }
     }
-    return rendered
+    return results
+  }
+
+  /// The results of rendering the diagrams of `doc`; empty if diagrams are not enabled.
+  func diagramResults(in doc: Block) async -> MermaidDiagramResults {
+    guard self.mermaidConfig != nil else {
+      return MermaidDiagramResults()
+    }
+    return await self.diagramResults(sources: doc.mermaidSources)
+  }
+
+  /// The results of rendering the diagrams of `blocks`; empty if diagrams are not enabled.
+  func diagramResults(in blocks: Blocks) async -> MermaidDiagramResults {
+    guard self.mermaidConfig != nil else {
+      return MermaidDiagramResults()
+    }
+    return await self.diagramResults(sources: blocks.mermaidSources)
+  }
+
+  /// Returns the HTML generator for `options` (see `htmlGenerator(options:)`) which shows the
+  /// diagrams in `results` whether or not they are still in the cache of the renderer.
+  func htmlGenerator(options: RenderingOptions?,
+                     pinning results: MermaidDiagramResults) -> InternalHtmlGenerator {
+    let generator = self.htmlGenerator(options: options)
+    generator.diagrams.pin(results)
+    return generator
   }
 
   /// Replaces the diagram placeholders of the HTML which `generator` created in `string`.

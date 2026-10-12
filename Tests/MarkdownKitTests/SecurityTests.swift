@@ -179,8 +179,10 @@ class SecurityTests: XCTestCase {
   private func attributedHtml(_ str: String, os26: Bool) -> String {
     let outer = AttributedStringGenerator.standard
     let doc = MarkdownParser.standard.parse(str)
-    let gen: HtmlGenerator = os26 ? AttributedStringGenerator.OS26HtmlGenerator(outer: outer)
-                                  : AttributedStringGenerator.InternalHtmlGenerator(outer: outer)
+    let options = outer.renderingOptions
+    let gen: HtmlGenerator =
+      os26 ? AttributedStringGenerator.OS26HtmlGenerator(outer: outer, renderingOptions: options)
+           : AttributedStringGenerator.InternalHtmlGenerator(outer: outer, renderingOptions: options)
     return gen.generate(doc: doc)
   }
 

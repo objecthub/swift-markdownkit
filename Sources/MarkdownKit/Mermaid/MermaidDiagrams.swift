@@ -38,7 +38,14 @@ extension Block {
   static func mermaidSource(of lines: Lines) -> String {
     return lines.joined(separator: "")
   }
-
+  
+  /// The sources of all Mermaid diagrams in this block, in document order, without duplicates.
+  var mermaidSources: [String] {
+    var sources: [String] = []
+    self.collectMermaidSources(into: &sources)
+    return sources
+  }
+  
   /// Appends the sources of all Mermaid diagrams in this block and its sub-blocks to `sources`
   /// in document order. Sources which are already contained in `sources` are skipped.
   func collectMermaidSources(into sources: inout [String]) {
@@ -66,13 +73,6 @@ extension Block {
       default:
         break
     }
-  }
-
-  /// The sources of all Mermaid diagrams in this block, in document order, without duplicates.
-  var mermaidSources: [String] {
-    var sources: [String] = []
-    self.collectMermaidSources(into: &sources)
-    return sources
   }
 }
 

@@ -270,6 +270,13 @@ private final class MyHtmlGenerator: HtmlGenerator, @unchecked Sendable {
   }
 }
 
+private final class MyInternalHtmlGenerator: AttributedStringGenerator.InternalHtmlGenerator, @unchecked Sendable {
+  override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
+    calls.append("HtmlGenerator.generate(block)")
+    return super.generate(block: block, parent: parent, tight: tight)
+  }
+}
+
 private final class MyTextGenerator: StringGenerator, @unchecked Sendable {
   override func generate(block: Block, context: GeneratorContext) -> [String] {
     calls.append("StringGenerator.generate(block)")
@@ -322,9 +329,9 @@ private final class MyHtmlBlockParser: HtmlBlockParser {
 }
 
 private final class MyAttributedStringGenerator: AttributedStringGenerator, @unchecked Sendable {
-  override var htmlGenerator: HtmlGenerator {
+  override func htmlGenerator(options: RenderingOptions? = nil) -> InternalHtmlGenerator {
     calls.append("AttributedStringGenerator.htmlGenerator")
-    return MyHtmlGenerator()
+    return MyInternalHtmlGenerator(outer: self, renderingOptions: self.renderingOptions)
   }
 }
 
@@ -462,7 +469,7 @@ class PublicSubclassingTests: XCTestCase {
 
   func testAttributedStringGeneratorCanBeSubclassed() {
     let generator = MyAttributedStringGenerator()
-    XCTAssertTrue(generator.htmlGenerator is MyHtmlGenerator)
+    XCTAssertTrue(generator.htmlGenerator() is MyInternalHtmlGenerator)
     XCTAssertTrue(calls.contains("AttributedStringGenerator.htmlGenerator"))
   }
 

@@ -66,7 +66,7 @@ final class ImageLoadingTests: XCTestCase {
                     _ options: Options,
                     imageBaseUrl: URL? = nil) -> String {
     let generator = AttributedStringGenerator(imageBaseUrl: imageBaseUrl, renderingOptions: options)
-    return generator.htmlGenerator.generate(doc: ExtendedMarkdownParser.standard.parse(markdown))
+    return generator.htmlGenerator().generate(doc: ExtendedMarkdownParser.standard.parse(markdown))
   }
 
   /// The number of `<img` tags in the generated HTML
@@ -289,7 +289,7 @@ final class ImageLoadingTests: XCTestCase {
     for options in [Options(), Options(localImages: .none), Options(remoteImages: .none),
                     Options(localImages: .within(self.allowed), remoteImages: .none)] {
       let generator = AttributedStringGenerator(renderingOptions: options)
-      XCTAssertFalse(generator.htmlGenerator.safeMode)
+      XCTAssertFalse(generator.htmlGenerator().safeMode)
       let result = self.html(markdown, options)
       XCTAssertTrue(result.contains("<b>bold</b>"))
       XCTAssertTrue(result.contains("href=\"custom://x\""))
@@ -304,7 +304,7 @@ final class ImageLoadingTests: XCTestCase {
     // are decided by the image options alone
     let safe = Options(baseUrl: self.allowed, safeMode: true)
     let generator = AttributedStringGenerator(renderingOptions: safe)
-    XCTAssertTrue(generator.htmlGenerator.safeMode)
+    XCTAssertTrue(generator.htmlGenerator().safeMode)
     let result = self.html(markdown, safe)
     XCTAssertFalse(result.contains("<b>"))
     XCTAssertTrue(result.contains("<!-- raw HTML omitted -->"))
@@ -313,7 +313,7 @@ final class ImageLoadingTests: XCTestCase {
     XCTAssertEqual(self.images(result), 1)
     // Restricting images does not turn on safe mode
     let restricted = Options(baseUrl: self.allowed, localImages: .none)
-    XCTAssertFalse(AttributedStringGenerator(renderingOptions: restricted).htmlGenerator.safeMode)
+    XCTAssertFalse(AttributedStringGenerator(renderingOptions: restricted).htmlGenerator().safeMode)
     // Both together
     let both = Options(baseUrl: self.allowed, localImages: .none, safeMode: true)
     let combined = self.html(markdown, both)

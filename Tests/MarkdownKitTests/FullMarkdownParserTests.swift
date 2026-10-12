@@ -253,12 +253,12 @@ final class FullMarkdownParserTests: XCTestCase {
     let doc = FullMarkdownParser.standard.parse("a | b\n--- | ---")
     for version in [AttributedStringGenerator.Version.OS26, .preOS26] {
       let generator = AttributedStringGenerator(version: version)
-      let output = generator.htmlGenerator.generate(doc: doc)
+      let output = generator.htmlGenerator().generate(doc: doc)
       XCTAssertTrue(output.contains("</tr></thead></table>"), output)
       XCTAssertFalse(output.contains("<tbody>"), output)
     }
     let withRows = FullMarkdownParser.standard.parse("a | b\n--- | ---\n1 | 2")
-    XCTAssertTrue(AttributedStringGenerator().htmlGenerator.generate(doc: withRows)
+    XCTAssertTrue(AttributedStringGenerator().htmlGenerator().generate(doc: withRows)
                                               .contains("<tbody>"))
   }
 
@@ -501,7 +501,7 @@ final class FullMarkdownParserTests: XCTestCase {
   func testTaskListsInAttributedStrings() throws {
     let doc = FullMarkdownParser.standard.parse("- [ ] foo\n- [x] bar\n\n1. [x] one\n2. [ ] two")
     for version in [AttributedStringGenerator.Version.OS26, .preOS26] {
-      let html = AttributedStringGenerator(version: version).htmlGenerator.generate(doc: doc)
+      let html = AttributedStringGenerator(version: version).htmlGenerator().generate(doc: doc)
       XCTAssertFalse(html.contains("<input"), "\(version)")
       let text = try XCTUnwrap(AttributedStringGenerator(version: version).generate(doc: doc)).string
       for glyph in ["☐", "☑"] {
@@ -515,12 +515,12 @@ final class FullMarkdownParserTests: XCTestCase {
     XCTAssertTrue(os26.contains("☐") && os26.contains("foo"))
     // A checkbox is wider than a bullet, so it gets a cell of its own with room for a gap
     let generator = AttributedStringGenerator(version: .OS26)
-    let html = generator.htmlGenerator.generate(doc: doc)
+    let html = generator.htmlGenerator().generate(doc: doc)
     XCTAssertTrue(html.contains("<td class=\"lcheck\"><b>☐</b></td>"), html)
     XCTAssertTrue(html.contains("<td class=\"lcheck\"><b>☑</b></td>"), html)
     XCTAssertFalse(html.contains("<td class=\"lbullet\">"), html)
     XCTAssertTrue(generator.docStyle.contains("td.lcheck"))
     let plain = FullMarkdownParser.standard.parse("- foo")
-    XCTAssertTrue(generator.htmlGenerator.generate(doc: plain).contains("<td class=\"lbullet\"><b>•</b></td>"))
+    XCTAssertTrue(generator.htmlGenerator().generate(doc: plain).contains("<td class=\"lbullet\"><b>•</b></td>"))
   }
 }

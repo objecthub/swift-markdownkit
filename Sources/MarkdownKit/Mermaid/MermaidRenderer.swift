@@ -253,10 +253,11 @@ public final class MermaidRenderer: @unchecked Sendable {
   ///   - maxCachedDiagrams: The maximal number of results that are cached, i.e. rendered
   ///                   diagrams and diagrams which Mermaid rejected. When there are more, the
   ///                   ones which were used least recently are dropped. At least 1; the default
-  ///                   is `defaultMaxCachedDiagrams`. Diagrams are only shown by
-  ///                   `AttributedStringGenerator` while they are in the cache, so it should be
-  ///                   at least the number of diagrams in the largest document; the diagrams
-  ///                   of a document that does not fit are not all shown.
+  ///                   is `defaultMaxCachedDiagrams`. `AttributedStringGenerator.generate(doc:)`
+  ///                   only shows the diagrams that are in the cache, so it should be at least
+  ///                   the number of diagrams in the largest document that is displayed with
+  ///                   it; the diagrams of a document that does not fit are not all shown.
+  ///                   `generateAsync` does not depend on the size of the cache.
   ///   - maxCacheBytes: The maximal total size of the cached PNG images in bytes (a diagram
   ///                   typically takes between 10 and 200 KB). When it is exceeded, the images
   ///                   which were used least recently are dropped; the last diagram that was

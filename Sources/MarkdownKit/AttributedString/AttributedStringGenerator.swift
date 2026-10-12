@@ -464,21 +464,12 @@ open class AttributedStringGenerator: @unchecked Sendable {
     case OS26
     
     public func makeHtmlGenerator(for generator: AttributedStringGenerator,
-                                  renderingOptions: RenderingOptions) -> HtmlGenerator {
+                                  renderingOptions: RenderingOptions) -> InternalHtmlGenerator {
       switch self {
         case .preOS26:
           return InternalHtmlGenerator(outer: generator, renderingOptions: renderingOptions)
         case .OS26:
           return OS26HtmlGenerator(outer: generator, renderingOptions: renderingOptions)
-      }
-    }
-
-    public func makeHtmlGenerator(for generator: AttributedStringGenerator) -> HtmlGenerator {
-      switch self {
-        case .preOS26:
-          return InternalHtmlGenerator(outer: generator)
-        case .OS26:
-          return OS26HtmlGenerator(outer: generator)
       }
     }
   }
@@ -540,25 +531,25 @@ open class AttributedStringGenerator: @unchecked Sendable {
     /// created the attributed string.
     public let diagrams: MermaidDiagramContext
 
-    public init(outer: AttributedStringGenerator, renderingOptions: RenderingOptions? = nil) {
-      let options = renderingOptions ?? outer.renderingOptions
+    public init(outer: AttributedStringGenerator, renderingOptions: RenderingOptions) {
       self.outer = outer
-      self.renderingOptions = options
+      self.renderingOptions = renderingOptions
       self.diagrams = MermaidDiagramContext(maxWidth: outer.mermaidConfig?.maxWidth,
                                             spacing: outer.mermaidConfig?.spacing ?? 0)
       // Safe mode is independent of the access control of images
-      super.init(safeMode: options.safeMode)
+      super.init(safeMode: renderingOptions.safeMode)
     }
 
     /// Returns the HTML for a fenced code block if it is a Mermaid diagram that has been
     /// rendered (see `AttributedStringGenerator.prepareDiagrams`): a paragraph with a
     /// placeholder, which is later replaced by the image. Returns `nil` otherwise.
     func diagramHtml(info: String?, lines: Lines) -> String? {
-      guard Block.isMermaid(info: info),
-            let config = self.outer.mermaidConfig,
-            let renderer = self.outer.diagramRenderer,
-            let image = renderer.cachedImage(for: Block.mermaidSource(of: lines),
-                                             config: config) else {
+      guard Block.isMermaid(info: info), let config = self.outer.mermaidConfig else {
+        return nil
+      }
+      let source = Block.mermaidSource(of: lines)
+      guard let image = self.diagrams.pinnedImage(for: source) ??
+                        self.outer.diagramRenderer?.cachedImage(for: source, config: config) else {
         return nil
       }
       return "<p style=\"text-align: center;\">" + self.diagrams.placeholder(for: image) + "</p>\n"
@@ -567,11 +558,12 @@ open class AttributedStringGenerator: @unchecked Sendable {
     /// Returns a note for a Mermaid diagram which Mermaid has rejected; it is shown above the
     /// code of the diagram. Returns the empty string for all other code blocks.
     func diagramFailureHtml(info: String?, lines: Lines) -> String {
-      guard Block.isMermaid(info: info),
-            let config = self.outer.mermaidConfig,
-            let renderer = self.outer.diagramRenderer,
-            let failure = renderer.cachedFailure(for: Block.mermaidSource(of: lines),
-                                                 config: config) else {
+      guard Block.isMermaid(info: info), let config = self.outer.mermaidConfig else {
+        return ""
+      }
+      let source = Block.mermaidSource(of: lines)
+      guard let failure = self.diagrams.pinnedFailure(for: source) ??
+                          self.outer.diagramRenderer?.cachedFailure(for: source, config: config) else {
         return ""
       }
       return "<p><i>Diagram could not be rendered: " +
@@ -1036,14 +1028,14 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// Mermaid diagrams (if enabled with the parameter `mermaid:`) are only included if they
   /// have been rendered before, see `prepareDiagrams(in:)`.
   open func generate(doc: Block) -> NSAttributedString? {
-    let generator = self.htmlGenerator
+    let generator = self.htmlGenerator()
     return self.insertingDiagrams(into: self.generateAttributedString(generator.generate(doc: doc)),
                                   from: generator)
   }
 
   /// Generates an attributed string from the given Markdown block
   open func generate(block: Block) -> NSAttributedString? {
-    let generator = self.htmlGenerator
+    let generator = self.htmlGenerator()
     return self.insertingDiagrams(
              into: self.generateAttributedString(generator.generate(block: block, parent: .none)),
              from: generator)
@@ -1051,7 +1043,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
 
   /// Generates an attributed string from the given Markdown blocks
   open func generate(blocks: Blocks) -> NSAttributedString? {
-    let generator = self.htmlGenerator
+    let generator = self.htmlGenerator()
     return self.insertingDiagrams(
              into: self.generateAttributedString(generator.generate(blocks: blocks, parent: .none)),
              from: generator)
@@ -1067,17 +1059,10 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
-  open var htmlGenerator: HtmlGenerator {
-    return self.version.makeHtmlGenerator(for: self)
-  }
-  
-  /// The HTML generator for the given options (which replace `renderingOptions`); `htmlGenerator`
-  /// if `options` is `nil`.
-  internal func htmlGenerator(options: RenderingOptions?) -> HtmlGenerator {
-    if let options {
-      return self.version.makeHtmlGenerator(for: self, renderingOptions: options)
-    }
-    return self.htmlGenerator
+  /// Returns a new HTML generator for the given options
+  open func htmlGenerator(options: RenderingOptions? = nil) -> InternalHtmlGenerator {
+    return self.version.makeHtmlGenerator(for: self,
+                                          renderingOptions: options ?? self.renderingOptions)
   }
   
   open func generateHtml(_ htmlBody: String) -> String {
@@ -1488,6 +1473,10 @@ extension AttributedStringGenerator {
   /// are not used by this method. The same HTML is generated (see `htmlGenerator` and
   /// `generateHtml(_:)`).
   ///
+  /// Mermaid diagrams (if enabled with the parameter `mermaid:`) are rendered first. The
+  /// attributed string shows all of them, whatever the size of the cache of the
+  /// `MermaidRenderer`.
+  ///
   /// - Important: Unlike the synchronous rendering, `loadFromHTML` also loads remote resources
   ///   (such as images and style sheets) which the HTML refers to, and it may wait for them
   ///   until `RenderingOptions.timeout` has passed. For untrusted Markdown, set
@@ -1500,9 +1489,16 @@ extension AttributedStringGenerator {
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil) async throws
                          -> sending NSAttributedString {
-    await self.prepareDiagrams(in: doc)
-    let generator = self.htmlGenerator(options: options)
+    // First generate Mermaid diagram images (if they are in the cache, they are copied
+    // over into `diagrams`)
+    let diagrams = await self.diagramResults(in: doc)
+    // Inject the generated images into a new HTML generator; the HTML generator will then
+    // create placeholders for all generated images in `diagrams` with this
+    // AttributedStringGenerator
+    let generator = self.htmlGenerator(options: options, pinning: diagrams)
+    // Generate HTML for this document
     let html = self.generateHtml(generator.generate(doc: doc))
+    // Replace image placeholders with image attachments
     return self.addingDiagrams(
              to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
              from: generator)
@@ -1513,8 +1509,8 @@ extension AttributedStringGenerator {
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil) async throws
                          -> sending NSAttributedString {
-    await self.prepareDiagrams(in: block)
-    let generator = self.htmlGenerator(options: options)
+    let diagrams = await self.diagramResults(in: block)
+    let generator = self.htmlGenerator(options: options, pinning: diagrams)
     let html = self.generateHtml(generator.generate(block: block, parent: .none))
     return self.addingDiagrams(
              to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
@@ -1526,8 +1522,8 @@ extension AttributedStringGenerator {
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil) async throws
                          -> sending NSAttributedString {
-    await self.prepareDiagrams(in: blocks)
-    let generator = self.htmlGenerator(options: options)
+    let diagrams = await self.diagramResults(in: blocks)
+    let generator = self.htmlGenerator(options: options, pinning: diagrams)
     let html = self.generateHtml(generator.generate(blocks: blocks, parent: .none))
     return self.addingDiagrams(
              to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
@@ -1555,7 +1551,7 @@ extension AttributedStringGenerator {
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
-                     prepare: { await $0.prepareDiagrams(in: doc) },
+                     prepare: { await $0.diagramResults(in: doc) },
                      html: { $0.generate(doc: doc) },
                      completion: completionHandler)
   }
@@ -1568,7 +1564,7 @@ extension AttributedStringGenerator {
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
-                     prepare: { await $0.prepareDiagrams(in: block) },
+                     prepare: { await $0.diagramResults(in: block) },
                      html: { $0.generate(block: block, parent: .none) },
                      completion: completionHandler)
   }
@@ -1581,7 +1577,7 @@ extension AttributedStringGenerator {
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
-                     prepare: { await $0.prepareDiagrams(in: blocks) },
+                     prepare: { await $0.diagramResults(in: blocks) },
                      html: { $0.generate(blocks: blocks, parent: .none) },
                      completion: completionHandler)
   }
@@ -1594,7 +1590,7 @@ extension AttributedStringGenerator {
   /// time) and the placeholders of the diagrams are replaced in the result.
   private func renderAsync(
       options: RenderingOptions?,
-      prepare: @escaping @Sendable (AttributedStringGenerator) async -> Bool,
+      prepare: @escaping @Sendable (AttributedStringGenerator) async -> MermaidDiagramResults,
       html: @escaping @Sendable (HtmlGenerator) -> String,
       completion: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     let renderingOptions = options ?? self.renderingOptions
@@ -1606,8 +1602,8 @@ extension AttributedStringGenerator {
       // The completion handler is not used by anybody else
       nonisolated(unsafe) let completion = completion
       Task {
-        _ = await prepare(self)
-        let generator = self.htmlGenerator(options: options)
+        let diagrams = await prepare(self)
+        let generator = self.htmlGenerator(options: options, pinning: diagrams)
         let document = self.generateHtml(html(generator))
         self.renderHTML(document, options: renderingOptions) { result in
           switch result {

@@ -196,11 +196,11 @@ final class AttributedStringAsyncTests: XCTestCase {
   func testSyntaxHighlightingCanBeDisabled() throws {
     try XCTSkipIf(SyntaxHighlighter.proxy == nil, "syntax highlighter is not available")
     let doc = ExtendedMarkdownParser.standard.parse("```swift\nlet a = 1\n```\n\n```\nlet b = 2\n```\n")
-    let enabled = AttributedStringGenerator().htmlGenerator.generate(doc: doc)
+    let enabled = AttributedStringGenerator().htmlGenerator().generate(doc: doc)
     XCTAssertTrue(enabled.contains("hljs-keyword"), enabled)
     // Without syntax highlighting, highlight.js is not used at all (also not for guessing the
     // language of code blocks without a language)
-    let disabled = AttributedStringGenerator(syntaxHighlighting: nil).htmlGenerator.generate(doc: doc)
+    let disabled = AttributedStringGenerator(syntaxHighlighting: nil).htmlGenerator().generate(doc: doc)
     XCTAssertFalse(disabled.contains("hljs"), disabled)
     XCTAssertTrue(disabled.contains("<code class=\"language-swift\">let a = 1"), disabled)
   }
@@ -210,7 +210,7 @@ final class AttributedStringAsyncTests: XCTestCase {
     try XCTSkipIf(SyntaxHighlighter.proxy == nil, "syntax highlighter is not available")
     let generator = AttributedStringGenerator()
     func html(_ info: String) -> String {
-      return generator.htmlGenerator.generate(
+      return generator.htmlGenerator().generate(
                doc: MarkdownParser.standard.parse("```\(info)\nlet a = 1\n```\n"))
     }
     XCTAssertTrue(html("swift").contains("hljs-keyword"))

@@ -32,7 +32,7 @@ class MarkdownASTests: XCTestCase {
   
   private func generateHtml(imageBaseUrl: URL? = nil, _ str: String) -> String {
     return AttributedStringGenerator(imageBaseUrl: imageBaseUrl)
-             .htmlGenerator
+             .htmlGenerator()
              .generate(doc: MarkdownParser.standard.parse(str))
              .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
   }
@@ -51,7 +51,7 @@ class MarkdownASTests: XCTestCase {
       """)
     XCTAssertEqual(
       AttributedStringGenerator(options: [.tightLists])
-               .htmlGenerator
+               .htmlGenerator()
                .generate(doc: MarkdownParser.standard.parse("- Apple\n\t- Banana"))
                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
       """
@@ -90,7 +90,7 @@ class MarkdownASTests: XCTestCase {
   func testHeadingsAfterOtherContentGetASpacer() {
     let generator = AttributedStringGenerator()
     func html(_ markdown: String) -> String {
-      return generator.htmlGenerator.generate(doc: MarkdownParser.standard.parse(markdown))
+      return generator.htmlGenerator().generate(doc: MarkdownParser.standard.parse(markdown))
     }
     XCTAssertEqual(html("text\n\n# One\n\n# Two\n\n## Three\n"),
                    "<p>text</p>\n" + h1Spacer + "<h1>One</h1>\n" + h1Spacer + "<h1>Two</h1>\n" +
@@ -110,7 +110,7 @@ class MarkdownASTests: XCTestCase {
     XCTAssertFalse(html("[a]: http://example.com\n\n## One\n").contains("h2gap"))
     // The same for the other version of the generator
     let older = AttributedStringGenerator(version: .preOS26)
-    let olderHtml = older.htmlGenerator.generate(doc: MarkdownParser.standard.parse("text\n\n# One\n\n## Two\n"))
+    let olderHtml = older.htmlGenerator().generate(doc: MarkdownParser.standard.parse("text\n\n# One\n\n## Two\n"))
     XCTAssertTrue(olderHtml.contains(h1Spacer + "<h1>"))
     XCTAssertTrue(olderHtml.contains(h2Spacer + "<h2>"))
   }
