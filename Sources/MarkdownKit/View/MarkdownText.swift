@@ -151,15 +151,17 @@ public struct MarkdownText: View {
   /// effect; remote images are never loaded. Use `RenderingOptions.untrusted` if the
   /// Markdown does not come from a trusted source.
   ///
-  /// - Parameters:
-  ///   - text: The Markdown document.
-  ///   - waitingMessage: What is displayed until the document has been converted.
-  ///   - renderingOptions: The options for rendering the generated HTML.
-  ///
   /// If `mermaid` is not `nil`, fenced code blocks with language `mermaid` are shown as
   /// diagrams. They are rendered in the background: the view first shows the diagram as code
   /// and replaces it with the diagram once it has been rendered. In dark mode,
   /// `MermaidConfig.darkVariant` is used. Diagrams are only supported on macOS and iOS.
+  ///
+  /// - Parameters:
+  ///   - text: The Markdown document.
+  ///   - waitingMessage: What is displayed until the document has been converted.
+  ///   - renderingOptions: The options for rendering the generated HTML.
+  ///   - mermaid: The configuration for drawing Mermaid diagrams, or `nil` (the default) to
+  ///              show them as code like any other code block.
   public init(_ text: Block,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,

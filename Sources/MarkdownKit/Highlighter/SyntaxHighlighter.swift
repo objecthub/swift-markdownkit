@@ -193,8 +193,10 @@ public final class SyntaxHighlighter: @unchecked Sendable {
   /// cannot be found, falls back to the system monospaced font.
   ///
   /// - Parameters:
-  ///   - name: The name of the theme to load (without `.css` extension).
-  ///           Must match a theme name from `availableThemes`.
+  ///   - nameOrContent: Either the name of a theme to load (without `.css` extension)
+  ///                    from this instance's theme directory, or a string containing
+  ///                    CSS content directly. If a theme name, it must match a theme
+  ///                    from `availableThemes`.
   ///   - withFont: An optional CSS font-family string (e.g., "'SF Mono', Monaco, monospace").
   ///               If `nil`, uses the system monospaced font. The first available font
   ///               in the list will be used.

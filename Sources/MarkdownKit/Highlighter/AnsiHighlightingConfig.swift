@@ -60,8 +60,8 @@ public struct AnsiHighlightingConfig: Sendable {
   /// are used.
   ///
   /// - Parameters:
-  ///   - withTheme: Either the name of a bundled theme (without `.css` extension),
-  ///                or raw CSS content to parse.
+  ///   - nameOrContent: Either the name of a bundled theme (without `.css` extension),
+  ///                    or raw CSS content to parse.
   ///   - fullColorSupport: If true, theme colors are mapped to the 256 color palette.
   ///
   /// - Returns: A configured `AnsiHighlightingConfig` instance, or `nil` if the theme
