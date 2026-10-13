@@ -378,8 +378,7 @@ public final class MermaidRenderer: @unchecked Sendable {
   public func render(_ source: String,
                      config: MermaidConfig = .default,
                      completionHandler: @escaping (Result<MermaidImage, MermaidError>) -> Void) {
-    // The completion handler is not used by anybody else
-    nonisolated(unsafe) let handler = completionHandler
+    let deliver = MainThreadHandler(completionHandler)
     Task {
       let result: Result<MermaidImage, MermaidError>
       do {
@@ -389,9 +388,36 @@ public final class MermaidRenderer: @unchecked Sendable {
       } catch {
         result = .failure(.renderingFailed(error.localizedDescription))
       }
-      DispatchQueue.main.async {
-        handler(result)
-      }
+      deliver(result)
+    }
+  }
+}
+
+///
+/// Calls a completion handler on the main thread, asynchronously. It is used by the methods
+/// with a completion handler, which run their work in a task.
+///
+/// The handler of a client is not `Sendable`, but nobody else uses it: the task and the main
+/// queue only pass it on, so that it is called once. Wrapping it makes this explicit. Captured
+/// directly by the closure of the task and by the closure which is submitted to the main queue,
+/// it is rejected by the compilers of Swift 6.2 and 6.1 (they complain about sending a
+/// task-isolated value to a main actor-isolated closure).
+///
+struct MainThreadHandler<Value: Sendable>: @unchecked Sendable {
+
+  /// The handler of the client.
+  private let handler: (Value) -> Void
+
+  /// Creates a handler which calls `handler`.
+  init(_ handler: @escaping (Value) -> Void) {
+    self.handler = handler
+  }
+
+  /// Calls the handler with `value` on the main thread. It is never called before this method
+  /// returns, also if it is called on the main thread.
+  func callAsFunction(_ value: Value) {
+    DispatchQueue.main.async {
+      self.handler(value)
     }
   }
 }

@@ -316,26 +316,18 @@ extension AttributedStringGenerator {
   ///                        call, i.e. if the result of `generate(doc:)` is different from
   ///                        before.
   public func prepareDiagrams(in doc: Block, completionHandler: @escaping (Bool) -> Void) {
-    // The completion handler is not used by anybody else
-    nonisolated(unsafe) let handler = completionHandler
+    let deliver = MainThreadHandler(completionHandler)
     Task {
-      let rendered = await self.prepareDiagrams(in: doc)
-      DispatchQueue.main.async {
-        handler(rendered)
-      }
+      deliver(await self.prepareDiagrams(in: doc))
     }
   }
 
   /// Renders the Mermaid diagrams in `blocks` and reports the result via a completion handler.
   /// See `prepareDiagrams(in:completionHandler:)`.
   public func prepareDiagrams(in blocks: Blocks, completionHandler: @escaping (Bool) -> Void) {
-    // The completion handler is not used by anybody else
-    nonisolated(unsafe) let handler = completionHandler
+    let deliver = MainThreadHandler(completionHandler)
     Task {
-      let rendered = await self.prepareDiagrams(in: blocks)
-      DispatchQueue.main.async {
-        handler(rendered)
-      }
+      deliver(await self.prepareDiagrams(in: blocks))
     }
   }
 
