@@ -6,6 +6,8 @@ _Swift MarkdownKit_ is a framework for parsing, processing and displaying text i
 
 _Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it provides a parser for parsing strings into abstract syntax trees, and comes with generators for creating output in plain text, HTML and [attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring). There is also a generator which can be used to display Markdown documents in ANSI-compliant terminals.
 
+The API reference and a number of articles are also available as [online documentation](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/), generated with Swift-DocC.
+
 Here is an overview of the supported Markdown features. The parser classes supporting a feature are given in parentheses (see also [Markdown extensions](#markdown-extensions)):
 
 - [CommonMark](https://commonmark.org) 0.31.2: headings, paragraphs, block quotes, lists, code blocks, thematic breaks, HTML, links, images, emphasis, code spans and line breaks (`MarkdownParser`, `ExtendedMarkdownParser`, `FullMarkdownParser`)
