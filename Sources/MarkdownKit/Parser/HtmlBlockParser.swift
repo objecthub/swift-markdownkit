@@ -45,6 +45,7 @@ open class HtmlBlockParser: BlockParser {
   private var htmlParsers: [HtmlBlockParserPlugin]
 
   /// Default initializer
+  /// Creates the parser for `docParser`, with an instance of each plugin in `supportedParsers`.
   public required init(docParser: DocumentParser) {
     self.htmlParsers = []
     for parserType in type(of: self).supportedParsers {
@@ -53,6 +54,9 @@ open class HtmlBlockParser: BlockParser {
     super.init(docParser: docParser)
   }
 
+  /// Parses an HTML block if the current line starts with a start condition of one of the
+  /// plugins. The plugins are tried in order. The block ends as soon as the end condition of the
+  /// plugin holds, at a blank line if the plugin ends at one, or at the end of the container.
   open override func parse() -> ParseResult {
     guard self.shortLineIndent, self.firstContentCharacter == "<" else {
       return .none
@@ -97,8 +101,10 @@ open class HtmlBlockParser: BlockParser {
 ///
 open class HtmlBlockParserPlugin {
 
+  /// Creates a plugin.
   public required init() {}
 
+  /// Returns true if `ch` is a space, a tab, a vertical tab, a form feed or a line ending.
   public func isWhitespace(_ ch: Character) -> Bool {
     switch ch {
       case " ", "\t", "\n", "\r", "\r\n", "\u{b}", "\u{c}":
@@ -108,6 +114,9 @@ open class HtmlBlockParserPlugin {
     }
   }
 
+  /// Returns true if `line` contains `str` at the index `at`. If `htmlTagSuffix` is true, `str`
+  /// also has to be followed by whitespace, `>`, the end of the line, or `suffix`, so that `str`
+  /// is the name of a tag and not just the beginning of a longer name.
   open func line(_ line: String,
                  at: String.Index,
                  startsWith str: String,
@@ -152,14 +161,22 @@ open class HtmlBlockParserPlugin {
     }
   }
 
+  /// Returns true if the (lowercased) content of `line` starts an HTML block of this kind. The
+  /// default implementation returns `false`.
   open func startCondition(_ line: String) -> Bool {
     return false
   }
 
+  /// Returns true if the (lowercased) content of `line` ends an HTML block of this kind. The
+  /// line that satisfies the condition is the last line of the block. The default
+  /// implementation returns `false`.
   open func endCondition(_ line: String) -> Bool {
     return false
   }
 
+  /// True if a blank line ends an HTML block of this kind. The blank line is not part of the
+  /// block. The default is `false`: the block continues up to the line that satisfies
+  /// `endCondition(_:)`.
   open var emptyLineTerminator: Bool {
     return false
   }
@@ -170,8 +187,11 @@ open class HtmlBlockParserPlugin {
   }
 }
 
+/// HTML blocks which start with `<script`, `<pre`, `<style` or `<textarea`, and end with the
+/// line that contains the corresponding closing tag (HTML block type 1 in CommonMark).
 public final class ScriptBlockParserPlugin: HtmlBlockParserPlugin {
 
+  /// Returns true if the line starts with one of the opening tags.
   public override func startCondition(_ line: String) -> Bool {
     return self.line(line, at: line.startIndex, startsWith: "<script") ||
            self.line(line, at: line.startIndex, startsWith: "<pre") ||
@@ -179,6 +199,7 @@ public final class ScriptBlockParserPlugin: HtmlBlockParserPlugin {
            self.line(line, at: line.startIndex, startsWith: "<textarea")
   }
 
+  /// Returns true if the line contains one of the closing tags.
   public override func endCondition(_ line: String) -> Bool {
     return line.contains("</script>") ||
            line.contains("</pre>") ||
@@ -187,30 +208,41 @@ public final class ScriptBlockParserPlugin: HtmlBlockParserPlugin {
   }
 }
 
+/// HTML blocks which start with `<!--` and end with the line that contains `-->` (HTML block
+/// type 2 in CommonMark).
 public final class CommentBlockParserPlugin: HtmlBlockParserPlugin {
 
+  /// Returns true if the line starts with `<!--`.
   public override func startCondition(_ line: String) -> Bool {
     return self.line(line, at: line.startIndex, startsWith: "<!--", htmlTagSuffix: false)
   }
 
+  /// Returns true if the line contains `-->`.
   public override func endCondition(_ line: String) -> Bool {
     return line.contains("-->")
   }
 }
 
+/// HTML blocks which start with `<?` and end with the line that contains `?>` (HTML block
+/// type 3 in CommonMark).
 public final class ProcessingInstructionBlockParserPlugin: HtmlBlockParserPlugin {
 
+  /// Returns true if the line starts with `<?`.
   public override func startCondition(_ line: String) -> Bool {
     return self.line(line, at: line.startIndex, startsWith: "<?", htmlTagSuffix: false)
   }
 
+  /// Returns true if the line contains `?>`.
   public override func endCondition(_ line: String) -> Bool {
     return line.contains("?>")
   }
 }
 
+/// HTML blocks which start with `<!` followed by a letter, such as a document type
+/// declaration, and end with the line that contains `>` (HTML block type 4 in CommonMark).
 public final class DeclarationBlockParserPlugin: HtmlBlockParserPlugin {
 
+  /// Returns true if the line starts with `<!` and a letter.
   public override func startCondition(_ line: String) -> Bool {
     var index: String.Index = line.startIndex
     guard index < line.endIndex && line[index] == "<" else {
@@ -233,22 +265,30 @@ public final class DeclarationBlockParserPlugin: HtmlBlockParserPlugin {
     }
   }
 
+  /// Returns true if the line contains `>`.
   public override func endCondition(_ line: String) -> Bool {
     return line.contains(">")
   }
 }
 
+/// HTML blocks which start with `<![CDATA[` and end with the line that contains `]]>` (HTML
+/// block type 5 in CommonMark).
 public final class CdataBlockParserPlugin: HtmlBlockParserPlugin {
 
+  /// Returns true if the line starts with `<![CDATA[`.
   public override func startCondition(_ line: String) -> Bool {
     return self.line(line, at: line.startIndex, startsWith: "<![cdata[", htmlTagSuffix: false)
   }
 
+  /// Returns true if the line contains `]]>`.
   public override func endCondition(_ line: String) -> Bool {
     return line.contains("]]>")
   }
 }
 
+/// HTML blocks which start with an opening or closing tag of a block-level element, such as
+/// `div`, `table` or `ul`. They end in front of the next blank line (HTML block type 6 in
+/// CommonMark).
 public final class HtmlTagBlockParserPlugin: HtmlBlockParserPlugin {
   final let htmlTags = ["address", "article", "aside", "base", "basefont", "blockquote", "body",
                         "caption", "center", "col", "colgroup", "dd", "details", "dialog", "dir",
@@ -259,6 +299,7 @@ public final class HtmlTagBlockParserPlugin: HtmlBlockParserPlugin {
                         "section", "source", "summary", "table", "tbody", "td", "tfoot", "th", "thead",
                         "title", "tr", "track", "ul"]
 
+  /// Returns true if the line starts with the tag of a block-level element.
   public override func startCondition(_ line: String) -> Bool {
     var index = line.startIndex
     guard index < line.endIndex && line[index] == "<" else {
@@ -276,6 +317,7 @@ public final class HtmlTagBlockParserPlugin: HtmlBlockParserPlugin {
     return false
   }
 
+  /// Blocks of this kind end at a blank line.
   public override var emptyLineTerminator: Bool {
     return true
   }
@@ -287,6 +329,8 @@ public final class HtmlTagBlockParserPlugin: HtmlBlockParserPlugin {
 ///
 public final class CompleteTagBlockParserPlugin: HtmlBlockParserPlugin {
 
+  /// Returns true if the line starts with a complete opening or closing tag which is followed
+  /// by whitespace only.
   public override func startCondition(_ line: String) -> Bool {
     guard line.hasPrefix("<") else {
       return false
@@ -306,6 +350,7 @@ public final class CompleteTagBlockParserPlugin: HtmlBlockParserPlugin {
     return false
   }
 
+  /// Blocks of this kind end at a blank line.
   public override var emptyLineTerminator: Bool {
     return true
   }

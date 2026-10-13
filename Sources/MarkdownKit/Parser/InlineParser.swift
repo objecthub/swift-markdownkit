@@ -181,6 +181,8 @@ open class InlineParser {
     return res
   }
   
+  /// Transforms the terms and the descriptions of definitions and returns new definitions in which
+  /// all inline markup is represented using `TextFragment` objects.
   open func transform(_ defs: Definitions) -> Definitions {
     var res = Definitions()
     for def in defs {

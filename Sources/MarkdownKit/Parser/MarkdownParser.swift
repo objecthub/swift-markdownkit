@@ -47,6 +47,9 @@ import Foundation
 /// Every call of `parse` creates new `DocumentParser` and `InlineParser` objects, which are used
 /// by the calling thread only.
 ///
+/// See <doc:GettingStarted> for an introduction, <doc:ChoosingAParser> for the parser classes
+/// and <doc:ConfiguringTheParser> for how to configure a parser.
+///
 open class MarkdownParser: @unchecked Sendable {
 
   /// The default list of block parsers. The order of this list matters.
@@ -63,6 +66,8 @@ open class MarkdownParser: @unchecked Sendable {
     ListItemParser.self
   ]
   
+  /// The block parsers for headings and thematic breaks. Derived parsers put them at the start of
+  /// their lists of block parsers, as they have to come before the parsers for lists.
   public static let headingParsers: [BlockParser.Type] = [
     AtxHeadingParser.self,
     SetextHeadingParser.self,

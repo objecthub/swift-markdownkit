@@ -22,6 +22,7 @@ import Foundation
 
 extension String {
   
+  /// Returns the string with `&`, `<`, `>` and `"` replaced by their predefined XML entities.
   public func encodingPredefinedXmlEntities() -> String {
     // Work on UTF-8 bytes: the special characters are ASCII, which never occurs inside of
     // multi-byte sequences. In particular, this also escapes special characters which are
@@ -51,6 +52,7 @@ extension String {
     return String(decoding: res, as: UTF8.self)
   }
   
+  /// Returns the string with each character that has a named entity replaced by this entity.
   public func encodingNamedCharacters() -> String {
     var res = ""
     for ch in self {
@@ -67,6 +69,8 @@ extension String {
   /// entity is `&CounterClockwiseContourIntegral;`, which has 33 bytes in total).
   private static let maxEntityLength = 40
 
+  /// Returns the string with all named and numeric character references, such as `&amp;` and
+  /// `&#x26;`, replaced by their characters.
   public func decodingNamedCharacters() -> String {
     let utf8 = self.utf8
     guard utf8.contains(UInt8(ascii: "&")) else {

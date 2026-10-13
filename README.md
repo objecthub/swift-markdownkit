@@ -231,7 +231,7 @@ final class DelimiterTestTransformer: DelimiterTransformer {
 Finally, a new extended markdown parser can be created:
 
 ```swift
-final class EmphasisTestMarkdownParser: MarkdownParser {
+final class EmphasisTestMarkdownParser: MarkdownParser, @unchecked Sendable {
   override public class var defaultInlineTransformers: [InlineTransformer.Type] {
     return [DelimiterTestTransformer.self,
             CodeLinkHtmlTransformer.self,
@@ -316,7 +316,7 @@ let html = HtmlGenerator.standard.generate(doc: markdown)
 Beyond the `safeMode` option (see the `HtmlGenerator` initializer), there are currently no means to customize `HtmlGenerator` other than subclassing. Here is an example that defines a customized HTML generator which formats `blockquote` Markdown blocks using HTML tables:
 
 ```swift
-open class CustomizedHtmlGenerator: HtmlGenerator {
+open class CustomizedHtmlGenerator: HtmlGenerator, @unchecked Sendable {
   open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
     switch block {
       case .blockquote(let blocks):

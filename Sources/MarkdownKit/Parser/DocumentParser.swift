@@ -153,6 +153,7 @@ open class DocumentParser {
     self.prevLineEmpty = state.prevLineEmpty
   }
   
+  /// True if all lines of the input have been read.
   public var finished: Bool {
     return self.index == nil
   }
@@ -164,6 +165,8 @@ open class DocumentParser {
     self.prevLineEmpty = false
   }
   
+  /// Advances to the next line of the input. Block parsers call this method through their own
+  /// `readNextLine()` when they have consumed a line.
   public func readNextLine() {
     guard self.index != nil else {
       return
@@ -303,6 +306,8 @@ open class DocumentParser {
     self.lineEmpty = state.lineEmpty
   }
 
+  /// Parses the input with the block parsers and returns the `document` block. It contains the
+  /// block structure of the document; the text of paragraphs and headings is not parsed yet.
   open func parse() -> Block {
     loop: while !self.finished {
       if self.lineEmpty {

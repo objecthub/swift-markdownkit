@@ -22,6 +22,27 @@
 
 import SwiftUI
 
+///
+/// A SwiftUI view that displays a Markdown document as formatted text. The view converts the
+/// document into an attributed string with an ``AttributedStringGenerator``, using different
+/// generators for light and dark mode, and shows the result in a read-only text view whose text
+/// can be selected. The view scrolls vertically.
+///
+/// ```swift
+/// struct ContentView: View {
+///   var body: some View {
+///     MarkdownText(string: "# Title\n\nSome **bold** text and a [link](https://objecthub.com).")
+///       .padding()
+///   }
+/// }
+/// ```
+///
+/// The initializers take a parsed document (``Block``) or a string. The default generators are
+/// configured with ``AttributedStringGenerator/RenderingOptions``; to restrict what a document
+/// from an untrusted source can load, pass `.untrusted`. A custom `generator` function decides
+/// how a document is converted into an attributed string for a given color scheme. See
+/// <doc:DisplayingMarkdownWithSwiftUI> for details.
+///
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public struct MarkdownText: View {
   

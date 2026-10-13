@@ -87,6 +87,8 @@ open class CodeLinkHtmlTransformer: InlineTransformer {
     }
   }
 
+  /// Finds code spans, autolinks and HTML tags in the delimiters of `text` and replaces them with
+  /// `code`, `autolink` and `html` fragments.
   open override func transform(_ text: Text) -> Text {
     // The index is only needed if there are delimiters which might start a code span or tag
     let relevant = text.contains { fragment in

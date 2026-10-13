@@ -26,6 +26,9 @@ import Foundation
 ///
 open class SetextHeadingParser: BlockParser {
 
+  /// Parses the underline of a setext heading: a line of `=` characters (a heading of level 1) or
+  /// `-` characters (level 2) after the lines of a paragraph. The paragraph becomes the text of
+  /// the heading.
   open override func parse() -> ParseResult {
     guard self.shortLineIndent,
           !self.lazyContinuation,

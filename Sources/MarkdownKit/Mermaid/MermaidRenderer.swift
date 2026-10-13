@@ -34,6 +34,8 @@ public struct MermaidImage: Equatable, Sendable {
   /// The number of pixels per point.
   public let scale: CGFloat
 
+  /// Creates an image from PNG data of a diagram of the given size in points, which has `scale`
+  /// pixels per point.
   public init(pngData: Data, size: CGSize, scale: CGFloat) {
     self.pngData = pngData
     self.size = size
@@ -58,6 +60,8 @@ public struct MermaidImage: Equatable, Sendable {
 ///
 /// A `MermaidRenderer` is `Sendable`. It can be used from any thread or task; the requests are
 /// processed one after the other.
+///
+/// See <doc:DrawingMermaidDiagrams> for an introduction.
 ///
 /// Example:
 /// ```swift

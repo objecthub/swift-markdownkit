@@ -25,11 +25,22 @@ import Foundation
 /// externally (i.e. not by the MarkdownKit framework).
 ///
 public protocol CustomBlock: CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+  /// The raw text of the block, without any markup. A default implementation returns the empty
+  /// string.
   var string: String { get }
+  /// Returns true if this block and `other` are equal. A custom block compares itself with another
+  /// one by checking that `other` is of its own type and comparing their contents.
   func equals(to other: CustomBlock) -> Bool
+  /// Returns the block that replaces this one after the inline markup in its content has been
+  /// parsed by `parser`. A block which contains text calls `parser.transform(_:)` for it.
   func parse(via parser: InlineParser) -> Block
+  /// Returns the HTML for this block. `htmlGen` generates the HTML for the content of the block,
+  /// and `tight` is true if the block is part of a tight list.
   func generateHtml(via htmlGen: HtmlGenerator, tight: Bool) -> String
   #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+  /// Returns the HTML for this block when an `AttributedStringGenerator` generates it. `htmlGen`
+  /// is the HTML generator of `attGen`, whose settings, such as fonts and colors, the HTML can
+  /// use. `tight` is true if the block is part of a tight list.
   func generateHtml(via htmlGen: HtmlGenerator,
                     and attGen: AttributedStringGenerator?,
                     tight: Bool) -> String

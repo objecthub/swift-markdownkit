@@ -24,12 +24,23 @@
 /// one thread only; it is not `Sendable`.
 /// 
 open class GeneratorContext {
+  /// The block whose content is being generated: the document, a block quote, a list, a list
+  /// item or a definition list.
   public let parent: Block
+  /// The context of the block that encloses `parent`. It is `nil` for the context of the
+  /// document.
   public let context: GeneratorContext?
+  /// True if the blocks of the content are generated without blank lines between them.
   public let tight: Bool
+  /// The number of columns which are reserved for the bullets or numbers of the items of the
+  /// list that is being generated. It is `nil` outside of lists.
   public let itemIndent: Int?
+  /// The number of columns that are available for the content: the width of the output minus
+  /// the indentation by the enclosing blocks.
   public let maxColumns: Int
   
+  /// Creates the context for the content of the document `doc`, which is generated in the
+  /// width of `maxColumns` columns.
   public init(doc: Block, maxColumns: Int) {
     self.parent = doc
     self.context = nil
@@ -52,6 +63,10 @@ open class GeneratorContext {
     self.maxColumns = maxColumns
   }
   
+  /// Returns the context for the content of a nested block. `parent` is the nested block, which
+  /// defaults to the current parent. `tight` tells whether its content is generated without
+  /// blank lines (by default, as in this context), and `itemIndent` is the width of the
+  /// markers of list items. The new context has `indent` columns less than this one.
   open func new(parent: Block? = nil,
                 tight: Bool? = nil,
                 itemIndent: Int? = nil,
@@ -63,6 +78,7 @@ open class GeneratorContext {
                             maxColumns: self.maxColumns - indent)
   }
   
+  /// The number of lists that enclose the content, including the parent if it is a list.
   public var numEnclosingLists: Int {
     let num = self.context?.numEnclosingLists ?? 0
     if case .list(_, _, _) = self.parent {
@@ -72,6 +88,7 @@ open class GeneratorContext {
     }
   }
   
+  /// True if the parent is a definition list.
   public var inDefinitionList: Bool {
     if case .definitionList(_) = self.parent {
       return true

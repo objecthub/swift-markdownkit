@@ -28,6 +28,7 @@ import Foundation
 ///
 open class ExtendedListItemParser: ListItemParser {
   
+  /// Creates a list item parser for `docParser`. The bullets are `-`, `+`, `*` and `:`.
   public required init(docParser: DocumentParser) {
     super.init(docParser: docParser, bulletChars: ["-", "+", "*", ":"])
   }

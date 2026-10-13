@@ -79,7 +79,10 @@ internal struct LinePosition {
 /// i.e. a container that has an enclosing container.
 ///
 open class Container: CustomDebugStringConvertible {
+  /// The blocks which have been parsed in this container so far.
   public private(set) var content: [Block] = []
+  /// The density of the content of the container, which is recorded in the `listItem` block
+  /// that a list item container creates. It is `nil` until the first block has been added.
   public var density: ListDensity? = nil
 
   /// The number of containers enclosing this container (0 for the document container).
@@ -98,6 +101,8 @@ open class Container: CustomDebugStringConvertible {
     return true
   }
   
+  /// Appends a block to the content of the container. `tight` is true if the block follows
+  /// directly after the previous line, without a blank line in between.
   open func append(block: Block, tight: Bool) {
     // Successive items of a list are not blocks which are separated by a blank line in the
     // sense of this container. Blank lines between them make the list loose, which is
@@ -114,6 +119,8 @@ open class Container: CustomDebugStringConvertible {
     self.content.append(block)
   }
   
+  /// Creates the block which represents this container and its content. The container of the
+  /// document creates the `document` block.
   open func makeBlock(_ docParser: DocumentParser) -> Block {
     return .document(docParser.bundle(blocks: self.content))
   }
@@ -171,16 +178,24 @@ open class Container: CustomDebugStringConvertible {
 open class NestedContainer: Container {
   internal let outer: Container
 
+  /// Creates a container which is nested in `outer`.
   public init(outer: Container) {
     self.outer = outer
     super.init()
     self.depth = outer.depth + 1
   }
 
+  /// True if the lines of this container need to start with its marker or its indentation (such
+  /// as `>` for a block quote), or else they do not belong to the container. The default is
+  /// `false`.
   open var indentRequired: Bool {
     return false
   }
   
+  /// Skips the marker or the indentation which a line of this container needs to have, starting
+  /// at `startIndex`, and returns the index of the first character after it. Returns `nil` if
+  /// the line does not start with them, so it does not belong to the container. The default
+  /// implementation does not skip anything.
   open func skipIndent(input: String,
                        startIndex: String.Index,
                        endIndex: String.Index) -> String.Index? {
@@ -208,6 +223,8 @@ open class NestedContainer: Container {
     return LinePosition(index: index, column: column)
   }
 
+  /// Creates the block which represents this container. Subclasses have to override this
+  /// method.
   open override func makeBlock(_ docParser: DocumentParser) -> Block {
     preconditionFailure("makeBlock() not defined")
   }

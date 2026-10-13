@@ -77,6 +77,9 @@ open class LinkTransformer: InlineTransformer {
     return matches
   }
 
+  /// Matches the bracket delimiters of `text` to create links and images: inline links with a
+  /// destination and an optional title, and reference links which refer to the link reference
+  /// definitions of the document.
   open override func transform(_ text: Text) -> Text {
     // Brackets are matched upfront. This avoids scanning the rest of the text for every `[`,
     // which is quadratic for texts with many unmatched brackets.

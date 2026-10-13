@@ -32,6 +32,8 @@ import Foundation
 /// subclass which adds mutable state has to synchronize it itself, and has to restate
 /// the conformance as `@unchecked Sendable`.
 ///
+/// See <doc:GeneratingTerminalOutput> for an introduction and for how to change the output.
+///
 open class StringGenerator: @unchecked Sendable {
   
   /// `TableRenderer` objects are able to render tables as an array of strings where
@@ -39,6 +41,10 @@ open class StringGenerator: @unchecked Sendable {
   /// at the same time, which is why renderers are `Sendable`: they have to be immutable or
   /// synchronize their state.
   public protocol TableRenderer: Sendable {
+    /// Renders the table described by `descriptor` and returns its lines, or `nil` if this renderer
+    /// cannot render the table, in which case the generator asks the next renderer. `generate`
+    /// converts the text of a cell into lines which have at most the given number of columns.
+    /// `context` provides the number of columns that are available for the table.
     func renderTable(_ descriptor: TableDescriptor,
                      using generate: (Text, Int) -> [String],
                      in context: GeneratorContext) -> [String]?
@@ -351,6 +357,8 @@ open class StringGenerator: @unchecked Sendable {
     }
   }
   
+  /// Creates the description of a table for the table renderers, including the statistics of the
+  /// widths of the columns.
   open func tableDescriptor(header: Row, alignments: Alignments, rows: Rows) -> TableDescriptor {
     // Initial text rendering
     let headerLines = header.map { text in self.generate(text: text) }
@@ -405,10 +413,14 @@ open class StringGenerator: @unchecked Sendable {
                            })
   }
   
+  /// Splits `str` into words, which are separated by whitespace. Word wrapping and the
+  /// computation of column widths use it.
   open func tokenize(_ str: String) -> [String] {
     return str.split(whereSeparator: \.isWhitespace).map(String.init)
   }
   
+  /// Wraps `text` into lines of at most `maxColumns` columns by breaking it between words. A word
+  /// which is wider than `maxColumns` is not split; it is placed on a line of its own.
   open func wordWrap(_ text: String, maxColumns: Int) -> [String] {
     let words = self.tokenize(text)
     var lines: [String] = []
@@ -458,10 +470,16 @@ open class StringGenerator: @unchecked Sendable {
     return false
   }
   
+  /// Creates the context for the generation of the document `doc` in `maxColumns` columns. A
+  /// subclass overrides this method to use its own subclass of `GeneratorContext`.
   open func newContext(doc: Block, maxColumns: Int) -> GeneratorContext {
     return GeneratorContext(doc: doc, maxColumns: maxColumns)
   }
   
+  /// Returns the character that underlines the heading of the given level. The result for level
+  /// 0 is the character with which headings that are not underlined are prefixed, which
+  /// is repeated for the level (`## Heading`). A heading is not underlined if this method returns
+  /// `nil` for its level.
   open func headingUnderlineCharacter(level: Int) -> Character? {
     switch level {
       case 0:
@@ -477,14 +495,20 @@ open class StringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The string which precedes each line of a block quote.
   open var blockquoteIndent: String {
     return " ┃ "
   }
   
+  /// The indentation of the items of a list, in front of their bullets or numbers.
   open var listIndent: String {
     return "  "
   }
   
+  /// Returns the prefix of the first line of a list item, with its bullet, number or checkbox, and
+  /// the indentation of the following lines of the item. `columns` is the number of columns that
+  /// are reserved for the prefix (`GeneratorContext.itemIndent`); if it is `nil`, the prefix has
+  /// the width of the bullet or number.
   open func listPrefix(type: ListType, context: GeneratorContext, columns: Int?) -> (String, String) {
     let level = context.numEnclosingLists
     let prefix: String
@@ -520,6 +544,9 @@ open class StringGenerator: @unchecked Sendable {
             String(repeating: " ", count: max(columns, 2)))
   }
   
+  /// Returns the strings which precede the lines of the terms and the lines of the descriptions
+  /// of a definition list. Definition lists that are nested in a list or in a definition list are
+  /// not indented; the others are indented by one space.
   open func definitionPrefix(definitions: Definitions, context: GeneratorContext) -> (String, String) {
     switch context.parent {
       case .definitionList(_), .listItem(_, _, _), .list(_, _, _):
@@ -529,6 +556,8 @@ open class StringGenerator: @unchecked Sendable {
     }
   }
   
+  /// Returns the string which precedes the first line of each description of a definition list.
+  /// The other lines of the description are indented by its width.
   open func definitionIndent(definitions: Definitions, context: GeneratorContext) -> String {
     return " → "
   }
@@ -545,6 +574,8 @@ open class StringGenerator: @unchecked Sendable {
   open class MinimalisticTableRenderer: TableRenderer, @unchecked Sendable {
     let alignDisplayWidth: Bool
     
+    /// Creates a renderer. If `alignDisplayWidth` is true, the width of the text on the screen is
+    /// used for aligning the columns, otherwise the number of characters.
     public init(alignDisplayWidth: Bool) {
       self.alignDisplayWidth = alignDisplayWidth
     }
@@ -610,6 +641,8 @@ open class StringGenerator: @unchecked Sendable {
       return result
     }
     
+    /// Returns true if the table fits into the columns that the context provides when each cell is
+    /// written on a single line.
     open func canRenderSlim(_ descriptor: TableDescriptor, in context: GeneratorContext) -> Bool {
       return descriptor.columnStats.reduce(-3, { (r, v) in r + v.maxWidth + 3 })
                <= context.maxColumns
@@ -634,12 +667,20 @@ open class StringGenerator: @unchecked Sendable {
   /// 
   open class FullTableRenderer: TableRenderer, @unchecked Sendable {
     
+    /// The characters of a horizontal line of the frame of a table: the character at its left end,
+    /// at its right end and above the separators of the columns, and the character that the line
+    /// consists of.
     public struct Delimiter: Sendable {
+      /// The character at the left end of the line.
       public let left: Character
+      /// The character at the right end of the line.
       public let right: Character
+      /// The character where the line crosses the separator of two columns.
       public let mid: Character
+      /// The character that is repeated along the line.
       public let line: Character
       
+      /// Creates a delimiter from its characters.
       public init(left: Character, right: Character, mid: Character, line: Character) {
         self.left = left
         self.right = right
@@ -647,18 +688,22 @@ open class StringGenerator: @unchecked Sendable {
         self.line = line
       }
       
+      /// The start of the line: the left character followed by the line character.
       public var leftStart: String {
         return "\(self.left)\(self.line)"
       }
       
+      /// The end of the line: the line character followed by the right character.
       public var rightEnd: String {
         return "\(self.line)\(self.right)"
       }
       
+      /// The characters where the line crosses the separator of two columns.
       public var midSeparator: String {
         return "\(self.line)\(self.mid)\(self.line)"
       }
       
+      /// Returns the line for columns of the given widths.
       public func separatorLine(_ columnWidths: [Int]) -> String {
         var line = self.leftStart
         for (index, width) in columnWidths.enumerated() {
@@ -676,6 +721,10 @@ open class StringGenerator: @unchecked Sendable {
     let bar: Character
     let alignDisplayWidth: Bool
     
+    /// Creates a renderer. The delimiters are the lines above the table, below it, between the
+    /// header and the first row, and between the other rows. `bar` separates the columns. If
+    /// `alignDisplayWidth` is true, the width of the text on the screen is used for aligning the
+    /// columns, otherwise the number of characters.
     public init(topDelimiter: Delimiter = Delimiter(left: "┌", right: "┐", mid: "┬", line: "─"),
                 bottomDelimiter: Delimiter = Delimiter(left: "└", right: "┘", mid: "┴", line: "─"),
                 headerSeparator: Delimiter = Delimiter(left: "╞", right: "╡", mid: "╪", line: "═"),
@@ -737,6 +786,8 @@ open class StringGenerator: @unchecked Sendable {
       return result
     }
     
+    /// Appends the lines of one row to `result`. `lines` has the lines of each cell, `height` is
+    /// the number of lines of the row, and `header` is true for the header row.
     open func renderRow(_ descriptor: TableDescriptor,
                         lines: [[String]],
                         height: Int,
@@ -760,6 +811,9 @@ open class StringGenerator: @unchecked Sendable {
       }
     }
     
+    /// Determines the width of each column. The columns have the width of their widest cell, unless
+    /// the table does not fit into the available columns: the columns are then narrowed in
+    /// proportion, but not below the width of their widest word.
     open func columnWidths(_ descriptor: TableDescriptor, in context: GeneratorContext) -> [Int] {
       // Create an initial assignment of column widths based on the maximum width
       var columnWidths: [Int] = descriptor.columnStats.map(\.maxWidth)

@@ -36,6 +36,7 @@ open class ListItemParser: BlockParser {
     super.init(docParser: docParser)
   }
   
+  /// Creates a list item parser for `docParser`. The bullets are `-`, `+` and `*`.
   public required init(docParser: DocumentParser) {
     self.bulletChars = ["-", "+", "*"]
     super.init(docParser: docParser)
@@ -93,6 +94,9 @@ open class ListItemParser: BlockParser {
     }
   }
 
+  /// Parses the marker of a list item: a bullet, or a number of up to nine digits followed by `.`
+  /// or `)`. The marker is followed by a space or a tab, or it ends the line. This starts a
+  /// container for the content of the list item, which is indented behind the marker.
   open override func parse() -> ParseResult {
     guard self.shortLineIndent else {
       return .none

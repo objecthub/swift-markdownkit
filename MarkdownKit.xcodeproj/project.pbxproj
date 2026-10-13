@@ -166,6 +166,7 @@
 		CCA2A4BF2FB3CB5500A8B92E /* TableDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */; };
 		CCAA1B739CA9AE7FBC0ECF35 /* FullMarkdownParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC90EDCADA563271F64CBE29 /* FullMarkdownParserTests.swift */; };
 		CCAF00012FD00000AAAA0002 /* Resources.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0001 /* Resources.swift */; };
+		CCAF00012FD00000AAAA0004 /* MarkdownKit.docc in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */; };
 		CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */; };
 		CCAF00032FD00000AAAA0002 /* MermaidError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00032FD00000AAAA0001 /* MermaidError.swift */; };
 		CCAF00042FD00000AAAA0002 /* MermaidRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00042FD00000AAAA0001 /* MermaidRenderer.swift */; };
@@ -446,6 +447,7 @@
 		CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorContext.swift; sourceTree = "<group>"; };
 		CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableDescriptor.swift; sourceTree = "<group>"; };
 		CCAF00012FD00000AAAA0001 /* Resources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resources.swift; sourceTree = "<group>"; };
+		CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = MarkdownKit.docc; sourceTree = "<group>"; };
 		CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidConfig.swift; sourceTree = "<group>"; };
 		CCAF00032FD00000AAAA0001 /* MermaidError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidError.swift; sourceTree = "<group>"; };
 		CCAF00042FD00000AAAA0001 /* MermaidRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidRenderer.swift; sourceTree = "<group>"; };
@@ -600,6 +602,7 @@
 				CC088C0A22DB74090059460E /* TextFragment.swift */,
 				CC87987F264B434F006950A7 /* CustomTextFragment.swift */,
 				CCAF00012FD00000AAAA0001 /* Resources.swift */,
+				CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */,
 				CC8CBC1A22862F4F0084683B /* Parser */,
 				CC8307402FC0F49200FDD777 /* Highlighter */,
 				CCAF00FF2FD00000AAAA0001 /* Mermaid */,
@@ -1182,6 +1185,7 @@
 				CCB033D2227CDB2F00E1C4DC /* BlockParser.swift in Sources */,
 				CC8308212FC591EB00FDD777 /* AnsiHighlightingConfig.swift in Sources */,
 				CCAF00012FD00000AAAA0002 /* Resources.swift in Sources */,
+				CCAF00012FD00000AAAA0004 /* MarkdownKit.docc in Sources */,
 				CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */,
 				CCAF00032FD00000AAAA0002 /* MermaidError.swift in Sources */,
 				CCAF00042FD00000AAAA0002 /* MermaidRenderer.swift in Sources */,

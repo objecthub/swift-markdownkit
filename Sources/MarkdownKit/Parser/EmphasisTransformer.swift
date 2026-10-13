@@ -32,10 +32,17 @@ open class EmphasisTransformer: InlineTransformer {
   /// from two parameters: the first denoting whether it's double usage, and the second
   /// referring to the emphasized text.
   public struct Emphasis {
+    /// The emphasis character, such as `*`.
     public let ch: Character
+    /// True if emphasis can start and end within words, as for `*`. For other characters, such
+    /// as `_`, a run of the character which is both left-flanking and right-flanking only
+    /// opens or closes emphasis if it is next to punctuation.
     public let special: Bool
+    /// Creates the text fragment for emphasized text. The first parameter is true if the emphasis
+    /// character was doubled, and the second parameter is the emphasized text.
     public let factory: (Bool, Text) -> TextFragment
     
+    /// Creates the description of an emphasis character.
     public init(ch: Character, special: Bool, factory: @escaping (Bool, Text) -> TextFragment) {
       self.ch = ch
       self.special = special
@@ -56,6 +63,7 @@ open class EmphasisTransformer: InlineTransformer {
   /// markup.
   private var emphasis: [Character : Emphasis] = [:]
 
+  /// Creates the transformer for `owner`, which supports the emphasis in `supportedEmphasis`.
   required public init(owner: InlineParser) {
     super.init(owner: owner)
     for emph in type(of: self).supportedEmphasis {
@@ -131,6 +139,9 @@ open class EmphasisTransformer: InlineTransformer {
   /// The number of enclosing links, images and emphasis while transforming their text
   private var baseDepth = 0
 
+  /// Counts the emphasis, links and images that enclose the text which is being transformed, so
+  /// that `transform(_:)` can limit the nesting depth of emphasis (see
+  /// `InlineParser.maxNestingDepth`). The fragment is transformed like the base class does.
   open override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {
@@ -163,6 +174,9 @@ open class EmphasisTransformer: InlineTransformer {
     let canOpen: Bool
   }
 
+  /// Matches the delimiters of emphasis characters in `text` with the algorithm of the CommonMark
+  /// specification, and replaces matching delimiters and the text between them with the fragment
+  /// that the `factory` of their emphasis character creates.
   open override func transform(_ text: Text) -> Text {
     // Compute delimiter stack
     var res: Text = Text()

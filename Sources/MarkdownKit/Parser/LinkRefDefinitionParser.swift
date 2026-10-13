@@ -25,10 +25,12 @@ import Foundation
 ///
 open class LinkRefDefinitionParser: RestorableBlockParser {
 
+  /// A link reference definition cannot interrupt a paragraph.
   open override var mayInterruptParagraph: Bool {
     return false
   }
 
+  /// Parses a link reference definition if the line starts with `[`.
   open override func parse() -> BlockParser.ParseResult {
     guard self.shortLineIndent && self.firstContentCharacter == "[" else {
       return .none
@@ -36,6 +38,8 @@ open class LinkRefDefinitionParser: RestorableBlockParser {
     return super.parse()
   }
 
+  /// Parses the label, the destination and the optional title of a link reference definition.
+  /// The parts of the definition can be on different lines.
   open override func tryParse() -> ParseResult {
     var index = self.contentStartIndex
     guard let label = self.parseLabel(index: &index),
@@ -119,6 +123,9 @@ open class LinkRefDefinitionParser: RestorableBlockParser {
     return .block(.referenceDef(label, destination, []))
   }
 
+  /// Returns true if the parentheses in `str` are balanced. Parentheses which are escaped by a
+  /// backslash do not count. A link destination which is not enclosed in angle brackets
+  /// has to be balanced.
   public static func balanced(_ str: Substring) -> Bool {
     var open = 0
     var index = str.startIndex

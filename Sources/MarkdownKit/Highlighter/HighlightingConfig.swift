@@ -53,9 +53,16 @@ import UIKit
 /// `fontSize` are information for clients; `apply` does not use them.
 /// 
 public struct HighlightingConfig: @unchecked Sendable {
+  /// The font of code which has no bold or italic style.
   public var codeFont: HRFont
+  /// The font of bold code. `init(withTheme:usingFont:)` derives it from the family of the
+  /// font it is given.
   public var boldCodeFont: HRFont
+  /// The font of italic code. `init(withTheme:usingFont:)` derives it from the family of the
+  /// font it is given.
   public var italicCodeFont: HRFont
+  /// The font of code which is bold and italic. `init(withTheme:usingFont:)` derives it from
+  /// the font it is given.
   public var boldItalicCodeFont: HRFont
   
   /// The background color of the theme: the `background` (or `background-color`) of its `.hljs`
@@ -64,17 +71,29 @@ public struct HighlightingConfig: @unchecked Sendable {
   /// it, so changing it does not change the attributed strings.
   public var themeBackgroundColor: HRColor
   
+  /// The distance in points between the lines of the highlighted code. Negative values count
+  /// as 0.
   public var lineSpacing: CGFloat = 0.0
+  /// The distance in points after each paragraph of the highlighted code. Negative values count
+  /// as 0.
   public var paraSpacing: CGFloat = 0.0
   
   /// The point size of the font which the config was created with. It is information for
   /// clients. `apply` does not use it, so changing it does not resize any font.
   public var fontSize: CGFloat = 18.0
   
+  /// The theme: the CSS style sheet that this configuration was created with.
   public let theme: String
+  /// The CSS of the theme without the background of the code block (the `background` and
+  /// `background-color` of the `.hljs` rule), which is available as `themeBackgroundColor`.
+  /// The generators put it into the style sheet of the HTML they generate.
   public let lightTheme: String
   private let styleSheet: ThemeStyleSheet<HighlightStyle>
   
+  /// Creates a configuration from a theme and a font. `withTheme` is the CSS of the theme (not
+  /// the name of a theme: use `SyntaxHighlighter.getConfig(forTheme:withFont:ofSize:)` to load
+  /// a bundled theme by name). `usingFont` is the font of the code, and the bold, italic and
+  /// bold italic fonts are derived from it.
   public init(withTheme: String, usingFont: HRFont) {
     // Store the theme content
     self.theme = withTheme
@@ -134,6 +153,11 @@ public struct HighlightingConfig: @unchecked Sendable {
                                 HRColor.white
   }
   
+  /// Returns `string` as an attributed string, styled like the elements that have the classes in
+  /// `styleList`. `styleList` contains the Highlight.js classes of the code, from the outermost
+  /// element to the innermost one, e.g. `["hljs", "hljs-keyword"]`. The font, the foreground and
+  /// the background color result from the rules of the theme which match them. Without
+  /// classes, the string has the code font.
   public func apply(to string: String, styleList: [String]) -> NSAttributedString {
     let spacedParaStyle = NSMutableParagraphStyle()
     spacedParaStyle.lineSpacing = self.lineSpacing >= 0.0 ? self.lineSpacing : 0.0

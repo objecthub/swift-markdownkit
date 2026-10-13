@@ -30,12 +30,15 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
 
   private var fragments: ContiguousArray<TextFragment> = []
 
+  /// Creates a text with a single plain text fragment for `str`, or an empty text if `str` is
+  /// `nil`.
   public init(_ str: Substring? = nil) {
     if let str = str {
       self.fragments.append(.text(str))
     }
   }
 
+  /// Creates a text with the given fragment as its only fragment.
   public init(_ fragment: TextFragment) {
     self.fragments.append(fragment)
   }

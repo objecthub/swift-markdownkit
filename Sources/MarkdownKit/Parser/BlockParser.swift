@@ -28,43 +28,64 @@ import Foundation
 open class BlockParser {
 
   /// The result of calling the `parse` method.
+  /// The result of calling the `parse` method of a block parser.
   public enum ParseResult {
+    /// The current line does not start a block of this parser. The document parser then tries the
+    /// next block parser.
     case none
+    /// The parser recognized a block and consumed its lines. The block is added to the document.
     case block(Block)
+    /// The parser recognized the start of a container (such as a block quote or a list item). The
+    /// function creates the container, which is nested in the container it is given; the rest of
+    /// the line is parsed as part of the new container.
     case container((Container) -> Container)
   }
 
   unowned let docParser: DocumentParser
   
+  /// Creates a block parser for `docParser`. A document parser creates one instance of each
+  /// block parser of its configuration, and uses it for the whole document.
   public required init(docParser: DocumentParser) {
     self.docParser = docParser
   }
   
+  /// True if all lines of the input have been read.
   public var finished: Bool {
     return self.docParser.finished
   }
 
+  /// The lines of the paragraph that the document parser is collecting while it reads the
+  /// current line, or `nil` if the previous line did not belong to a paragraph.
   public var prevParagraphLines: Text? {
     return self.docParser.prevParagraphLines
   }
 
+  /// Discards the collected lines of the paragraph. A block parser calls this method if it
+  /// used these lines for the block it creates, such as the text of a setext heading.
   public func consumeParagraphLines() {
     self.docParser.prevParagraphLines = nil
     self.docParser.prevParagraphLinesTight = false
   }
   
+  /// The current line without the markers of the containers that have been recognized (such as
+  /// `>` of a block quote). It includes its line terminator.
   public var line: Substring {
     return self.docParser.line
   }
   
+  /// The index of the first character of the content of `line`, after its indentation.
   public var contentStartIndex: Substring.Index {
     return self.docParser.contentStartIndex
   }
   
+  /// The index after the last character of the content of `line`, which is the end of the line
+  /// without its line terminator.
   public var contentEndIndex: Substring.Index {
     return self.docParser.contentEndIndex
   }
   
+  /// The number of columns by which the current line is indented. A tab advances to the next
+  /// multiple of four.
   public var lineIndent: Int {
     return self.docParser.lineIndent
   }
@@ -79,18 +100,24 @@ open class BlockParser {
     return start < self.docParser.contentEndIndex ? self.docParser.line[start] : nil
   }
   
+  /// True if the current line is blank: it consists of whitespace only.
   public var lineEmpty: Bool {
     return self.docParser.lineEmpty
   }
 
+  /// True if the previous line was blank.
   public var prevLineEmpty: Bool {
     return self.docParser.prevLineEmpty
   }
   
+  /// True if the current line is indented by less than four columns, so it cannot be a line of an
+  /// indented code block.
   public var shortLineIndent: Bool {
     return self.docParser.shortLineIndent
   }
 
+  /// True if the current line has not the markers of the container that is open, but may still
+  /// continue its paragraph (for example a line of a block quote without `>`).
   public var lazyContinuation: Bool {
     return self.docParser.lazyContinuation
   }
@@ -101,6 +128,8 @@ open class BlockParser {
     return self.docParser.lineLeavesContainer
   }
 
+  /// Advances to the next line. A block parser calls this method when it has consumed the current
+  /// line.
   open func readNextLine() {
     self.docParser.readNextLine()
   }
@@ -114,10 +143,16 @@ open class BlockParser {
     self.docParser.resetLineStart(startIndex, partialTab: partialTab)
   }
 
+  /// True if a line that this parser recognizes can interrupt a paragraph. This is the default.
+  /// Parsers for syntax that is part of a paragraph when it follows its text, such as indented
+  /// code, return `false`.
   open var mayInterruptParagraph: Bool {
     return true
   }
   
+  /// Tries to parse a block, or the start of a container, at the current line. The default
+  /// implementation returns `.none`. A parser that recognizes its syntax consumes the lines of
+  /// the block with `readNextLine()` and returns the block.
   open func parse() -> ParseResult {
     return .none
   }
@@ -130,11 +165,15 @@ open class BlockParser {
 open class RestorableBlockParser: BlockParser {
   private var docParserState: DocumentParserState
 
+  /// Creates a block parser for `docParser`, and saves the state of the document parser for
+  /// restoring it.
   public required init(docParser: DocumentParser) {
     self.docParserState = DocumentParserState(docParser)
     super.init(docParser: docParser)
   }
 
+  /// Calls `tryParse()`. If it returns `.none`, the state of the document parser is restored, so
+  /// that the next block parser sees the unchanged input.
   open override func parse() -> ParseResult {
     self.docParser.copyState(&self.docParserState)
     let res = self.tryParse()
@@ -146,6 +185,9 @@ open class RestorableBlockParser: BlockParser {
     }
   }
 
+  /// Tries to parse a block, or the start of a container, like `parse()`. A subclass overrides
+  /// this method instead of `parse()`: it can consume lines before it finds out that its syntax is
+  /// not present, because the document parser is restored if the result is `.none`.
   open func tryParse() -> ParseResult {
     return .none
   }

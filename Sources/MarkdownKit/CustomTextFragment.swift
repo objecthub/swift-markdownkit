@@ -26,12 +26,22 @@ import CommandLineKit
 /// that are implemented externally (i.e. not by the MarkdownKit framework).
 ///
 public protocol CustomTextFragment: CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+  /// Returns true if this fragment and `other` are equal. A custom fragment compares itself with
+  /// another one by checking that `other` is of its own type and comparing their contents.
   func equals(to other: CustomTextFragment) -> Bool
+  /// Returns the fragment that replaces this one when `transformer` processes a text. A fragment
+  /// which contains text calls `transformer.transform(_:)` for it, so that inline markup within
+  /// it is recognized.
   func transform(via transformer: InlineTransformer) -> TextFragment
+  /// Returns the HTML for this fragment. `htmlGen` generates the HTML for the text within it.
   func generateHtml(via htmlGen: HtmlGenerator) -> String
   #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+  /// Returns the HTML for this fragment when an `AttributedStringGenerator` generates it. `htmlGen`
+  /// is the HTML generator of `attrGen`, whose settings, such as fonts and colors, the HTML can
+  /// use.
   func generateHtml(via htmlGen: HtmlGenerator, and attrGen: AttributedStringGenerator?) -> String
   #endif
+  /// The text of the fragment without any markup.
   var rawDescription: String { get }
   
   /// Generates the plain text for this fragment in the text of a `StringGenerator`. This

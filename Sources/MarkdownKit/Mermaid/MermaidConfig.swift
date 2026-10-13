@@ -36,10 +36,15 @@ public struct MermaidConfig: Hashable, Sendable {
 
   /// The Mermaid themes.
   public enum Theme: String, Hashable, Sendable {
+    /// The standard theme of Mermaid, with a light look.
     case `default`
+    /// A theme with neutral, mostly black and white colors, suitable for printing.
     case neutral
+    /// A theme for dark backgrounds.
     case dark
+    /// A theme with green colors.
     case forest
+    /// A theme without a specific look, meant to be customized with `themeVariables`.
     case base
   }
 

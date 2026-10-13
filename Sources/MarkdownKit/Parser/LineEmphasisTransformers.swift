@@ -34,6 +34,7 @@ open class LineEmphasisDelimiterTransformer: DelimiterTransformer {
     return super.emphasisChars + ["~"]
   }
 
+  /// Transforms a text like `DelimiterTransformer`, but takes `~` as an emphasis character.
   open override func transform(_ text: Text) -> Text {
     let result = super.transform(text)
     func isLongTildeRun(_ fragment: TextFragment) -> Bool {

@@ -21,10 +21,14 @@
 import Foundation
 
 
+/// Returns true if `ch` is an ASCII whitespace character (see `isWhitespace(_:)`) or a control
+/// character.
 public func isAsciiWhitespaceOrControl(_ ch: Character) -> Bool {
   return isWhitespace(ch) || isControlCharacter(ch)
 }
 
+/// Returns true if `ch` is an ASCII whitespace character: a space, a tab, a line feed, a carriage
+/// return, a vertical tab or a form feed.
 public func isWhitespace(_ ch: Character) -> Bool {
   switch ch {
     case " ", "\t", "\n", "\r", "\u{b}", "\u{c}":
@@ -34,6 +38,8 @@ public func isWhitespace(_ ch: Character) -> Bool {
   }
 }
 
+/// Returns true if every character of `str` is a whitespace character (see `isWhitespace(_:)`).
+/// An empty string consists of whitespace only.
 public func isWhitespaceString(_ str: Substring) -> Bool {
   for ch in str {
     if !isWhitespace(ch) {
@@ -43,6 +49,8 @@ public func isWhitespaceString(_ str: Substring) -> Bool {
   return true
 }
 
+/// Returns true if the first Unicode scalar of `ch` is whitespace or a newline character in the
+/// sense of Unicode, e.g. a space, a tab, a line feed or a no-break space.
 public func isUnicodeWhitespace(_ ch: Character) -> Bool {
   if let scalar = ch.unicodeScalars.first {
     return CharacterSet.whitespacesAndNewlines.contains(scalar)
@@ -50,6 +58,7 @@ public func isUnicodeWhitespace(_ ch: Character) -> Bool {
   return false
 }
 
+/// Returns true if `ch` is a space.
 public func isSpace(_ ch: Character) -> Bool {
   return ch == " "
 }
@@ -68,10 +77,13 @@ internal func normalizeLinkLabel(_ label: String) -> String {
   return collapsed.lowercased().uppercased().lowercased()
 }
 
+/// Returns true if `ch` is the hyphen `-`.
 public func isDash(_ ch: Character) -> Bool {
   return ch == "-"
 }
 
+/// Returns true if `ch` is an ASCII punctuation character in the sense of CommonMark: one of
+/// `!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~`.
 public func isAsciiPunctuation(_ ch: Character) -> Bool {
   switch ch {
     case "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":",
@@ -82,6 +94,7 @@ public func isAsciiPunctuation(_ ch: Character) -> Bool {
   }
 }
 
+/// Returns true if `ch` is one of the letters `A` to `Z`.
 public func isUppercaseAsciiLetter(_ ch: Character) -> Bool {
   switch ch {
     case "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
@@ -92,6 +105,7 @@ public func isUppercaseAsciiLetter(_ ch: Character) -> Bool {
   }
 }
 
+/// Returns true if `ch` is one of the letters `A` to `Z` or `a` to `z`.
 public func isAsciiLetter(_ ch: Character) -> Bool {
   switch ch {
     case "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
@@ -104,6 +118,8 @@ public func isAsciiLetter(_ ch: Character) -> Bool {
   }
 }
 
+/// Returns true if `ch` is an ASCII letter (see `isAsciiLetter(_:)`) or one of the digits `0` to
+/// `9`.
 public func isAsciiLetterOrDigit(_ ch: Character) -> Bool {
   switch ch {
     case "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
@@ -117,6 +133,8 @@ public func isAsciiLetterOrDigit(_ ch: Character) -> Bool {
   }
 }
 
+/// Returns true if the first Unicode scalar of `ch` is a control character, such as a tab, a line
+/// feed or an escape character.
 public func isControlCharacter(_ ch: Character) -> Bool {
   if let scalar = ch.unicodeScalars.first, CharacterSet.controlCharacters.contains(scalar) {
     return true
@@ -140,6 +158,8 @@ public func isUnicodePunctuation(_ ch: Character) -> Bool {
   return isAsciiPunctuation(ch)
 }
 
+/// Advances `index` over the spaces, tabs and other horizontal whitespace of `str`, up to
+/// `endIndex` or the first character which is not whitespace. Line endings are not skipped.
 public func skipWhitespace(in str: Substring,
                            from index: inout Substring.Index,
                            to endIndex: Substring.Index) {
@@ -154,6 +174,9 @@ public func skipWhitespace(in str: Substring,
   }
 }
 
+/// Returns true if `str` is an absolute URI in the sense of CommonMark autolinks: a scheme of 2
+/// to 32 ASCII characters (a letter followed by letters, digits, `+`, `.` or `-`), a colon, and the
+/// rest of the URI, which contains no whitespace, control characters, `<` or `>`.
 public func isURI(_ str: String) -> Bool {
   var iterator = str.makeIterator()
   var next = iterator.next()
@@ -193,6 +216,9 @@ public func isURI(_ str: String) -> Bool {
   return true
 }
 
+/// Returns true if `str`, which is the text between `<` and `>`, is an opening tag, a closing tag,
+/// a comment, a processing instruction, a declaration or a CDATA section in the sense of
+/// CommonMark's inline HTML.
 public func isHtmlTag(_ str: String) -> Bool {
   var iterator = str.makeIterator()
   var next = iterator.next()
@@ -349,6 +375,7 @@ fileprivate let emailRegExpr: NSRegularExpression =
                                   + #"(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9]"#
                                   + #"(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"#)
 
+/// Returns true if `str` is an email address in the sense of CommonMark autolinks.
 public func isEmailAddress(_ str: String) -> Bool {
   return emailRegExpr.firstMatch(in: str,
                                  range: NSRange(location: 0, length: str.utf16.count)) != nil

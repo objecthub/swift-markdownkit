@@ -25,6 +25,8 @@ import Foundation
 ///
 open class TableParser: RestorableBlockParser {
 
+  /// Parses a table. It only tries to parse the lines if the current line contains a `|` which
+  /// is not escaped by a backslash.
   open override func parse() -> ParseResult {
     guard self.shortLineIndent else {
       return .none
@@ -41,6 +43,10 @@ open class TableParser: RestorableBlockParser {
     return .none
   }
   
+  /// Parses the header row, the delimiter row, which defines the alignment of each column, and
+  /// the body rows of a table. Body rows with more cells than the header are truncated, and rows
+  /// with fewer cells are padded with empty cells. The table ends at the first line which is not
+  /// a row, or which starts another block.
   open override func tryParse() -> ParseResult {
     guard let header = self.parseRow() else {
       return .none
@@ -94,6 +100,8 @@ open class TableParser: RestorableBlockParser {
     return .block(.table(header, alignments, rows))
   }
   
+  /// Parses the current line as a table row: its cells are separated by `|` characters which are
+  /// not escaped by a backslash. Returns `nil` if the line has no content.
   open func parseRow() -> Row? {
     var i = self.contentStartIndex
     skipWhitespace(in: self.line, from: &i, to: self.contentEndIndex)

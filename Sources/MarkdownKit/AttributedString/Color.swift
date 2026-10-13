@@ -22,6 +22,7 @@ import Foundation
 
 #if !os(watchOS)
 extension HRColor {
+  /// Returns the color for the CSS color name `name`, or `nil` if the name is not known.
   public static func from(cssName name: String) -> HRColor? {
     switch name.lowercased() {
       // Reds
@@ -147,6 +148,9 @@ extension HRColor {
     }
   }
   
+  /// Returns the color for a CSS color: a hexadecimal color such as `#fff`, `#ffffff` or
+  /// `#ffffff80` (the last two digits are the alpha channel), or the name of a color. Returns
+  /// `nil` if the string is not a color.
   public static func from(cssColor: String) -> HRColor? {
     var colorString = cssColor.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     func substring(_ lowerBound: Int, _ upperBound: Int) -> String {
@@ -193,6 +197,8 @@ extension HRColor {
 
   extension UIColor {
     
+    /// The color as a string of the form `#RRGGBB`, with hexadecimal digits. It is white if the
+    /// color cannot be converted to RGB.
     public var hexString: String {
       guard let components = self.cgColor.components else {
         return "#FFFFFF"
@@ -212,6 +218,8 @@ extension HRColor {
       return String(format: "#%02X%02X%02X", red, green, blue)
     }
     
+    /// The color as a string of the form `#RRGGBBAA`, with hexadecimal digits. It is opaque white
+    /// if the color cannot be converted to RGB.
     public var hexStringWithAlpha: String {
       guard let components = self.cgColor.components else {
         return "#FFFFFFFF"
@@ -242,6 +250,8 @@ extension HRColor {
 
   extension NSColor {
 
+    /// The color as a string of the form `#RRGGBB`, with hexadecimal digits. It is white if the
+    /// color cannot be converted to RGB.
     public var hexString: String {
       guard let rgb = self.usingColorSpace(NSColorSpace.deviceRGB) else {
         return "#FFFFFF"
@@ -252,6 +262,8 @@ extension HRColor {
       return String(format: "#%02X%02X%02X", red, green, blue)
     }
     
+    /// The color as a string of the form `#RRGGBBAA`, with hexadecimal digits. It is opaque white
+    /// if the color cannot be converted to RGB.
     public var hexStringWithAlpha: String {
       guard let rgb = self.usingColorSpace(NSColorSpace.deviceRGB) else {
         return "#FFFFFFFF"
@@ -264,24 +276,37 @@ extension HRColor {
     }
   }
 
+  /// The default text color, which is the system's text color of the appearance that is active when
+  /// this value is first used.
   public let mdDefaultColor = NSColor.textColor.hexString
+  /// The default background color, which is the system's text background color of the appearance
+  /// that is active when this value is first used.
   public let mdDefaultBackgroundColor = NSColor.textBackgroundColor.hexString
 
 #endif
 
 #if os(iOS)
 
+  /// The default text color, which is the system's label color of the appearance that is active when
+  /// this value is first used.
   public let mdDefaultColor = UIColor.label.hexString
+  /// The default background color, which is the system's background color of the appearance that is
+  /// active when this value is first used.
   public let mdDefaultBackgroundColor = UIColor.systemBackground.hexString
 
 #elseif os(tvOS)
 
+  /// The default text color, which is the system's label color of the appearance that is active when
+  /// this value is first used.
   public let mdDefaultColor = UIColor.label.hexString
+  /// The default background color: white.
   public let mdDefaultBackgroundColor = UIColor.white.hexString
 
 #elseif os(watchOS)
 
+  /// The default text color: black.
   public let mdDefaultColor = UIColor.black.hexString
+  /// The default background color: white.
   public let mdDefaultBackgroundColor = UIColor.white.hexString
 
 #endif

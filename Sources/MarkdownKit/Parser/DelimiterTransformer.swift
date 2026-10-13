@@ -32,6 +32,8 @@ open class DelimiterTransformer: InlineTransformer {
 
   var emphasisCharSet: Set<Character> = []
 
+  /// Creates the transformer for `owner`, which treats the characters of `emphasisChars` as
+  /// emphasis characters.
   required public init(owner: InlineParser) {
     super.init(owner: owner)
     for ch in type(of: self).emphasisChars {
@@ -44,11 +46,17 @@ open class DelimiterTransformer: InlineTransformer {
   /// escape anything in autolinks and in HTML tags, so the `>` ends an autolink or HTML tag.
   private var angleOpen = false
 
+  /// Transforms a text, starting with no unmatched `<` delimiter.
   open override func transform(_ text: Text) -> Text {
     self.angleOpen = false
     return super.transform(text)
   }
 
+  /// Splits plain text at the characters which can start or end markup. Every run of emphasis
+  /// characters, every backtick run and each of `<`, `>`, `[`, `]`, `(`, `)`, `"` and `'` becomes a
+  /// `delimiter` fragment, and `![` is one delimiter for the start of an image. A delimiter run
+  /// of emphasis characters is classified (see `DelimiterRunType`), and the text in between
+  /// stays plain text. Other fragments are left unchanged.
   open override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {

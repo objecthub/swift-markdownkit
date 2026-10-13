@@ -22,10 +22,11 @@ import Foundation
 import CommandLineKit
 
 ///
-/// `StringGenerator` provides functionality for converting Markdown blocks into formatted
-/// plain text strings with word wrapping and indentation support. The implementation is
-/// extensible allowing subclasses of `StringGenerator` to override how individual Markdown
-/// structures are converted into strings.
+/// `TerminalGenerator` provides functionality for converting Markdown blocks into text for
+/// ANSI-compliant terminals, with word wrapping, indentation, and styled text. The result is
+/// marked up with ANSI escape sequences. The implementation is extensible allowing subclasses
+/// of `TerminalGenerator` to override how individual Markdown structures are converted into
+/// styled text.
 ///
 /// Instances are immutable once they have been created and conform to `Sendable`, so a
 /// single instance (such as `TerminalGenerator.standard`) can be used from several threads or tasks
@@ -33,23 +34,19 @@ import CommandLineKit
 /// subclass which adds mutable state has to synchronize it itself, and has to restate
 /// the conformance as `@unchecked Sendable`.
 ///
+/// See <doc:GeneratingTerminalOutput> for an introduction and for how to change the output.
+///
 open class TerminalGenerator: @unchecked Sendable {
-  
-  /// A `TableDescriptor` value encapsulates all information needed to render
-  /// a table, including metadata about each column (to determine how columns
-  /// are organized).
-  public struct TableDescriptor: Sendable {
-    let header: Row
-    let alignments: Alignments
-    let rows: Rows
-    let columnStats: [(minWidth: Int, maxWidth: Int, wordCount: Int)]
-  }
   
   /// `TableRenderer` objects are able to render tables as an array of strings where
   /// each string is representing a line of text. A generator can be used by several threads
   /// at the same time, which is why renderers are `Sendable`: they have to be immutable or
   /// synchronize their state.
   public protocol TableRenderer: Sendable {
+    /// Renders the table described by `descriptor` and returns its lines, or `nil` if this renderer
+    /// cannot render the table, in which case the generator asks the next renderer. `generate`
+    /// converts the text of a cell into lines which have at most the given number of columns.
+    /// `context` provides the number of columns that are available for the table.
     func renderTable(_ descriptor: TableDescriptor,
                      using generate: (Text, Int) -> [AnsiText.Normalized],
                      in context: GeneratorContext) -> [AnsiText.Normalized]?
@@ -98,6 +95,8 @@ open class TerminalGenerator: @unchecked Sendable {
   public let breakProperties: TextProperties
   
   #if !os(watchOS)
+  /// The configuration for highlighting the syntax of code blocks, which was loaded from the
+  /// theme of `syntaxHighlighting`. It is `nil` if syntax highlighting is disabled.
   public let codeBlockHighlightingConfig: AnsiHighlightingConfig?
   
   /// Should a code block with syntactic issues be highlighted?
@@ -138,6 +137,8 @@ open class TerminalGenerator: @unchecked Sendable {
     /// Support 256 colors?
     public let fullColorSupport: Bool
     
+    /// Creates a configuration for the syntax highlighting of code blocks. `theme` is either the
+    /// name of a bundled theme or CSS; the other parameters are described by the properties.
     public init(theme: String,
                 ignoreSyntacticIssues: Bool = true,
                 ignoredLanguages: Set<String> = [],
@@ -150,6 +151,8 @@ open class TerminalGenerator: @unchecked Sendable {
       self.fullColorSupport = fullColorSupport
     }
     
+    /// The default configuration, with a light theme. Fenced code blocks without a language are not
+    /// highlighted, and the language of indented code blocks is inferred.
     public static let `default` = SyntaxHighlightingConfig(
       theme:
         """
@@ -159,6 +162,8 @@ open class TerminalGenerator: @unchecked Sendable {
       ignoredLanguages: [""],             // do not infer a language for fenced code blocks
       highlightIndentedCodeBlocks: true)  // infer the language for indented code blocks
     
+    /// The default configuration for dark backgrounds, with a dark theme. Fenced code blocks without
+    /// a language are not highlighted, and the language of indented code blocks is inferred.
     public static let defaultDark = SyntaxHighlightingConfig(
       theme:
         """
@@ -570,6 +575,8 @@ open class TerminalGenerator: @unchecked Sendable {
     }
   }
   
+  /// Creates the description of a table for the table renderers, including the statistics of the
+  /// widths of the columns.
   open func tableDescriptor(header: Row, alignments: Alignments, rows: Rows) -> TableDescriptor {
     // Initial text rendering
     let headerLines = header.map { text in self.generate(text: text) }
@@ -631,10 +638,14 @@ open class TerminalGenerator: @unchecked Sendable {
                            })
   }
   
+  /// Splits `str` into words, which are separated by whitespace. Word wrapping and the
+  /// computation of column widths use it.
   open func tokenize(_ str: String) -> [String] {
     return str.split(whereSeparator: \.isWhitespace).map(String.init)
   }
   
+  /// Wraps `text` into lines of at most `maxColumns` columns by breaking it between words. A word
+  /// which is wider than `maxColumns` is not split; it is placed on a line of its own.
   open func wordWrap(_ text: String, maxColumns: Int) -> [String] {
     let words = self.tokenize(text)
     var lines: [String] = []
@@ -663,6 +674,7 @@ open class TerminalGenerator: @unchecked Sendable {
     return lines
   }
   
+  /// Returns the width on the screen of the widest of the given lines.
   public func width(of lines: [AnsiText.Normalized]) -> Int {
     var width = 0
     for line in lines {
@@ -671,10 +683,16 @@ open class TerminalGenerator: @unchecked Sendable {
     return width
   }
     
+  /// Creates the context for the generation of the document `doc` in `maxColumns` columns. A
+  /// subclass overrides this method to use its own subclass of `GeneratorContext`.
   open func newContext(doc: Block, maxColumns: Int) -> GeneratorContext {
     return GeneratorContext(doc: doc, maxColumns: maxColumns)
   }
   
+  /// Returns the character that underlines the heading of the given level. The result for level
+  /// 0 is the character with which headings that are not underlined are prefixed, which
+  /// is repeated for the level (`## Heading`). A heading is not underlined if this method returns
+  /// `nil` for its level.
   open func headingUnderlineCharacter(level: Int) -> Character? {
     switch level {
       case 0:
@@ -690,6 +708,9 @@ open class TerminalGenerator: @unchecked Sendable {
     }
   }
   
+  /// Returns the line above and below a code block, with `maxColumns` columns. The line above a
+  /// code block shows the language `lang` if there is one. The line is styled with
+  /// `codeBlockBorderProperties` and the language with `codeBlockLangProperties`.
   open func codeBlockBorder(lang: String? = nil, maxColumns: Int) -> AnsiText.Normalized {
     if let lang {
       var suffix = AnsiText.Normalized(" \(lang.sanitizingControlCharacters()) ",
@@ -706,14 +727,20 @@ open class TerminalGenerator: @unchecked Sendable {
     }
   }
   
+  /// The string which precedes each line of a block quote.
   open var blockquoteIndent: AnsiText.Normalized {
     return AnsiText.Normalized(" ┃ ", properties: self.blockquoteProperties)
   }
   
+  /// The indentation of the items of a list, in front of their bullets or numbers.
   open var listIndent: AnsiText.Normalized {
     return AnsiText.Normalized("  ")
   }
   
+  /// Returns the prefix of the first line of a list item, with its bullet, number or checkbox, and
+  /// the indentation of the following lines of the item. `columns` is the number of columns that
+  /// are reserved for the prefix (`GeneratorContext.itemIndent`); if it is `nil`, the prefix has
+  /// the width of the bullet or number.
   open func listPrefix(type: ListType, context: GeneratorContext, columns: Int?)
                       -> (AnsiText.Normalized, AnsiText.Normalized) {
     let level = context.numEnclosingLists
@@ -752,6 +779,9 @@ open class TerminalGenerator: @unchecked Sendable {
                                 count: max(columns, 2)))
   }
   
+  /// Returns the strings which precede the lines of the terms and the lines of the descriptions
+  /// of a definition list. Definition lists that are nested in a list or in a definition list are
+  /// not indented; the others are indented by one space.
   open func definitionPrefix(definitions: Definitions,
                              context: GeneratorContext)
                          -> (AnsiText.Normalized, AnsiText.Normalized) {
@@ -763,6 +793,8 @@ open class TerminalGenerator: @unchecked Sendable {
     }
   }
   
+  /// Returns the string which precedes the first line of each description of a definition list.
+  /// The other lines of the description are indented by its width.
   open func definitionIndent(definitions: Definitions,
                              context: GeneratorContext) -> AnsiText.Normalized {
     return AnsiText.Normalized(" → ")
@@ -781,6 +813,8 @@ open class TerminalGenerator: @unchecked Sendable {
     let borderProperties: TextProperties
     let headerProperties: TextProperties
     
+    /// Creates a renderer. `borderProperties` style the separator lines, and `headerProperties`
+    /// the text of the header row.
     public init(borderProperties: TextProperties = .grey,
                 headerProperties: TextProperties = .italic) {
       self.borderProperties = borderProperties
@@ -872,6 +906,8 @@ open class TerminalGenerator: @unchecked Sendable {
       return result
     }
     
+    /// Returns true if the table fits into the columns that the context provides when each cell is
+    /// written on a single line.
     open func canRenderSlim(_ descriptor: TableDescriptor, in context: GeneratorContext) -> Bool {
       return descriptor.columnStats.reduce(-3, { (r, v) in r + v.maxWidth + 3 })
                <= context.maxColumns
@@ -896,13 +932,22 @@ open class TerminalGenerator: @unchecked Sendable {
   /// 
   open class FullTableRenderer: TableRenderer, @unchecked Sendable {
     
+    /// The characters of a horizontal line of the frame of a table: the character at its left end,
+    /// at its right end and above the separators of the columns, the character that the line
+    /// consists of, and the text properties of the line.
     public struct Delimiter: Sendable {
+      /// The character at the left end of the line.
       public let left: Character
+      /// The character at the right end of the line.
       public let right: Character
+      /// The character where the line crosses the separator of two columns.
       public let mid: Character
+      /// The character that is repeated along the line.
       public let line: Character
+      /// The text properties of the line.
       public let properties: TextProperties
       
+      /// Creates a delimiter from its characters and text properties.
       public init(left: Character,
                   right: Character,
                   mid: Character,
@@ -915,18 +960,22 @@ open class TerminalGenerator: @unchecked Sendable {
         self.properties = properties
       }
       
+      /// The start of the line: the left character followed by the line character.
       public var leftStart: AnsiText.Normalized {
         return AnsiText.Normalized("\(self.left)\(self.line)", properties: properties)
       }
       
+      /// The end of the line: the line character followed by the right character.
       public var rightEnd: AnsiText.Normalized {
         return AnsiText.Normalized("\(self.line)\(self.right)", properties: properties)
       }
       
+      /// The characters where the line crosses the separator of two columns.
       public var midSeparator: AnsiText.Normalized {
         return AnsiText.Normalized("\(self.line)\(self.mid)\(self.line)", properties: properties)
       }
       
+      /// Returns the line for columns of the given widths.
       public func separatorLine(_ columnWidths: [Int]) -> AnsiText.Normalized {
         var line = self.leftStart
         for (index, width) in columnWidths.enumerated() {
@@ -948,6 +997,10 @@ open class TerminalGenerator: @unchecked Sendable {
     let headerProperties: TextProperties
     let rowProperties: TextProperties
     
+    /// Creates a renderer. The delimiters are the lines above the table, below it, between the
+    /// header and the first row, and between the other rows. `bar` separates the columns and has
+    /// the text properties `barProperties`; `headerProperties` and `rowProperties` style the text
+    /// of the header and of the other rows.
     public init(topDelimiter: Delimiter
                   = Delimiter(left: "┌", right: "┐", mid: "┬", line: "─", properties: .grey),
                 bottomDelimiter: Delimiter 
@@ -1020,6 +1073,9 @@ open class TerminalGenerator: @unchecked Sendable {
       return result
     }
     
+    /// Appends the lines of one row to `result`. `lines` has the lines of each cell, `height` is
+    /// the number of lines of the row, `header` is true for the header row, and `fill` styles the
+    /// padding of the cells.
     open func renderRow(_ descriptor: TableDescriptor,
                         lines: [[AnsiText.Normalized]],
                         height: Int,
@@ -1056,6 +1112,9 @@ open class TerminalGenerator: @unchecked Sendable {
       }
     }
     
+    /// Determines the width of each column. The columns have the width of their widest cell, unless
+    /// the table does not fit into the available columns: the columns are then narrowed in
+    /// proportion, but not below the width of their widest word.
     open func columnWidths(_ descriptor: TableDescriptor, in context: GeneratorContext) -> [Int] {
       // Create an initial assignment of column widths based on the maximum width
       var columnWidths: [Int] = descriptor.columnStats.map(\.maxWidth)

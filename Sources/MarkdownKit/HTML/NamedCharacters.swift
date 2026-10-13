@@ -20,8 +20,13 @@
 
 import Foundation
 
+/// Character references: the names of HTML entities, such as `&amp;` and `&eacute;`, and their
+/// characters.
 public struct NamedCharacters {
   
+  /// Returns the character for the entity `entity`, which includes the `&` and the `;`: a named
+  /// entity, such as `&amp;`, or a numeric one, such as `&#38;` or `&#x26;`. Returns `nil` if `entity`
+  /// is not an entity. Invalid numeric references decode to U+FFFD.
   public static func decode(entity: String) -> Character? {
     if let ch = NamedCharacters.namedCharacterMap[entity] {
       return ch
@@ -62,6 +67,7 @@ public struct NamedCharacters {
     return Character(UnicodeScalar(code) ?? "\u{FFFD}")
   }
   
+  /// The characters of the named entities, by their names, e.g. `"&amp;"` for `&`.
   public static let namedCharacterMap: [String: Character] = [
     "&Aacute;"              : "\u{000C1}",
     "&aacute;"              : "\u{000E1}",
@@ -2187,6 +2193,7 @@ public struct NamedCharacters {
     "&zwnj;"                : "\u{0200C}"
   ]
   
+  /// The names of the entities of characters: the inverse of `namedCharacterMap`.
   public static let characterNameMap: [Character : String] = {
     var map = [Character : String](minimumCapacity: NamedCharacters.namedCharacterMap.count)
     for (k, v) in NamedCharacters.namedCharacterMap {

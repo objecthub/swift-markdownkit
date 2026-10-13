@@ -25,6 +25,9 @@ import Foundation
 ///
 open class AtxHeadingParser: BlockParser {
   
+  /// Parses an ATX heading: one to six `#` characters, followed by a space, a tab or the end of
+  /// the line, the text of the heading, and an optional closing sequence of `#` characters. The
+  /// line can be indented by up to three columns.
   open override func parse() -> ParseResult {
     guard self.shortLineIndent else {
       return .none

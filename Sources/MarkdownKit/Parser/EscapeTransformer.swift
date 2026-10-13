@@ -44,6 +44,9 @@ import Foundation
 ///
 open class EscapeTransformer: InlineTransformer {
 
+  /// Replaces backslash escapes with the escaped characters, in text and in the destinations and
+  /// titles of links and images. Line endings become hard line breaks if they are preceded by a
+  /// backslash or by at least two spaces, and soft line breaks otherwise.
   open override func transform(_ fragment: TextFragment,
                                  from iterator: inout Text.Iterator,
                                  into res: inout Text) -> TextFragment? {

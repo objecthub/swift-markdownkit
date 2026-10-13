@@ -31,10 +31,17 @@ import Foundation
 /// subclass which adds mutable state has to synchronize it itself, and has to restate
 /// the conformance as `@unchecked Sendable`.
 ///
+/// See <doc:GeneratingOutput> for an introduction, <doc:CustomizingHTMLOutput> for how to
+/// change the HTML, and <doc:RenderingUntrustedMarkdown> for the safe mode.
+///
 open class HtmlGenerator: @unchecked Sendable {
   
+  /// The chain of blocks that enclose the block which is being generated. It lets a subclass
+  /// find out in which context a block appears, e.g. in a block quote or in a list item.
   public enum Parent: Sendable {
+    /// There is no enclosing block: the block is a top-level block of a document.
     case none
+    /// The enclosing block, followed by the blocks that enclose it.
     indirect case block(Block, Parent)
   }
   
@@ -46,6 +53,8 @@ open class HtmlGenerator: @unchecked Sendable {
   /// when generating HTML from untrusted Markdown.
   public let safeMode: Bool
   
+  /// Creates an HTML generator. If `safeMode` is true, raw HTML is omitted and URLs with unsafe
+  /// schemes are emptied; see `safeMode`.
   public init(safeMode: Bool = false) {
     self.safeMode = safeMode
   }
@@ -79,6 +88,9 @@ open class HtmlGenerator: @unchecked Sendable {
     }
   }
   
+  /// Generates the HTML for a sequence of blocks which have the enclosing blocks `parent`.
+  /// `tight` is true if the blocks are the content of a tight list, in which paragraphs are
+  /// not wrapped into `<p>` elements. The HTML of the blocks is concatenated.
   open func generate(blocks: Blocks, parent: Parent, tight: Bool = false) -> String {
     var res = ""
     for block in blocks {
@@ -87,6 +99,10 @@ open class HtmlGenerator: @unchecked Sendable {
     return res
   }
   
+  /// Generates the HTML for one block which has the enclosing blocks `parent`. `tight` is true
+  /// if the block is part of a tight list. This is the method to override for changing how a
+  /// kind of block is converted into HTML; call `super` for all other blocks, as in the
+  /// example of <doc:CustomizingHTMLOutput>.
   open func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
     switch block {
       case .document(let blocks):
@@ -220,6 +236,7 @@ open class HtmlGenerator: @unchecked Sendable {
     }
   }
 
+  /// Generates the HTML for inline text by concatenating the HTML of its fragments.
   open func generate(text: Text) -> String {
     var res = ""
     for fragment in text {
@@ -228,6 +245,8 @@ open class HtmlGenerator: @unchecked Sendable {
     return res
   }
 
+  /// Generates the HTML for one inline fragment, such as emphasized text or a link. Override
+  /// this method to change the HTML for a kind of fragment.
   open func generate(textFragment fragment: TextFragment) -> String {
     switch fragment {
       case .text(let str):
@@ -316,6 +335,7 @@ open class HtmlGenerator: @unchecked Sendable {
     return " title=\"\(Sanitizer.attribute(title))\""
   }
 
+  /// Concatenates `lines`, putting `separator` between them. The lines are not escaped.
   open func generate(lines: Lines, separator: String = "\n") -> String {
     var res = ""
     for line in lines {

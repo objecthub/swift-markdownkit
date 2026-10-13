@@ -25,6 +25,8 @@ import Foundation
 ///
 open class ThematicBreakParser: BlockParser {
   
+  /// Parses a line with at least three `-`, `_` or `*` characters, which can be separated by
+  /// spaces and tabs, and no other characters.
   open override func parse() -> ParseResult {
     guard self.shortLineIndent else {
       return .none

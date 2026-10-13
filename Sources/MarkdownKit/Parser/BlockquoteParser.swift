@@ -71,6 +71,8 @@ open class BlockquoteParser: BlockParser {
     }
   }
   
+  /// Parses the `>` marker of a block quote, which can be followed by a space, and starts a
+  /// container for the content of the block quote.
   open override func parse() -> ParseResult {
     guard self.shortLineIndent && self.firstContentCharacter == ">" else {
       return .none

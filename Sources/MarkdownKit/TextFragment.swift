@@ -26,21 +26,44 @@ import Foundation
 /// markup can be arbitrarily nested, this is a recursive data structure (via struct `Text`).
 ///
 public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+  /// Plain text. Backslash escapes are resolved, but character references (such as `&amp;`)
+  /// are still contained in the string: the generators decode them.
   case text(Substring)
+  /// A code span, which is code between backticks: the code, without the backticks.
   case code(Substring)
+  /// Emphasized text (`*text*` or `_text_`).
   case emph(Text)
+  /// Strongly emphasized text (`**text**` or `__text__`).
   case strong(Text)
-  /// Underlined text; supported by `FullMarkdownParser` (`~text~`)
+  /// Underlined text; supported by ``FullMarkdownParser`` (`~text~`)
   case underline(Text)
-  /// Struck-through text; supported by `FullMarkdownParser` (`~~text~~`)
+  /// Struck-through text; supported by ``FullMarkdownParser`` (`~~text~~`)
   case strikethrough(Text)
+  /// A link (`[text](destination "title")`, or a reference link). The parameters are the link
+  /// text, the destination and the title; the latter two are `nil` if they are missing.
   case link(Text, String?, String?)
+  /// A link which is written as its own text: `<https://example.com>` or an email address in
+  /// angle brackets. The parameters are the type of the link and the address, without the
+  /// angle brackets.
   case autolink(AutolinkType, Substring)
+  /// An image (`![description](source "title")`, or a reference image). The parameters are the
+  /// description, which is the alternative text of the image, the source and the title; the
+  /// latter two are `nil` if they are missing.
   case image(Text, String?, String?)
+  /// Raw inline HTML, such as a tag or a comment. The parameter is the HTML without the
+  /// surrounding angle brackets.
   case html(Substring)
+  /// A run of delimiter characters (such as `*`, `_`, `[` or a backtick) which the inline
+  /// parser has not turned into markup. The parameters are the character, the length of the run
+  /// and its classification. Inline transformers use these to find emphasis and links; what
+  /// remains of them after parsing is shown as the characters they stand for.
   case delimiter(Character, Int, DelimiterRunType)
+  /// A line ending within a paragraph that does not force a line break.
   case softLineBreak
+  /// A line ending which forces a line break: it is preceded by a backslash or at least two
+  /// spaces.
   case hardLineBreak
+  /// A fragment whose syntax is not defined by MarkdownKit, see ``CustomTextFragment``.
   case custom(CustomTextFragment)
 
   /// Returns a description of this `TextFragment` object as a string as if the text would be
@@ -206,7 +229,9 @@ public enum TextFragment: Equatable, CustomStringConvertible, CustomDebugStringC
 /// Represents an autolink type.
 ///
 public enum AutolinkType: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+  /// An absolute URI, such as `<https://example.com>`.
   case uri
+  /// An email address, such as `<someone@example.com>`.
   case email
 
   public var description: String {
@@ -230,7 +255,9 @@ public typealias Lines = ContiguousArray<Substring>
 
 ///
 /// Each delimiter run is classified into a set of types which are represented via the
-/// `DelimiterRunType` struct.
+/// `DelimiterRunType` struct. The classification follows the definitions of _left-flanking_
+/// and _right-flanking_ delimiter runs in the CommonMark specification: a run which is
+/// left-flanking can open emphasis, and one which is right-flanking can close it.
 public struct DelimiterRunType: OptionSet, CustomStringConvertible, Sendable {
   public let rawValue: UInt8
 
@@ -238,11 +265,21 @@ public struct DelimiterRunType: OptionSet, CustomStringConvertible, Sendable {
     self.rawValue = rawValue
   }
 
+  /// The run is left-flanking: it is not followed by whitespace, and it is either not followed
+  /// by punctuation, or it is followed by punctuation and preceded by whitespace or punctuation.
   public static let leftFlanking = DelimiterRunType(rawValue: 1 << 0)
+  /// The run is right-flanking: it is not preceded by whitespace, and it is either not preceded
+  /// by punctuation, or it is preceded by punctuation and followed by whitespace or punctuation.
   public static let rightFlanking = DelimiterRunType(rawValue: 1 << 1)
+  /// The character in front of the run is a Unicode punctuation character.
   public static let leftPunctuation = DelimiterRunType(rawValue: 1 << 2)
+  /// The character after the run is a Unicode punctuation character.
   public static let rightPunctuation = DelimiterRunType(rawValue: 1 << 3)
+  /// The run is preceded by a backslash. A backslash does not escape the backticks which
+  /// close a code span or the `>` which ends an autolink or an HTML tag, so these delimiters
+  /// are kept, and marked with this type.
   public static let escaped = DelimiterRunType(rawValue: 1 << 4)
+  /// The delimiter is the opening bracket of an image (`![`).
   public static let image = DelimiterRunType(rawValue: 1 << 5)
 
   public var description: String {

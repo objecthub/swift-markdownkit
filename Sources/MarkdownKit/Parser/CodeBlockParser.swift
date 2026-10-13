@@ -50,10 +50,13 @@ open class CodeBlockParser: BlockParser {
 ///
 public final class IndentedCodeBlockParser: CodeBlockParser {
 
+  /// Indented code cannot interrupt a paragraph: such a line is part of the paragraph.
   public override var mayInterruptParagraph: Bool {
     return false
   }
 
+  /// Parses an indented code block: the lines which are indented by at least four columns, and
+  /// the blank lines between them. The lines of the block do not include the indentation.
   public override func parse() -> ParseResult {
     guard !self.shortLineIndent else {
       return .none
@@ -82,6 +85,9 @@ public final class IndentedCodeBlockParser: CodeBlockParser {
 ///
 public final class FencedCodeBlockParser: CodeBlockParser {
   
+  /// Parses a fenced code block: an opening fence of at least three backticks or tildes with an
+  /// optional info string, the lines of code, and a closing fence which is at least as long as
+  /// the opening fence. The block also ends at the end of its container or of the input.
   public override func parse() -> ParseResult {
     guard self.shortLineIndent else {
       return .none

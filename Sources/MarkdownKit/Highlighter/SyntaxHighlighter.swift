@@ -29,13 +29,19 @@ import JavaScriptCore
 import CommandLineKit
 #if os(macOS)
 import AppKit
+/// The color type of the platform: `NSColor` on macOS and `UIColor` on the other platforms.
 public typealias HRColor = NSColor
+/// The font type of the platform: `NSFont` on macOS and `UIFont` on the other platforms.
 public typealias HRFont  = NSFont
+/// The type of the edit actions of a text storage on the platform.
 public typealias TextStorageEditActions = NSTextStorageEditActions
 #else
 import UIKit
+/// The color type of the platform: `NSColor` on macOS and `UIColor` on the other platforms.
 public typealias HRColor = UIColor
+/// The font type of the platform: `NSFont` on macOS and `UIFont` on the other platforms.
 public typealias HRFont  = UIFont
+/// The type of the edit actions of a text storage on the platform.
 public typealias TextStorageEditActions = NSTextStorage.EditActions
 #endif
 
@@ -60,6 +66,8 @@ public typealias TextStorageEditActions = NSTextStorage.EditActions
 ///
 /// A `SyntaxHighlighter` conforms to `Sendable`: it can be used from several threads at the
 /// same time (calls into the JavaScript engine are serialized).
+///
+/// See <doc:SyntaxHighlighting> for how the generators use the highlighter.
 /// 
 public final class SyntaxHighlighter: @unchecked Sendable {
 

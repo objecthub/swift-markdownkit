@@ -41,9 +41,13 @@
 /// at the same time. The conformance is `@unchecked` because the class is `open`: a
 /// subclass which adds mutable state has to synchronize it itself, and has to restate
 /// the conformance as `@unchecked Sendable`.
-/// Generating the HTML (`htmlGenerator`) is thread-safe. The synchronous methods (`generate(doc:)`
+/// Generating the HTML (`htmlGenerator(options:)`) is thread-safe. The synchronous methods (`generate(doc:)`
 /// etc.) hand the HTML to the system's HTML importer, which Apple documents as usable on the
 /// main thread only. From other threads, use `generateAsync`.
+///
+/// See <doc:GeneratingOutput> for an introduction, <doc:CustomizingAttributedStringOutput> for
+/// how to change the output, and <doc:RenderingUntrustedMarkdown> for Markdown that does not
+/// come from a trusted source.
 ///
 open class AttributedStringGenerator: @unchecked Sendable {
 
@@ -173,6 +177,10 @@ open class AttributedStringGenerator: @unchecked Sendable {
     /// used. Works for the synchronous and the asynchronous methods.
     public let textSizeMultiplier: Double?
 
+    /// Creates rendering options. The defaults are those of `trusted`: nothing is restricted,
+    /// except that the path extension of an image has to be one of the `imageExtensions`. The
+    /// asynchronous methods give up after `defaultTimeout` seconds. See the properties for the
+    /// meaning of the parameters.
     public init(baseUrl: URL? = nil,
                 timeout: TimeInterval? = RenderingOptions.defaultTimeout,
                 localImages: ImageAccess = .any,
@@ -438,6 +446,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
       self.rawValue = rawValue
     }
     
+    /// Shows the paragraphs of list items without paragraph spacing, also in loose lists. By
+    /// default, only the paragraphs of tight lists are shown without spacing.
     public static let tightLists = Options(rawValue: 1 << 0)
   }
   
@@ -449,20 +459,36 @@ open class AttributedStringGenerator: @unchecked Sendable {
       self.rawValue = rawValue
     }
     
+    /// A line below the header row of a table.
     public static let header = TableBorders(rawValue: 1 << 0)
+    /// A line above the table.
     public static let top = TableBorders(rawValue: 1 << 1)
+    /// A line below the table.
     public static let bottom = TableBorders(rawValue: 1 << 2)
+    /// A line on the left of the table.
     public static let left = TableBorders(rawValue: 1 << 3)
+    /// A line on the right of the table.
     public static let right = TableBorders(rawValue: 1 << 4)
+    /// Lines between the rows of a table.
     public static let rows = TableBorders(rawValue: 1 << 5)
+    /// Lines between the columns of a table.
     public static let columns = TableBorders(rawValue: 1 << 6)
   }
   
   /// Version of the attributed string generator
   public enum Version: Sendable {
+    /// The generator for macOS and iOS before version 26. It generates lists with the HTML list
+    /// elements, and has a serif font as its default font family. It does not highlight the
+    /// syntax of code blocks, so that the attributed strings of existing code, which was written
+    /// before highlighting was added, do not change.
     case preOS26
+    /// The generator for macOS 26 and iOS 26 or later, which is the default. The HTML importer of
+    /// these systems lays out the HTML list elements poorly, so this version generates lists as
+    /// tables. It uses system fonts by default.
     case OS26
     
+    /// Returns the HTML generator of this version for `generator`, which uses `renderingOptions`
+    /// to restrict images and for safe mode.
     public func makeHtmlGenerator(for generator: AttributedStringGenerator,
                                   renderingOptions: RenderingOptions) -> InternalHtmlGenerator {
       switch self {
@@ -488,6 +514,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     /// Should indented code blocks be highlighted?
     public let highlightIndentedCodeBlocks: Bool
     
+    /// Creates a configuration for the syntax highlighting of code blocks. `theme` is either the
+    /// name of a bundled theme or CSS; the other parameters are described by the properties.
     public init(theme: String,
                 ignoreSyntacticIssues: Bool = true,
                 ignoredLanguages: Set<String> = [],
@@ -498,6 +526,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
       self.highlightIndentedCodeBlocks = highlightIndentedCodeBlocks
     }
     
+    /// The default configuration, with a light theme. Fenced code blocks without a language are not
+    /// highlighted, and the language of indented code blocks is inferred.
     public static let `default` = SyntaxHighlightingConfig(
       theme:
         """
@@ -507,6 +537,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
       ignoredLanguages: [""],             // do not infer a language for fenced code blocks
       highlightIndentedCodeBlocks: true)  // infer the language for indented code blocks
     
+    /// The default configuration for dark backgrounds, with a dark theme. Fenced code blocks without
+    /// a language are not highlighted, and the language of indented code blocks is inferred.
     public static let defaultDark = SyntaxHighlightingConfig(
       theme:
         """
@@ -521,6 +553,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// `NSAttributedString` conversion logic provided by the operating system. This
   /// should be used prior to macOS 26 and iOS 26
   open class InternalHtmlGenerator: HtmlGenerator, @unchecked Sendable {
+    /// The attributed string generator that this HTML generator is created by. It defines the
+    /// styles and options that the generated HTML depends on.
     public let outer: AttributedStringGenerator
     
     /// The options used for restricting images. By default, those of `outer`.
@@ -531,6 +565,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     /// created the attributed string.
     public let diagrams: MermaidDiagramContext
 
+    /// Creates an HTML generator for `outer`. `renderingOptions` restrict the images the HTML refers
+    /// to and decide about safe mode.
     public init(outer: AttributedStringGenerator, renderingOptions: RenderingOptions) {
       self.outer = outer
       self.renderingOptions = renderingOptions
@@ -589,6 +625,10 @@ open class AttributedStringGenerator: @unchecked Sendable {
       return checked ? "☑" : "☐"
     }
 
+    /// Generates the HTML for a block. Code blocks, block quotes, thematic breaks, tables and
+    /// definition lists are generated with the CSS classes of `docStyle`, mostly as tables, because
+    /// the system's HTML importer converts these best. Mermaid diagrams that have been rendered are
+    /// placeholders in the HTML, which `AttributedStringGenerator` replaces with images.
     open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
       switch block {
         case .list(_, _, _):
@@ -694,6 +734,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
       }
     }
     
+    /// Generates the HTML for an inline fragment. Images are only loaded if the `renderingOptions`
+    /// allow it: an image that is not allowed is replaced by its alternative text.
     open override func generate(textFragment fragment: TextFragment) -> String {
       switch fragment {
         case .image(let text, let uri, let title):
@@ -727,6 +769,10 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// `NSAttributedString` conversion logic provided by the operating system. This
   /// should be used starting macOS 26 and iOS 26.
   open class OS26HtmlGenerator: InternalHtmlGenerator, @unchecked Sendable {
+    /// Additionally generates lists as tables with the classes `ult`, `olt`, `uln` and `oln`, and
+    /// list items as table rows, because the HTML importer of macOS 26 and iOS 26 lays out tables
+    /// better than HTML lists. This generator also highlights the syntax of code blocks, if
+    /// the `syntaxHighlighting` configuration of the attributed string generator asks for it.
     open override func generate(block: Block, parent: Parent, tight: Bool = false) -> String {
       switch block {
         case .list(let start, let tight, let blocks):
@@ -1065,10 +1111,15 @@ open class AttributedStringGenerator: @unchecked Sendable {
                                           renderingOptions: options ?? self.renderingOptions)
   }
   
+  /// Wraps the HTML of the body of a document into a complete HTML document: the `head` element
+  /// from `htmlHead` and the `body` element from `htmlBody(_:)`. The system converts this HTML
+  /// into an attributed string.
   open func generateHtml(_ htmlBody: String) -> String {
     return "<html>\n\(self.htmlHead)\n\(self.htmlBody(htmlBody))\n</html>"
   }
   
+  /// The `head` element of the HTML document: the character encoding, the style sheet `docStyle`
+  /// and, if syntax highlighting is enabled, the style sheet of the highlighting theme.
   open var htmlHead: String {
     let res = "<head><meta charset=\"utf-8\"/><style type=\"text/css\">\n" +
               self.docStyle +
@@ -1085,10 +1136,15 @@ open class AttributedStringGenerator: @unchecked Sendable {
     #endif
   }
 
+  /// The `body` element of the HTML document with `body` as its content.
   open func htmlBody(_ body: String) -> String {
     return "<body>\n\(body)\n</body>"
   }
 
+  /// The style sheet of the HTML document. It assigns each of the style properties, such as
+  /// `bodyStyle`, `h1Style` and `tableStyle`, to the HTML elements and classes it applies to, and
+  /// ends with `customStyle`. A subclass can override the style properties to change an individual
+  /// style, or this property to change the whole style sheet.
   open var docStyle: String {
     return "body             { \(self.bodyStyle) }\n" +
            "h1               { \(self.h1Style) }\n" +
@@ -1121,7 +1177,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "td.codebox       { \(self.codeBoxStyle) }\n" +
            "td.thematic      { \(self.thematicBreakStyle) }\n" +
            "td.quote         { \(self.quoteStyle) }\n" +
-           "td.mrow          { \(self.tableRowStyle) }\n" +
+           "tr.mrow          { \(self.tableRowStyle) }\n" +
            "td.mcell         { \(self.tableCellStyle) }\n" +
            "img              { \(self.imgStyle) }\n" +
            "p.spc            {\n" +
@@ -1140,30 +1196,40 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "\(self.customStyle)\n"
   }
 
+  /// The style of the document (the `body` element): the font size, the font family and the
+  /// color, which are defined by `fontSize`, `fontFamily` and `fontColor`.
   open var bodyStyle: String {
     return "font-size: \(self.fontSize)px;" +
            "font-family: \(self.fontFamily);" +
            "color: \(self.fontColor);"
   }
 
+  /// The style of level 1 headings (`h1`): the font size is 6 px larger than `fontSize`, the color
+  /// is `h1Color`, and there are margins above and below the heading.
   open var h1Style: String {
     return "font-size: \(self.fontSize + 6)px;" +
            "color: \(self.h1Color);" +
            "margin: 0.7em 0 0.5em 0;"
   }
 
+  /// The style of level 2 headings (`h2`): the font size is 4 px larger than `fontSize`, the color
+  /// is `h2Color`, and there are margins above and below the heading.
   open var h2Style: String {
     return "font-size: \(self.fontSize + 4)px;" +
            "color: \(self.h2Color);" +
            "margin: 0.6em 0 0.4em 0;"
   }
 
+  /// The style of level 3 headings (`h3`): the font size is 2 px larger than `fontSize`, the color
+  /// is `h3Color`, and there are margins above and below the heading.
   open var h3Style: String {
     return "font-size: \(self.fontSize + 2)px;" +
            "color: \(self.h3Color);" +
            "margin: 0.5em 0 0.3em 0;"
   }
 
+  /// The style of level 4 headings (`h4`): the font size is 1 px larger than `fontSize`, the color
+  /// is `h4Color`, and there are margins above and below the heading.
   open var h4Style: String {
     return "font-size: \(self.fontSize + 1)px;" +
            "color: \(self.h4Color);" +
@@ -1185,10 +1251,14 @@ open class AttributedStringGenerator: @unchecked Sendable {
     return "font-size: 4px; margin: 0em; padding: 0em;"
   }
 
+  /// The style of paragraphs (`p`): a vertical margin of 0.7 em.
   open var pStyle: String {
     return "margin: 0.7em 0em;"
   }
 
+  /// The style of bullet lists. With `Version.preOS26`, this is the style of the `ul` element. With
+  /// `Version.OS26`, lists are tables, and this is the style of the table of a bullet list that is
+  /// not part of a list item (`table.ult`); see `ulNestedStyle` for the others.
   open var ulStyle: String {
     switch self.version {
       case .preOS26:
@@ -1202,6 +1272,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The style of the table of a bullet list within a list item (`table.uln`). Only used by
+  /// `Version.OS26`, which generates lists as tables.
   open var ulNestedStyle: String {
     return "width: 100%;" +
            "border-collapse: collapse;" +
@@ -1210,6 +1282,9 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "font-size: \(self.fontSize)px;"
   }
 
+  /// The style of ordered lists. With `Version.preOS26`, this is the style of the `ol` element.
+  /// With `Version.OS26`, lists are tables, and this is the style of the table of an ordered list
+  /// that is not part of a list item (`table.olt`); see `olNestedStyle` for the others.
   open var olStyle: String {
     switch self.version {
       case .preOS26:
@@ -1223,6 +1298,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
 
+  /// The style of the table of an ordered list within a list item (`table.oln`). Only used by
+  /// `Version.OS26`, which generates lists as tables.
   open var olNestedStyle: String {
     return "width: 100%;" +
            "border-collapse: collapse;" +
@@ -1231,12 +1308,16 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "font-size: \(self.fontSize)px;"
   }
   
+  /// The style of the table row of a list item which only contains text and is part of a tight
+  /// list (`tr.srow`). Only used by `Version.OS26`.
   open var simpleItemStyle: String {
     return """
       width: 100%;
     """
   }
   
+  /// The style of the table row of a list item which contains more than text, or is part of a
+  /// loose list (`tr.crow`). Only used by `Version.OS26`.
   open var itemStyle: String {
     return """
       width: 100%;
@@ -1268,6 +1349,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     """
   }
 
+  /// The style of the cell with the number of an ordered list item (`td.lnumber`). The number is
+  /// aligned to the right; see `bulletStyle`. Only used by `Version.OS26`.
   open var numberStyle: String {
     return """
       width: 4em;
@@ -1277,6 +1360,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     """
   }
   
+  /// The style of the text cell of a list item which only contains text and is part of a tight
+  /// list (`td.sitem`). Only used by `Version.OS26`.
   open var simpleLiStyle: String {
     return """
       margin: 0em;
@@ -1286,6 +1371,9 @@ open class AttributedStringGenerator: @unchecked Sendable {
     """
   }
   
+  /// The style of the content of a list item. With `Version.preOS26`, this is the style of the
+  /// `li` element. With `Version.OS26`, it is the style of the cell with the content of a list item
+  /// which contains more than text, or is part of a loose list (`td.citem`).
   open var liStyle: String {
     switch self.version {
       case .preOS26:
@@ -1303,22 +1391,28 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The style of preformatted text (`pre`): the background of code blocks, `codeBlockBackground`.
   open var preStyle: String {
     return "background: \(self.codeBlockBackground);"
   }
 
+  /// The style of inline code (`code`): `codeFontSize`, `codeFontFamily` and `codeFontColor`.
   open var codeStyle: String {
     return "font-size: \(self.codeFontSize)px;" +
            "font-family: \(self.codeFontFamily);" +
            "color: \(self.codeFontColor);"
   }
 
+  /// The style of the code in code blocks (`pre code`): `codeBlockFontSize`, `codeFontFamily` and
+  /// `codeBlockFontColor`.
   open var preCodeStyle: String {
     return "font-size: \(self.codeBlockFontSize)px;" +
            "font-family: \(self.codeFontFamily);" +
            "color: \(self.codeBlockFontColor);"
   }
 
+  /// The style of the table cell around the code of a code block (`td.codebox`): the background
+  /// `codeBlockBackground`, a border in `borderColor` and some padding.
   open var codeBoxStyle: String {
     return "background: \(self.codeBlockBackground);" +
            "width: 100%;" +
@@ -1326,10 +1420,13 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "padding: 0.5em;"
   }
 
+  /// The style of thematic breaks (`td.thematic`): a line in `borderColor`.
   open var thematicBreakStyle: String {
     return "border-bottom: 1px solid \(self.borderColor);"
   }
 
+  /// The style of the table which contains a block quote (`table.blockquote`): the full width
+  /// and a vertical margin. See `quoteStyle` for the style of the quoted text.
   open var blockquoteStyle: String {
     return "width: 100%;" +
            "margin: 0.3em 0;" +
@@ -1343,6 +1440,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "padding-left: 0.5em;"
   }
   
+  /// The style of images (`img`). It limits the size of an image to `maxImageWidth` and
+  /// `maxImageHeight`. It is empty if neither is set.
   open var imgStyle: String {
     if let maxWidth = self.maxImageWidth {
       if let maxHeight = self.maxImageHeight {
@@ -1358,6 +1457,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The style of tables (`table.mtable`): spacing, the font size, and the outer borders that
+  /// `tableBorders` asks for.
   open var tableStyle: String {
     var res = "border-collapse: collapse;" +
               "margin: 0.3em 0;" +
@@ -1379,6 +1480,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     return res
   }
   
+  /// The style of the header cells of tables (`table.mtable thead th`): the borders that
+  /// `tableBorders` asks for, and the padding (`tableHeaderPadding` and `tableCellPadding`).
   open var tableHeaderStyle: String {
     let borders = self.tableBorders
     var res = borders.contains(.header) ? "border-bottom: \(self.tableBorderSpec);\n" : ""
@@ -1393,6 +1496,10 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The style of the body rows of tables (`tr.mrow`). Properties such as `background-color` apply
+  /// to the cells of the row. By default, it is the border below each row if `tableBorders`
+  /// contains `rows`, but the importer draws that line with the borders of the cells
+  /// (`tableCellStyle`), and ignores the border of the row itself.
   open var tableRowStyle: String {
     if self.tableBorders.contains(.rows) {
       return "border-bottom: \(self.tableBorderSpec);"
@@ -1401,6 +1508,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The style of the cells of table rows (`td.mcell`): the borders that `tableBorders` asks for,
+  /// the padding (`tableRowPadding` and `tableCellPadding`) and top alignment.
   open var tableCellStyle: String {
     let borders = self.tableBorders
     var res = ""
@@ -1423,14 +1532,18 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The borders that tables show. By default, there is a line below the header row.
   open var tableBorders: TableBorders {
     return .header
   }
   
+  /// The CSS description of the lines of the table borders: `1px solid #aaa`.
   open var tableBorderSpec: String {
     return "1px solid #aaa"
   }
   
+  /// The vertical padding of header cells in pixels. If `nil`, `tableCellPadding` is used for the
+  /// vertical padding as well. It is 4 for `Version.OS26`, and `nil` for `Version.preOS26`.
   open var tableHeaderPadding: Int? {
     switch self.version {
       case .preOS26:
@@ -1440,6 +1553,9 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The vertical padding of the cells of table rows in pixels. If `nil`, `tableCellPadding` is
+  /// used for the vertical padding as well. It is 3 for `Version.OS26`, and `nil` for
+  /// `Version.preOS26`.
   open var tableRowPadding: Int? {
     switch self.version {
       case .preOS26:
@@ -1449,6 +1565,9 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
   }
   
+  /// The horizontal padding of table cells in pixels, and their vertical padding unless
+  /// `tableHeaderPadding` or `tableRowPadding` is set. It is 6 for `Version.OS26` and 2 for
+  /// `Version.preOS26`.
   open var tableCellPadding: Int {
     switch self.version {
       case .preOS26:

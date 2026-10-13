@@ -255,7 +255,7 @@ private final class MyFullTableRenderer: StringGenerator.FullTableRenderer, @unc
 
 private final class MyTerminalMinimalisticTableRenderer:
                        TerminalGenerator.MinimalisticTableRenderer, @unchecked Sendable {
-  override func renderTable(_ descriptor: TerminalGenerator.TableDescriptor,
+  override func renderTable(_ descriptor: TableDescriptor,
                             using generate: (Text, Int) -> [AnsiText.Normalized],
                             in context: GeneratorContext) -> [AnsiText.Normalized]? {
     calls.append("TerminalGenerator.MinimalisticTableRenderer.renderTable")

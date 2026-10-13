@@ -41,6 +41,8 @@ import Foundation
 /// In the second phase, the block structure gets traversed and markup within raw text
 /// gets replaced with a structured representation.
 ///
+/// See <doc:ChoosingAParser> for the syntax that this parser supports.
+///
 open class ExtendedMarkdownParser: MarkdownParser, @unchecked Sendable {
 
   /// The default list of block parsers. The order of this list matters.

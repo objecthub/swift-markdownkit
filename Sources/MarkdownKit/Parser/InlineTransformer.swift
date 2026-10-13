@@ -28,12 +28,17 @@ import Foundation
 ///
 open class InlineTransformer {
 
+  /// The inline parser that this transformer belongs to.
   public unowned let owner: InlineParser
 
+  /// Creates an inline transformer for `owner`. An inline parser creates one instance of each
+  /// transformer of its configuration.
   required public init(owner: InlineParser) {
     self.owner = owner
   }
 
+  /// Transforms a text and returns the result. The default implementation calls
+  /// `transform(_:from:into:)` for each fragment.
   open func transform(_ text: Text) -> Text {
     var res: Text = Text()
     var iterator = text.makeIterator()
@@ -44,6 +49,11 @@ open class InlineTransformer {
     return res
   }
 
+  /// Transforms `fragment`, which is the current element of `iterator`, and appends the result to
+  /// `res`. A transformer which combines several fragments, such as the fragments between two
+  /// delimiters, takes them from `iterator`. Returns the next fragment that has not been
+  /// processed, which is `iterator.next()` if the transformer has consumed only `fragment`. The
+  /// default implementation keeps the fragment and transforms the text inside of it.
   open func transform(_ fragment: TextFragment,
                       from iterator: inout Text.Iterator,
                       into res: inout Text) -> TextFragment? {
