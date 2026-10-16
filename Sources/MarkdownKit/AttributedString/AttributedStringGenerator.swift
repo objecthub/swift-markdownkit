@@ -1718,8 +1718,7 @@ extension AttributedStringGenerator {
                       options: renderingOptions,
                       completion: completion)
     } else {
-      // The completion handler is not used by anybody else
-      nonisolated(unsafe) let completion = completion
+      let deliver = CompletionHandler(completion)
       Task {
         let diagrams = await prepare(self)
         let generator = self.htmlGenerator(options: options, pinning: diagrams)
@@ -1730,12 +1729,34 @@ extension AttributedStringGenerator {
               // The attributed string is created by the system's HTML loader and not used by
               // anybody else
               nonisolated(unsafe) let string = string
-              completion(.success(self.insertingDiagrams(into: string, from: generator) ?? string))
+              deliver(.success(self.insertingDiagrams(into: string, from: generator) ?? string))
             case .failure(let error):
-              completion(.failure(error))
+              deliver(.failure(error))
           }
         }
       }
+    }
+  }
+
+  /// Passes the completion handler of a `generateAsync` method on to a task.
+  ///
+  /// The handler of a client is not `Sendable`, but nobody else uses it: the task only passes it
+  /// on, so that it is called once. Wrapping it makes this explicit. Captured directly by the
+  /// closure of the task, it is rejected by the compilers of Swift 6.2 and 6.1 (they complain
+  /// that the closure captures a value which is accessible to the current task).
+  private struct CompletionHandler: @unchecked Sendable {
+
+    /// The handler of the client.
+    private let handler: (sending Result<NSAttributedString, RenderingError>) -> Void
+
+    /// Creates a wrapper for `handler`.
+    init(_ handler: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
+      self.handler = handler
+    }
+
+    /// Calls the handler with `result`.
+    func callAsFunction(_ result: sending Result<NSAttributedString, RenderingError>) {
+      self.handler(result)
     }
   }
 
