@@ -395,7 +395,7 @@ let generator = AttributedStringGenerator(mermaid: .default)   // or .dark for a
 let attributedStr = try await generator.generateAsync(doc: markdown)
 ```
 
-Mermaid is a JavaScript library which needs the layout engine of a web browser to measure text. In contrast to syntax highlighting, which runs Highlight.js in JavaScriptCore, the diagrams are therefore drawn by `MermaidRenderer`, which loads the `mermaid.min.js` that ships with _MarkdownKit_ into a headless `WKWebView` and turns each diagram into a PNG image with transparent background. Diagrams are only supported on macOS and iOS; on other platforms, and for diagrams which Mermaid rejects (the generator then adds the error message above the code), the code is shown.
+Mermaid is a JavaScript library which needs the layout engine of a web browser to measure text. In contrast to syntax highlighting, which runs Highlight.js in JavaScriptCore, the diagrams are therefore drawn by `MermaidRenderer`, which loads the `mermaid.min.js` that ships with _MarkdownKit_ into a headless `WKWebView` and turns each diagram into a PNG image with transparent background (before macOS 14, the transparency is calculated from renderings on a white and on a black page, which takes about twice as long). Diagrams are only supported on macOS and iOS; on other platforms, and for diagrams which Mermaid rejects (the generator then adds the error message above the code), the code is shown.
 
 Rendering takes time, so it is asynchronous:
 

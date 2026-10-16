@@ -702,6 +702,64 @@ final class MermaidTests: XCTestCase {
     XCTAssertEqual(again, image)
   }
 
+  /// The size and the pixels (premultiplied red, green, blue and alpha) of a PNG.
+  private func pixels(of png: Data) throws -> (width: Int, height: Int, bytes: [UInt8]) {
+    let source = try XCTUnwrap(CGImageSourceCreateWithData(png as CFData, nil))
+    let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+    let width = image.width, height = image.height
+    var bytes = [UInt8](repeating: 0, count: width * height * 4)
+    let drawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
+      guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
+                                    bitsPerComponent: 8, bytesPerRow: width * 4,
+                                    space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+        return false
+      }
+      context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+      return true
+    }
+    XCTAssertTrue(drawn)
+    return (width, height, bytes)
+  }
+
+  /// The transparency of the images is created in two ways: by the PDF of the page (macOS 14 and
+  /// later) or the transparent web view (iOS), and, for older systems, by comparing the renderings
+  /// on a white and on a black page. Both have to give the same images.
+  func testTransparencyFromWhiteAndBlackPagesGivesTheSameImage() async throws {
+    let url = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
+    let normal = try self.makeRenderer()
+    let matte = try XCTUnwrap(MermaidRenderer(mermaidJSURL: url,
+                                              cachesScript: true,
+                                              idleTime: MermaidRenderer.defaultIdleTime,
+                                              maxCachedDiagrams: MermaidRenderer.defaultMaxCachedDiagrams,
+                                              maxCacheBytes: MermaidRenderer.defaultMaxCacheBytes,
+                                              transparency: .matte))
+    for (diagram, config) in [(self.flowchart, MermaidConfig.default),
+                              (self.flowchart, MermaidConfig.dark),
+                              (self.sequence, MermaidConfig.default)] {
+      let expected = try await normal.render(diagram, config: config)
+      let actual = try await matte.render(diagram, config: config)
+      XCTAssertEqual(actual.size, expected.size)
+      XCTAssertEqual(actual.scale, expected.scale)
+      let png = try self.inspect(png: actual.pngData)
+      XCTAssertEqual(png.cornerAlpha, 0, "the background is not transparent")
+      XCTAssertGreaterThan(png.opaqueShare, 0.02, "the image seems to be empty")
+      XCTAssertLessThan(png.opaqueShare, 0.9)
+      let a = try self.pixels(of: expected.pngData), b = try self.pixels(of: actual.pngData)
+      XCTAssertEqual(a.width, b.width)
+      XCTAssertEqual(a.height, b.height)
+      guard a.bytes.count == b.bytes.count else {
+        continue
+      }
+      // The two methods round differently, so the colors can differ slightly
+      var largest = 0
+      for index in 0..<a.bytes.count {
+        largest = max(largest, abs(Int(a.bytes[index]) - Int(b.bytes[index])))
+      }
+      XCTAssertLessThanOrEqual(largest, 6, "the largest difference of a color channel")
+    }
+  }
+
   func testRendersDifferentKindsOfDiagrams() async throws {
     let renderer = try XCTUnwrap(MermaidRenderer.shared)
     let diagrams = [

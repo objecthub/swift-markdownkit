@@ -44,6 +44,23 @@ public struct MermaidImage: Equatable, Sendable {
 }
 
 ///
+/// How the images of diagrams get their transparency. A diagram is drawn on a transparent
+/// background, so that it can be placed on any background.
+///
+enum MermaidTransparency: Sendable {
+
+  /// Uses what the platform offers: a transparent web view on iOS, and the PDF of the page with a
+  /// transparent background on macOS 14 and later (`WKPDFConfiguration.allowTransparentBackground`).
+  /// Older versions of macOS use `matte`.
+  case automatic
+
+  /// Renders the diagram on a white and on a black page and calculates the transparency of each
+  /// pixel from the difference of the two images. This only needs the style sheet of the page and
+  /// the PDF of the page, so it works with every system. It takes about twice as long.
+  case matte
+}
+
+///
 /// Turns [Mermaid](https://mermaid.js.org) diagram descriptions into images.
 ///
 /// Mermaid is a JavaScript library which needs a web browser's DOM and layout engine to
@@ -269,11 +286,28 @@ public final class MermaidRenderer: @unchecked Sendable {
   ///                   `defaultMaxCacheBytes`.
   /// - Returns: A renderer, or `nil` if the file cannot be read or the platform does not
   ///            support rendering diagrams.
-  public init?(mermaidJSURL: URL,
-               cachesScript: Bool = true,
-               idleTime: TimeInterval = MermaidRenderer.defaultIdleTime,
-               maxCachedDiagrams: Int = MermaidRenderer.defaultMaxCachedDiagrams,
-               maxCacheBytes: Int = MermaidRenderer.defaultMaxCacheBytes) {
+  public convenience init?(mermaidJSURL: URL,
+                           cachesScript: Bool = true,
+                           idleTime: TimeInterval = MermaidRenderer.defaultIdleTime,
+                           maxCachedDiagrams: Int = MermaidRenderer.defaultMaxCachedDiagrams,
+                           maxCacheBytes: Int = MermaidRenderer.defaultMaxCacheBytes) {
+    self.init(mermaidJSURL: mermaidJSURL,
+              cachesScript: cachesScript,
+              idleTime: idleTime,
+              maxCachedDiagrams: maxCachedDiagrams,
+              maxCacheBytes: maxCacheBytes,
+              transparency: .automatic)
+  }
+
+  /// Creates a renderer like `init(mermaidJSURL:cachesScript:idleTime:maxCachedDiagrams:maxCacheBytes:)`
+  /// whose images get their transparency in the way that `transparency` says. The tests use it for
+  /// trying the method which is only needed with older systems.
+  init?(mermaidJSURL: URL,
+        cachesScript: Bool,
+        idleTime: TimeInterval,
+        maxCachedDiagrams: Int,
+        maxCacheBytes: Int,
+        transparency: MermaidTransparency) {
     self.cache = Cache(maxEntries: maxCachedDiagrams, maxBytes: maxCacheBytes)
   #if canImport(WebKit) && (os(macOS) || os(iOS))
     guard FileManager.default.isReadableFile(atPath: mermaidJSURL.path) else {
@@ -281,7 +315,8 @@ public final class MermaidRenderer: @unchecked Sendable {
     }
     self.session = MermaidWebSession(scriptURL: mermaidJSURL,
                                      cachesScript: cachesScript,
-                                     idleTime: idleTime)
+                                     idleTime: idleTime,
+                                     transparency: transparency)
   #else
     return nil
   #endif

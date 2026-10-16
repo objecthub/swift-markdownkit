@@ -52,6 +52,9 @@ final class MermaidWebSession {
   /// If false, the file is read whenever a page is created, and nothing is kept.
   private let cachesScript: Bool
 
+  /// How the images of the diagrams get their transparency.
+  private let transparency: MermaidTransparency
+
   /// The JavaScript that is injected into every page, if it is cached.
   private var script: String?
 
@@ -88,12 +91,15 @@ final class MermaidWebSession {
   /// `cachesScript` is false, the library is read again every time a page is created (the first
   /// page, and after a page was released or failed) instead of being kept in memory. The web
   /// page is released if no diagram has been rendered for `idleTime` seconds; see `idleTime`.
+  /// `transparency` says how the images of the diagrams get their transparency.
   nonisolated init(scriptURL: URL,
                    cachesScript: Bool = true,
-                   idleTime: TimeInterval = MermaidRenderer.defaultIdleTime) {
+                   idleTime: TimeInterval = MermaidRenderer.defaultIdleTime,
+                   transparency: MermaidTransparency = .automatic) {
     self.scriptURL = scriptURL
     self.cachesScript = cachesScript
     self.idleTime = idleTime.isNaN ? MermaidRenderer.defaultIdleTime : max(0, idleTime)
+    self.transparency = transparency
   }
 
   /// Renders the diagram.
@@ -143,7 +149,8 @@ final class MermaidWebSession {
     }
     let page = try await MermaidWebPage.make(script: script,
                                              width: width,
-                                             timeout: timeout > 0 ? max(timeout, 30) : 30)
+                                             timeout: timeout > 0 ? max(timeout, 30) : 30,
+                                             transparency: self.transparency)
     self.page = page
     return page
   }
@@ -276,9 +283,13 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
   /// anything any more; the session has to replace it by a new page.
   private(set) var isUsable = true
 
-  private init(webView: WKWebView, width: CGFloat) {
+  /// How the images of the diagrams get their transparency.
+  private let transparency: MermaidTransparency
+
+  private init(webView: WKWebView, width: CGFloat, transparency: MermaidTransparency) {
     self.webView = webView
     self.width = width
+    self.transparency = transparency
     super.init()
     webView.navigationDelegate = self
   }
@@ -289,9 +300,12 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
   }
 
   /// Creates a web view with `width` points, loads `script` (see `userScript(mermaid:)`) into it,
-  /// and waits until it is ready.
-  static func make(script: String, width: CGFloat, timeout: TimeInterval) async throws
-                -> MermaidWebPage {
+  /// and waits until it is ready. `transparency` says how the images of the diagrams get their
+  /// transparency.
+  static func make(script: String,
+                   width: CGFloat,
+                   timeout: TimeInterval,
+                   transparency: MermaidTransparency) async throws -> MermaidWebPage {
     let rules = try await MermaidWebPage.networkBlockingRules()
     let controller = WKUserContentController()
     controller.add(rules)
@@ -303,19 +317,16 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
     configuration.userContentController = controller
     let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: width, height: 16),
                             configuration: configuration)
-    #if os(macOS)
-    // Without this, the web view draws a white background. There is no public API for this on
-    // macOS; the key is only set if the web view has it.
-    if webView.responds(to: NSSelectorFromString("_setDrawsBackground:")) {
-      webView.setValue(false, forKey: "drawsBackground")
-    }
-    #else
+    // On iOS, the web view is transparent. A web view on macOS draws a white background, and there
+    // is no public way to turn that off: the images of the diagrams get their transparency from
+    // the PDF of the page there instead (see `render(source:config:)`).
+    #if !os(macOS)
     webView.isOpaque = false
     webView.backgroundColor = .clear
     webView.scrollView.backgroundColor = .clear
     webView.scrollView.contentInsetAdjustmentBehavior = .never
     #endif
-    let page = MermaidWebPage(webView: webView, width: width)
+    let page = MermaidWebPage(webView: webView, width: width, transparency: transparency)
     try await page.load(timeout: timeout)
     return page
   }
@@ -386,11 +397,10 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
     case failure(String)
   }
 
-  /// Draws the first page of the PDF into a bitmap with `scale` pixels per point and encodes it
-  /// as PNG. Returns the image data and the size of the page in points.
-  private static func png(fromPDF data: Data,
-                          scale: CGFloat,
-                          margin: CGFloat?) -> (data: Data, size: CGSize)? {
+  /// Draws the first page of the PDF into a bitmap with `scale` pixels per point. Returns the
+  /// bitmap and the media box of the page.
+  nonisolated private static func bitmap(fromPDF data: Data,
+                                         scale: CGFloat) -> (context: CGContext, box: CGRect)? {
     guard let provider = CGDataProvider(data: data as CFData),
           let document = CGPDFDocument(provider),
           let page = document.page(at: 1) else {
@@ -412,6 +422,65 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
     context.scaleBy(x: scale, y: scale)
     context.translateBy(x: -box.origin.x, y: -box.origin.y)
     context.drawPDFPage(page)
+    return (context, box)
+  }
+
+  /// Draws the first page of the PDF into a bitmap with `scale` pixels per point and encodes it
+  /// as PNG. Returns the image data and the size of the page in points.
+  nonisolated private static func png(fromPDF data: Data,
+                                      scale: CGFloat,
+                                      margin: CGFloat?) -> (data: Data, size: CGSize)? {
+    guard let (context, box) = Self.bitmap(fromPDF: data, scale: scale) else {
+      return nil
+    }
+    return Self.png(from: context, box: box, scale: scale, margin: margin)
+  }
+
+  /// Creates a PNG with transparency from the PDFs of a diagram on a white and on a black page.
+  /// The color of a pixel on a page `p` is `c * a + p * (1 - a)` for the color `c` and the alpha
+  /// value `a` of the pixel, so on the black page it is `c * a` and on the white page `c * a + 1 - a`.
+  /// The difference between them is `1 - a`, which gives the alpha value, and the color on the
+  /// black page is the color multiplied by the alpha value.
+  nonisolated private static func png(fromPDFOnWhite white: Data,
+                                      onBlack black: Data,
+                                      scale: CGFloat,
+                                      margin: CGFloat?) -> (data: Data, size: CGSize)? {
+    guard let (context, box) = Self.bitmap(fromPDF: white, scale: scale),
+          let (other, _) = Self.bitmap(fromPDF: black, scale: scale),
+          context.width == other.width, context.height == other.height,
+          let whitePixels = context.data?.bindMemory(to: UInt8.self,
+                                                     capacity: context.bytesPerRow * context.height),
+          let blackPixels = other.data?.bindMemory(to: UInt8.self,
+                                                   capacity: other.bytesPerRow * other.height) else {
+      return nil
+    }
+    for y in 0..<context.height {
+      var w = y * context.bytesPerRow
+      var b = y * other.bytesPerRow
+      for _ in 0..<context.width {
+        let difference = (Int(whitePixels[w]) - Int(blackPixels[b])) +
+                         (Int(whitePixels[w + 1]) - Int(blackPixels[b + 1])) +
+                         (Int(whitePixels[w + 2]) - Int(blackPixels[b + 2]))
+        let alpha = UInt8(max(0, min(255, 255 - difference / 3)))
+        // The image is premultiplied, so its color is the color on the black page
+        whitePixels[w] = min(blackPixels[b], alpha)
+        whitePixels[w + 1] = min(blackPixels[b + 1], alpha)
+        whitePixels[w + 2] = min(blackPixels[b + 2], alpha)
+        whitePixels[w + 3] = alpha
+        w += 4
+        b += 4
+      }
+    }
+    return Self.png(from: context, box: box, scale: scale, margin: margin)
+  }
+
+  /// Encodes the bitmap as PNG, without the transparent area around its content if `margin` is
+  /// not `nil` (see `trimmed(_:margin:)`). Returns the image data and the size of the image in
+  /// points.
+  nonisolated private static func png(from context: CGContext,
+                                      box: CGRect,
+                                      scale: CGFloat,
+                                      margin: CGFloat?) -> (data: Data, size: CGSize)? {
     guard var image = context.makeImage() else {
       return nil
     }
@@ -439,7 +508,7 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
 
   /// Returns the content of a bitmap context without the transparent area around it, and with a
   /// transparent margin of `margin` pixels instead. Returns `nil` if the bitmap is empty.
-  private static func trimmed(_ context: CGContext, margin: Int) -> CGImage? {
+  nonisolated private static func trimmed(_ context: CGContext, margin: Int) -> CGImage? {
     let width = context.width, height = context.height
     guard let data = context.data, let image = context.makeImage() else {
       return nil
@@ -545,19 +614,77 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
                       y: y.rounded(.down),
                       width: ceil(width + x - x.rounded(.down)),
                       height: ceil(height + y - y.rounded(.down)))
-    let pdf: Data = try await awaitCallback(timeout: timeout) { done in
+    let scale = config.renderKey.scale, margin = config.renderKey.margin
+    let image: (data: Data, size: CGSize)?
+    if self.usesMatte {
+      let white = try await self.pdf(of: rect, onBackground: "#ffffff", timeout: timeout)
+      let black = try await self.pdf(of: rect, onBackground: "#000000", timeout: timeout)
+      // Calculating the image takes some time, so it is not done on the main thread
+      image = await Task.detached(priority: .userInitiated) {
+        Self.png(fromPDFOnWhite: white, onBlack: black, scale: scale, margin: margin)
+      }.value
+      try? await self.setBackground("transparent", timeout: timeout)
+    } else {
+      let pdf = try await self.pdf(of: rect, onBackground: nil, timeout: timeout)
+      image = Self.png(fromPDF: pdf, scale: scale, margin: margin)
+    }
+    guard let image else {
+      throw MermaidError.renderingFailed("cannot create an image of the diagram")
+    }
+    return MermaidImage(pngData: image.data, size: image.size, scale: scale)
+  }
+
+  /// True if the images get their transparency by comparing the renderings of the diagram on a
+  /// white and on a black page. This is needed on systems for which the PDF of a page cannot have
+  /// a transparent background (before macOS 14), and for testing.
+  private var usesMatte: Bool {
+    if self.transparency == .matte {
+      return true
+    }
+    #if os(macOS)
+    if #available(macOS 14.0, *) {
+      return false
+    }
+    return true
+    #else
+    return false
+    #endif
+  }
+
+  /// Sets the background of the page to the CSS color `color`.
+  private func setBackground(_ color: String, timeout: TimeInterval) async throws {
+    let _: Bool = try await awaitCallback(timeout: timeout) { done in
+      self.webView.callAsyncJavaScript("document.documentElement.style.background = color; return true",
+                                       arguments: ["color": color],
+                                       in: nil,
+                                       in: .page) { _ in
+        done(.success(true))
+      }
+    }
+  }
+
+  /// Creates a PDF of the area `rect` of the page. If `background` is a CSS color, the page has
+  /// this color as its background; otherwise, the PDF has a transparent background (if the system
+  /// supports it).
+  private func pdf(of rect: CGRect, onBackground background: String?, timeout: TimeInterval) async throws
+                -> Data {
+    if let background {
+      try await self.setBackground(background, timeout: timeout)
+    }
+    return try await awaitCallback(timeout: timeout) { done in
       let pdfConfiguration = WKPDFConfiguration()
       pdfConfiguration.rect = rect
+      #if os(macOS)
+      // The web view of macOS draws a white background, which the PDF does not contain if it is
+      // allowed to be transparent.
+      if background == nil, #available(macOS 14.0, *) {
+        pdfConfiguration.allowTransparentBackground = true
+      }
+      #endif
       self.webView.createPDF(configuration: pdfConfiguration) { result in
         done(result)
       }
     }
-    guard let png = Self.png(fromPDF: pdf,
-                             scale: config.renderKey.scale,
-                             margin: config.renderKey.margin) else {
-      throw MermaidError.renderingFailed("cannot create an image of the diagram")
-    }
-    return MermaidImage(pngData: png.data, size: png.size, scale: config.renderKey.scale)
   }
 }
 
