@@ -26,9 +26,9 @@ The initializer takes the most frequent settings:
 
 | Parameters | Effect |
 |---|---|
-| `fontSize`, `fontFamily`, `fontColor` | the body text; the font family is a CSS list, e.g. `"Helvetica, sans-serif"` |
+| `fontSize`, `fontFamily`, `fontColor`, `lineSpacing` | the body text; the font family is a CSS list, e.g. `"Helvetica, sans-serif"`; the line spacing is a multiple of the line height of the font (default 1.1) |
 | `codeFontSize`, `codeFontFamily`, `codeFontColor` | inline code |
-| `codeBlockFontSize`, `codeBlockFontColor`, `codeBlockBackground` | code blocks |
+| `codeBlockFontSize`, `codeBlockFontColor`, `codeBlockLineSpacing`, `codeBlockBackground` | code blocks; the line spacing of code is 1 by default |
 | `borderColor`, `blockquoteColor` | the border of code blocks and thematic breaks, the bar of block quotes |
 | `h1Color` to `h4Color` | headings |
 | `maxImageWidth`, `maxImageHeight` | CSS limits for the size of images |
@@ -96,6 +96,7 @@ The synchronous `generate(doc:)` needs the main thread and never loads remote im
 The HTML importer of macOS and iOS supports only a part of CSS, and the results differ between versions of the systems. These are the restrictions that MarkdownKit works around, found by measuring the attributed strings on macOS and in the iOS simulator:
 
 - Only the `margin-bottom` of a block reaches the attributed string, as the paragraph spacing after it. `margin-top`, `padding-top` and `border-top` are ignored, so the space above a block is only the bottom margin of the previous block. Changing the top margin in ``AttributedStringGenerator/h1Style`` has no effect. This is why the generator inserts an empty paragraph with ``AttributedStringGenerator/h1GapStyle`` or ``AttributedStringGenerator/h2GapStyle`` in front of level 1 and level 2 headings that do not start their container, and why you can change the amount of space with those styles.
+- The CSS property `line-height` is ignored. ``AttributedStringGenerator/lineSpacing`` and ``AttributedStringGenerator/codeBlockLineSpacing`` are therefore applied to the attributed string after the import, as the `lineHeightMultiple` of its paragraph styles. Paragraphs with images and the empty paragraphs that only create space keep their line height, because the multiple would also scale an image. The importer does not mark code blocks, so the generator recognizes them by their background color and their font: it puts an element in the style of code at the start of the HTML, reads its font (the importer decides which font the CSS list `codeFontFamily` stands for) from the imported string and removes the element again. A paragraph with a background and the same font family and size is code. This does not change the HTML that ``AttributedStringGenerator/generateHtml(_:)`` returns.
 - Scripts never run. The `width` and `height` attributes of images and CSS sizes are ignored. On macOS, the size of an image comes from the resolution stored in the image file; iOS ignores the resolution.
 - Images in `file:` URLs only load if the `baseUrl` of the rendering options matches. Images in `data:` URLs always load.
 - `<input>` elements are ignored, which is why task list items use the characters ☐ and ☑.

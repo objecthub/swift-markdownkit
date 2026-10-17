@@ -558,6 +558,321 @@ final class AttributedStringAsyncTests: XCTestCase {
 }
 
 
+#if canImport(WebKit) && (os(macOS) || os(iOS))
+
+/// Tests for `AttributedStringGenerator.lineSpacing` and `codeBlockLineSpacing`. The system's
+/// HTML importer ignores `line-height`, so the generator sets the line height multiple of the
+/// paragraph styles of the attributed string.
+final class AttributedStringLineSpacingTests: XCTestCase {
+
+  private let markdown = "# Title\n\nSome text with `code` in it.\n\n- item one\n- item two\n\n" +
+                         "> quote\n\n```\nlet a = 1\n\nlet c = 3\n```\n\nLast paragraph.\n"
+
+  /// A valid 1x1 PNG image
+  private let image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADU" +
+                      "lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+  private func parse(_ input: String) -> Block {
+    return ExtendedMarkdownParser.standard.parse(input)
+  }
+
+  /// The line height multiple of the paragraph at `location`.
+  private func multiple(at location: Int, in string: NSAttributedString) -> CGFloat {
+    let style = string.attribute(.paragraphStyle, at: location, effectiveRange: nil)
+                  as? NSParagraphStyle
+    return style?.lineHeightMultiple ?? 0
+  }
+
+  /// The line height multiple of the paragraph that contains the first occurrence of `fragment`.
+  private func multiple(of fragment: String, in string: NSAttributedString) -> CGFloat {
+    let range = (string.string as NSString).range(of: fragment)
+    XCTAssertNotEqual(range.location, NSNotFound, fragment)
+    return self.multiple(at: range.location, in: string)
+  }
+
+  /// The line height multiple of each paragraph, from the beginning to the end of the text.
+  private func multiples(in string: NSAttributedString) -> [CGFloat] {
+    let text = string.string as NSString
+    var result: [CGFloat] = []
+    var location = 0
+    while location < text.length {
+      let paragraph = text.paragraphRange(for: NSRange(location: location, length: 0))
+      result.append(self.multiple(at: paragraph.location, in: string))
+      location = NSMaxRange(paragraph)
+    }
+    return result
+  }
+
+  func testDefaults() {
+    XCTAssertEqual(AttributedStringGenerator().lineSpacing, 1.1)
+    XCTAssertEqual(AttributedStringGenerator().codeBlockLineSpacing, 1.0)
+    let generator = AttributedStringGenerator(lineSpacing: 1.4, codeBlockLineSpacing: 1.2)
+    XCTAssertEqual(generator.lineSpacing, 1.4)
+    XCTAssertEqual(generator.codeBlockLineSpacing, 1.2)
+  }
+
+  @MainActor
+  func testTextGetsTheLineSpacingAndCodeBlocksKeepTheirLineHeight() throws {
+    for highlighting in [true, false] {
+      let generator = AttributedStringGenerator(syntaxHighlighting: highlighting ? .default : nil)
+      let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+      for fragment in ["Title", "Some text", "item one", "item two", "quote", "Last paragraph"] {
+        XCTAssertEqual(self.multiple(of: fragment, in: result), 1.1, accuracy: 0.001, fragment)
+      }
+      // Inline code is part of a paragraph
+      XCTAssertEqual(self.multiple(of: "code", in: result), 1.1, accuracy: 0.001)
+      // The default for code blocks, 1, does not change anything
+      XCTAssertEqual(self.multiple(of: "let a", in: result), 0)
+      XCTAssertEqual(self.multiple(of: "let c", in: result), 0)
+    }
+  }
+
+  @MainActor
+  func testCustomLineSpacing() throws {
+    for highlighting in [true, false] {
+      let generator = AttributedStringGenerator(lineSpacing: 1.5,
+                                                codeBlockLineSpacing: 1.25,
+                                                syntaxHighlighting: highlighting ? .default : nil)
+      let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+      for fragment in ["Title", "Some text", "item one", "item two", "quote", "Last paragraph"] {
+        XCTAssertEqual(self.multiple(of: fragment, in: result), 1.5, accuracy: 0.001, fragment)
+      }
+      XCTAssertEqual(self.multiple(of: "let a", in: result), 1.25, accuracy: 0.001)
+      XCTAssertEqual(self.multiple(of: "let c", in: result), 1.25, accuracy: 0.001)
+      // The empty line in the middle of the code block
+      let code = (result.string as NSString).range(of: "let a = 1\n")
+      XCTAssertEqual(self.multiple(at: NSMaxRange(code), in: result), 1.25, accuracy: 0.001)
+      XCTAssertEqual((result.string as NSString).substring(with: NSRange(location: NSMaxRange(code),
+                                                                         length: 1)), "\n")
+    }
+  }
+
+  /// The empty paragraphs which are only there for vertical space keep their height.
+  @MainActor
+  func testEmptyParagraphsKeepTheirLineHeight() throws {
+    let generator = AttributedStringGenerator(lineSpacing: 2, codeBlockLineSpacing: 2)
+    let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+    let text = result.string as NSString
+    var spacers = 0
+    var location = 0
+    while location < text.length {
+      var start = 0, end = 0, contentsEnd = 0
+      text.getParagraphStart(&start, end: &end, contentsEnd: &contentsEnd,
+                             for: NSRange(location: location, length: 0))
+      location = end
+      if start == contentsEnd,
+         result.attribute(.backgroundColor, at: start, effectiveRange: nil) == nil {
+        XCTAssertEqual(self.multiple(at: start, in: result), 0, "paragraph at \(start)")
+        spacers += 1
+      }
+    }
+    XCTAssertGreaterThan(spacers, 0)
+  }
+
+  @MainActor
+  func testSpacingWhichChangesNothingLeavesTheTextAlone() throws {
+    let doc = self.parse(markdown)
+    for (text, code) in [(1, 1), (0, 0), (-1, 1)] as [(Float, Float)] {
+      let generator = AttributedStringGenerator(lineSpacing: text, codeBlockLineSpacing: code)
+      let result = try XCTUnwrap(generator.generate(doc: doc))
+      XCTAssertEqual(Set(self.multiples(in: result)), [0], "\(text) \(code)")
+      // Nothing is copied
+      XCTAssertTrue(generator.finishingImport(of: result, probed: false,
+                                              textSizeMultiplier: nil) === result)
+    }
+    // Only one of the two changes the code blocks
+    let onlyCode = AttributedStringGenerator(lineSpacing: 1, codeBlockLineSpacing: 1.3)
+    let result = try XCTUnwrap(onlyCode.generate(doc: doc))
+    XCTAssertEqual(self.multiple(of: "let a", in: result), 1.3, accuracy: 0.001)
+    XCTAssertEqual(self.multiple(of: "Some text", in: result), 0)
+  }
+
+  /// A multiple would also scale the height of an image.
+  @MainActor
+  func testParagraphsWithImagesKeepTheirLineHeight() throws {
+    let result = try XCTUnwrap(AttributedStringGenerator().generate(
+                                 doc: self.parse("Before\n\nText ![alt](\(image)) text\n\nAfter\n")))
+    var images = 0
+    result.enumerateAttribute(.attachment,
+                              in: NSRange(location: 0, length: result.length)) { value, range, _ in
+      if value is NSTextAttachment {
+        images += 1
+        XCTAssertEqual(self.multiple(at: range.location, in: result), 0)
+        XCTAssertEqual(self.multiple(of: "Text", in: result), 0)
+      }
+    }
+    XCTAssertEqual(images, 1)
+    XCTAssertEqual(self.multiple(of: "Before", in: result), 1.1, accuracy: 0.001)
+    XCTAssertEqual(self.multiple(of: "After", in: result), 1.1, accuracy: 0.001)
+  }
+
+  /// The importer scales all font sizes with the text size multiplier (iOS even does it twice
+  /// in the synchronous rendering), which has to be taken into account when code blocks are
+  /// recognized by their font size.
+  @MainActor
+  func testCodeBlocksAreRecognizedWithATextSizeMultiplier() async throws {
+    let options = AttributedStringGenerator.RenderingOptions(textSizeMultiplier: 1.5)
+    let generator = AttributedStringGenerator(codeBlockLineSpacing: 1.25, renderingOptions: options)
+    let doc = self.parse(markdown)
+    let sync = try XCTUnwrap(generator.generate(doc: doc))
+    let async = try await generator.generateAsync(doc: doc)
+    for result in [sync, async] {
+      XCTAssertEqual(self.multiple(of: "let a", in: result), 1.25, accuracy: 0.001)
+      XCTAssertEqual(self.multiple(of: "let c", in: result), 1.25, accuracy: 0.001)
+      XCTAssertEqual(self.multiple(of: "Some text", in: result), 1.1, accuracy: 0.001)
+    }
+  }
+
+  /// Code blocks that have the font size of the text are told apart by their background.
+  @MainActor
+  func testCodeBlocksWithTheFontSizeOfTheText() throws {
+    let generator = AttributedStringGenerator(fontSize: 12, codeBlockFontSize: 12,
+                                              codeBlockLineSpacing: 1.25)
+    let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+    XCTAssertEqual(self.multiple(of: "let a", in: result), 1.25, accuracy: 0.001)
+    XCTAssertEqual(self.multiple(of: "Some text", in: result), 1.1, accuracy: 0.001)
+  }
+
+  /// Text with a background is not code if its font is not monospaced, also if it has the font
+  /// size of code blocks.
+  @MainActor
+  func testTextWithABackgroundIsNotACodeBlock() throws {
+    let generator = AttributedStringGenerator(fontSize: 12, codeBlockFontSize: 12,
+                                              codeBlockLineSpacing: 1.25,
+                                              customStyle: "p { background-color: #eeeeee; }")
+    let result = try XCTUnwrap(generator.generate(
+                                 doc: self.parse("Some text with `code`.\n\n```\nlet a = 1\n```\n")))
+    let text = (result.string as NSString).range(of: "Some text")
+    XCTAssertNotNil(result.attribute(.backgroundColor, at: text.location, effectiveRange: nil))
+    XCTAssertEqual(self.multiple(of: "Some text", in: result), 1.1, accuracy: 0.001)
+    XCTAssertEqual(self.multiple(of: "let a", in: result), 1.25, accuracy: 0.001)
+  }
+
+  /// Code blocks are found by the code font which the user chose (the importer decides which
+  /// font a CSS font list stands for), also if it is not monospaced, and for lines which start
+  /// with characters that the system shows in another font.
+  @MainActor
+  func testCodeBlocksAreRecognizedByTheCodeFont() throws {
+    let doc = self.parse("```swift\n日本語\nlet a = 1 // 日本語\n\n日本語 😀 = 2\nfunc f() {}\n日本語\n```\n")
+    let bold = ".hljs-keyword { font-weight: bold; }"
+    let generators = [("default", AttributedStringGenerator(codeBlockLineSpacing: 1.25)),
+                      ("preOS26", AttributedStringGenerator(version: .preOS26,
+                                                            codeBlockLineSpacing: 1.25)),
+                      ("Menlo", AttributedStringGenerator(codeFontFamily: "Menlo",
+                                                          codeBlockLineSpacing: 1.25)),
+                      ("list", AttributedStringGenerator(codeFontFamily: "'Fira Code', monospace",
+                                                         codeBlockLineSpacing: 1.25)),
+                      ("proportional", AttributedStringGenerator(codeFontFamily: "Helvetica, sans-serif",
+                                                                 codeBlockLineSpacing: 1.25)),
+                      ("bold keywords", AttributedStringGenerator(codeBlockLineSpacing: 1.25,
+                                                                  customStyle: bold)),
+                      ("no highlighting", AttributedStringGenerator(codeBlockLineSpacing: 1.25,
+                                                                    syntaxHighlighting: nil))]
+    for (label, generator) in generators {
+      let result = try XCTUnwrap(generator.generate(doc: doc))
+      let text = result.string as NSString
+      var lines: [(text: String, multiple: CGFloat)] = []
+      var location = 0
+      while location < text.length {
+        let line = text.paragraphRange(for: NSRange(location: location, length: 0))
+        location = NSMaxRange(line)
+        lines.append((text.substring(with: line), self.multiple(at: line.location, in: result)))
+      }
+      // The six lines of the code block, including the empty one, and the empty paragraph
+      // after the code block, which keeps its line height
+      XCTAssertEqual(lines.count, 7, label)
+      for line in lines.prefix(6) {
+        XCTAssertEqual(line.multiple, 1.25, accuracy: 0.001, "\(label): \(line.text)")
+      }
+      XCTAssertEqual(lines.last?.text, "\n", label)
+      XCTAssertEqual(lines.last?.multiple, 0, label)
+    }
+  }
+
+  /// The font probe is not part of the result, and it does not change the rest.
+  @MainActor
+  func testFontProbeIsRemoved() async throws {
+    let markdown = "# Title\n\nSome `code` here.\n\n- one\n- two\n\n> quote\n\n```\nlet a = 1\n```\n\nEnd.\n"
+    let doc = self.parse(markdown)
+    for version in [AttributedStringGenerator.Version.OS26, .preOS26] {
+      // Without line spacing, there is no probe
+      let plain = try XCTUnwrap(AttributedStringGenerator(version: version, lineSpacing: 1)
+                                  .generate(doc: doc))
+      let spaced = try XCTUnwrap(AttributedStringGenerator(version: version).generate(doc: doc))
+      XCTAssertFalse(spaced.string.contains("MKFontProbe"))
+      XCTAssertEqual(spaced.string, plain.string)
+      for index in 0..<plain.length {
+        XCTAssertEqual(spaced.attribute(.font, at: index, effectiveRange: nil) as? NSObject,
+                       plain.attribute(.font, at: index, effectiveRange: nil) as? NSObject,
+                       "\(version) at \(index)")
+      }
+    }
+    // The asynchronous methods remove it as well
+    let generator = AttributedStringGenerator(codeBlockLineSpacing: 1.25)
+    let sync = try XCTUnwrap(generator.generate(doc: doc))
+    let async = try await generator.generateAsync(doc: doc)
+    XCTAssertEqual(async.string, sync.string)
+    XCTAssertFalse(async.string.contains("MKFontProbe"))
+  }
+
+  /// `generateHtml(_:)` is not changed by the font probe.
+  func testGeneratedHtmlHasNoFontProbe() {
+    let generator = AttributedStringGenerator(codeBlockLineSpacing: 1.25)
+    XCTAssertFalse(generator.generateHtml("<p>x</p>").contains("MKFontProbe"))
+    XCTAssertEqual(generator.generateHtmlForImport("<p>x</p>").html.components(
+                     separatedBy: "MKFontProbe").count, 2)
+    XCTAssertTrue(generator.generateHtmlForImport("<p>x</p>").probed)
+    // The probe is only needed if the line spacing changes something
+    let none = AttributedStringGenerator(lineSpacing: 1)
+    XCTAssertFalse(none.generateHtmlForImport("<p>x</p>").probed)
+    XCTAssertEqual(none.generateHtmlForImport("<p>x</p>").html, none.generateHtml("<p>x</p>"))
+  }
+
+  /// A subclass which creates a document without `<body>` gets no probe. Code blocks are then
+  /// recognized by their font size.
+  @MainActor
+  func testDocumentsWithoutBodyTagHaveNoProbe() throws {
+    final class Generator: AttributedStringGenerator, @unchecked Sendable {
+      override func htmlBody(_ body: String) -> String {
+        return "<body class=\"custom\">\n\(body)\n</body>"
+      }
+    }
+    let generator = Generator(codeBlockLineSpacing: 1.25)
+    XCTAssertFalse(generator.generateHtmlForImport("<p>x</p>").probed)
+    let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+    XCTAssertFalse(result.string.contains("MKFontProbe"))
+    XCTAssertEqual(self.multiple(of: "let a", in: result), 1.25, accuracy: 0.001)
+    XCTAssertEqual(self.multiple(of: "Some text", in: result), 1.1, accuracy: 0.001)
+  }
+
+  @MainActor
+  func testAsynchronousMethodsApplyTheLineSpacing() async throws {
+    let generator = AttributedStringGenerator(lineSpacing: 1.5, codeBlockLineSpacing: 1.25)
+    let doc = self.parse(markdown)
+    let sync = try XCTUnwrap(generator.generate(doc: doc))
+    let async = try await generator.generateAsync(doc: doc)
+    XCTAssertEqual(self.multiple(of: "Some text", in: async), 1.5, accuracy: 0.001)
+    XCTAssertEqual(self.multiple(of: "let a", in: async), 1.25, accuracy: 0.001)
+    XCTAssertEqual(self.multiples(in: async), self.multiples(in: sync))
+    guard case .document(let blocks) = doc else {
+      XCTFail("document expected")
+      return
+    }
+    let asyncBlocks = try await generator.generateAsync(blocks: blocks)
+    XCTAssertEqual(self.multiples(in: asyncBlocks), self.multiples(in: sync))
+    let expectation = expectation(description: "completion handler")
+    nonisolated(unsafe) var viaHandler: NSAttributedString?
+    generator.generateAsync(doc: doc) { result in
+      viaHandler = try? result.get()
+      expectation.fulfill()
+    }
+    await fulfillment(of: [expectation], timeout: 30)
+    XCTAssertEqual(self.multiples(in: try XCTUnwrap(viaHandler)), self.multiples(in: sync))
+  }
+}
+
+#endif
+
 /// A minimal HTTP server on the loopback interface which accepts connections, records the
 /// requests it receives, but never answers them. The state which is changed concurrently is
 /// guarded by a lock; the port is set before the server is used.

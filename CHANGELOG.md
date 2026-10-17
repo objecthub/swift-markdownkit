@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 (unreleased)
+
+New features and other changes:
+
+- `AttributedStringGenerator` has the new parameters (and properties) `lineSpacing` and `codeBlockLineSpacing`. They set the line height of text and of code blocks as a multiple of the natural line height of the font; the defaults are 1.1 and 1.0. **The default for text changes the output:** its lines are 10% higher than before; pass `lineSpacing: 1` for the old line height. The system's HTML importer ignores the CSS property `line-height`, so the generator sets `lineHeightMultiple` in the paragraph styles of the attributed string after the import (also with `generateAsync`). Paragraphs with images (including Mermaid diagrams) and the empty paragraphs which only create space keep their line height. The importer does not mark code blocks, so they are recognized by their background color and their font: the generator puts an element in the style of code at the start of the HTML it passes to the importer, compares the fonts of the paragraphs with the font of that element (family and size) and removes it again. `generateHtml(_:)` is not changed.
+
 ## 2.1 (2026-10-16)
 
 Source-incompatible changes:

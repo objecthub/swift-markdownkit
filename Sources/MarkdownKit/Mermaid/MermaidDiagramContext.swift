@@ -206,6 +206,14 @@ public final class MermaidDiagramContext: @unchecked Sendable {
       }
       var attributes = result.attributes(at: range.location, effectiveRange: nil)
       attributes[.attachment] = nil
+      // The line height multiple of the text (`AttributedStringGenerator.lineSpacing`) would also
+      // scale the height of the diagram
+      if let style = attributes[.paragraphStyle] as? NSParagraphStyle,
+         style.lineHeightMultiple != 0,
+         let copy = style.mutableCopy() as? NSMutableParagraphStyle {
+        copy.lineHeightMultiple = 0
+        attributes[.paragraphStyle] = copy
+      }
       let replacement = NSMutableAttributedString(attachment: self.attachment(for: entry.image))
       replacement.addAttributes(attributes, range: NSRange(location: 0, length: replacement.length))
       result.replaceCharacters(in: range, with: replacement)

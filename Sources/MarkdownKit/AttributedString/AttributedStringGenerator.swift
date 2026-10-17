@@ -900,6 +900,17 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// The base font color.
   public let fontColor: String
 
+  /// The line height of text (everything but code blocks, see `codeBlockLineSpacing`) as a
+  /// multiple of the natural line height of its font: 1 keeps the line height of the font, 1.1
+  /// (the default) adds 10% of space to every line. A value of 0 or less (like 1) does not
+  /// change the line height.
+  ///
+  /// The system's HTML importer ignores the CSS property `line-height`. Therefore, the generator
+  /// sets the `lineHeightMultiple` of the paragraph styles of the attributed string after the
+  /// import. Paragraphs which contain images (including diagrams) and the empty paragraphs which
+  /// the generator inserts for vertical space keep their line height.
+  public let lineSpacing: Float
+
   /// The code font size.
   public let codeFontSize: Float
 
@@ -914,6 +925,11 @@ open class AttributedStringGenerator: @unchecked Sendable {
 
   /// The code block font color.
   public let codeBlockFontColor: String
+
+  /// The line height of the lines of code blocks as a multiple of the natural line height of the
+  /// code font. The default is 1, which keeps the line height of the font. See `lineSpacing`
+  /// for how the value is applied.
+  public let codeBlockLineSpacing: Float
 
   /// The code block background color.
   public let codeBlockBackground: String
@@ -986,11 +1002,13 @@ open class AttributedStringGenerator: @unchecked Sendable {
               fontSize: Float = 14.0,
               fontFamily: String = "",
               fontColor: String = mdDefaultColor,
+              lineSpacing: Float = 1.1,
               codeFontSize: Float = 13.0,
               codeFontFamily: String = "",
               codeFontColor: String = mdDefaultColor,
               codeBlockFontSize: Float = 12.0,
               codeBlockFontColor: String = mdDefaultColor,
+              codeBlockLineSpacing: Float = 1.0,
               codeBlockBackground: String = mdDefaultBackgroundColor,
               syntaxHighlighting: SyntaxHighlightingConfig? = .default,
               syntaxHighlighter: SyntaxHighlighter? = nil,
@@ -1021,6 +1039,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
       self.fontFamily = fontFamily
     }
     self.fontColor = fontColor
+    self.lineSpacing = lineSpacing
     self.codeFontSize = codeFontSize
     if codeFontFamily.isEmpty {
       switch version {
@@ -1035,6 +1054,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
     self.codeFontColor = codeFontColor
     self.codeBlockFontSize = codeBlockFontSize
     self.codeBlockFontColor = codeBlockFontColor
+    self.codeBlockLineSpacing = codeBlockLineSpacing
     self.codeBlockBackground = codeBlockBackground
     #if !os(watchOS)
     self.syntaxHighlighter = syntaxHighlighter
@@ -1096,13 +1116,172 @@ open class AttributedStringGenerator: @unchecked Sendable {
   }
   
   private func generateAttributedString(_ htmlBody: String) -> NSAttributedString? {
-    if let httpData = self.generateHtml(htmlBody).data(using: .utf8) {
-      return try? NSAttributedString(data: httpData,
-                                     options: self.renderingOptions.renderingOptions(forLoadFromHTML: false),
-                                     documentAttributes: nil)
+    let document = self.generateHtmlForImport(htmlBody)
+    if let httpData = document.html.data(using: .utf8) {
+      let string = try? NSAttributedString(data: httpData,
+                                           options: self.renderingOptions.renderingOptions(forLoadFromHTML: false),
+                                           documentAttributes: nil)
+      return string.map {
+        self.finishingImport(of: $0,
+                             probed: document.probed,
+                             textSizeMultiplier: self.renderingOptions.textSizeMultiplier)
+      }
     } else {
       return nil
     }
+  }
+
+  #if os(macOS)
+  private typealias PlatformFont = NSFont
+  #else
+  private typealias PlatformFont = UIFont
+  #endif
+
+  /// The text of the element which `generateHtmlForImport(_:)` adds to the HTML.
+  private static let fontProbeText = "MKFontProbe"
+
+  /// The line height multiples for text and for code blocks, which `lineSpacing` and
+  /// `codeBlockLineSpacing` ask for. A value which does not change anything (1, or 0 and less)
+  /// is `nil`.
+  private var lineHeightMultiples: (text: CGFloat?, code: CGFloat?) {
+    func multiple(_ spacing: Float) -> CGFloat? {
+      return spacing > 0 && spacing != 1 ? CGFloat(spacing) : nil
+    }
+    return (multiple(self.lineSpacing), multiple(self.codeBlockLineSpacing))
+  }
+
+  /// Returns the HTML document for `htmlBody` (see `generateHtml(_:)`) which the system's
+  /// importer turns into an attributed string, and whether it contains the font probe.
+  ///
+  /// If the line spacing needs to find the code blocks in the attributed string, the document
+  /// starts with an element that is styled like the code of a code block (`pre code`):
+  /// `finishingImport(of:probed:textSizeMultiplier:)` reads its font from the result, to
+  /// compare it with the fonts of the paragraphs, and removes it again. The importer decides
+  /// which font a CSS font list stands for (it does not match the list like
+  /// `SyntaxHighlighter.resolveFont(_:size:)`), and how the sizes are scaled. This is why the
+  /// font is read from the result. There is no probe if `generateHtml(_:)` (in a subclass)
+  /// creates a document without a `<body>` tag.
+  internal func generateHtmlForImport(_ htmlBody: String) -> (html: String, probed: Bool) {
+    let html = self.generateHtml(htmlBody)
+    let multiples = self.lineHeightMultiples
+    guard multiples.text != nil || multiples.code != nil,
+          let body = html.range(of: "<body>") else {
+      return (html, false)
+    }
+    var result = html
+    result.insert(contentsOf: "\n<pre><code>\(AttributedStringGenerator.fontProbeText)</code></pre>",
+                  at: body.upperBound)
+    return (result, true)
+  }
+
+  /// Returns `string`, an attributed string which the system's HTML importer created from a
+  /// document of `generateHtmlForImport(_:)` (`probed` tells whether it contains the font
+  /// probe), with the font probe removed and the line height multiple of its paragraphs set to
+  /// `lineSpacing` and, for the lines of code blocks, to `codeBlockLineSpacing`. The importer
+  /// ignores the CSS property `line-height`.
+  ///
+  /// Paragraphs with images keep their line height, because the multiple would also scale the
+  /// height of the image, and so do the empty paragraphs which are only there for vertical
+  /// space. A value which does not change anything (1, or 0 and less) leaves the paragraphs
+  /// as they are, and `string` itself is returned if neither value changes anything.
+  ///
+  /// The importer does not mark code blocks. They are the paragraphs whose first character has a
+  /// background color and the font of the font probe (the same font family and size). A line
+  /// can start with characters which the system shows in another font, so the line break at the
+  /// end of the paragraph counts as well. Without a font probe, it is the font size of code
+  /// blocks that is compared. The importer scales all font sizes with `textSizeMultiplier`:
+  /// once, but the synchronous rendering on iOS does it twice (measured on iOS 26.1), so the
+  /// font size of a code block is one of three sizes.
+  internal func finishingImport(of string: NSAttributedString,
+                                probed: Bool,
+                                textSizeMultiplier: Double?) -> NSAttributedString {
+    let (textMultiple, codeMultiple) = self.lineHeightMultiples
+    guard probed || textMultiple != nil || codeMultiple != nil else {
+      return string
+    }
+    let result = NSMutableAttributedString(attributedString: string)
+    var probeFont: PlatformFont?
+    if probed && result.length > 0 {
+      let first = result.string as NSString
+      let paragraph = first.paragraphRange(for: NSRange(location: 0, length: 0))
+      let content = first.substring(with: paragraph).trimmingCharacters(in: .newlines)
+      if content == AttributedStringGenerator.fontProbeText {
+        probeFont = result.attribute(.font, at: 0, effectiveRange: nil) as? PlatformFont
+        result.deleteCharacters(in: paragraph)
+      }
+    }
+    guard result.length > 0, textMultiple != nil || codeMultiple != nil else {
+      return result
+    }
+    let scale = CGFloat((textSizeMultiplier ?? 0) > 0 ? textSizeMultiplier! : 1)
+    let codeFontSizes = [CGFloat(self.codeBlockFontSize),
+                         CGFloat(self.codeBlockFontSize) * scale,
+                         CGFloat(self.codeBlockFontSize) * scale * scale]
+    func isCodeFont(at index: Int) -> Bool {
+      guard let font = result.attribute(.font, at: index, effectiveRange: nil) as? PlatformFont else {
+        return false
+      }
+      if let probeFont {
+        return abs(font.pointSize - probeFont.pointSize) < 0.5 &&
+               font.familyName == probeFont.familyName
+      } else {
+        return codeFontSizes.contains { abs(font.pointSize - $0) < 0.5 }
+      }
+    }
+    func isCodeBlock(start: Int, end: Int, contentsEnd: Int) -> Bool {
+      return result.attribute(.backgroundColor, at: start, effectiveRange: nil) != nil &&
+             (isCodeFont(at: start) || (end > contentsEnd && isCodeFont(at: end - 1)))
+    }
+    let text = result.string as NSString
+    // The locations of images (in ascending order)
+    var images: [Int] = []
+    result.enumerateAttribute(.attachment,
+                              in: NSRange(location: 0, length: result.length),
+                              options: []) { value, range, _ in
+      if value != nil {
+        images.append(range.location)
+      }
+    }
+    var nextImage = 0
+    var location = 0
+    result.beginEditing()
+    while location < result.length {
+      var start = 0
+      var end = 0
+      var contentsEnd = 0
+      text.getParagraphStart(&start, end: &end, contentsEnd: &contentsEnd,
+                             for: NSRange(location: location, length: 0))
+      location = end
+      while nextImage < images.count && images[nextImage] < start {
+        nextImage += 1
+      }
+      if nextImage < images.count && images[nextImage] < end {
+        continue
+      }
+      let lineHeight: CGFloat?
+      if isCodeBlock(start: start, end: end, contentsEnd: contentsEnd) {
+        // Includes the empty lines of code blocks
+        lineHeight = codeMultiple
+      } else if contentsEnd == start {
+        continue
+      } else {
+        lineHeight = textMultiple
+      }
+      guard let lineHeight else {
+        continue
+      }
+      let current = result.attribute(.paragraphStyle, at: start, effectiveRange: nil)
+                      as? NSParagraphStyle
+      if current?.lineHeightMultiple == lineHeight {
+        continue
+      }
+      let style = (current?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+      style.lineHeightMultiple = lineHeight
+      result.addAttribute(.paragraphStyle, value: style,
+                          range: NSRange(location: start, length: end - start))
+    }
+    result.endEditing()
+    return result
   }
   
   /// Returns a new HTML generator for the given options
@@ -1616,10 +1795,12 @@ extension AttributedStringGenerator {
     // AttributedStringGenerator
     let generator = self.htmlGenerator(options: options, pinning: diagrams)
     // Generate HTML for this document
-    let html = self.generateHtml(generator.generate(doc: doc))
+    let document = self.generateHtmlForImport(generator.generate(doc: doc))
     // Replace image placeholders with image attachments
     return self.addingDiagrams(
-             to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
+             to: try await self.renderHTML(document.html,
+                                           options: options ?? self.renderingOptions,
+                                           probed: document.probed),
              from: generator)
   }
 
@@ -1630,9 +1811,11 @@ extension AttributedStringGenerator {
                          -> sending NSAttributedString {
     let diagrams = await self.diagramResults(in: block)
     let generator = self.htmlGenerator(options: options, pinning: diagrams)
-    let html = self.generateHtml(generator.generate(block: block, parent: .none))
+    let document = self.generateHtmlForImport(generator.generate(block: block, parent: .none))
     return self.addingDiagrams(
-             to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
+             to: try await self.renderHTML(document.html,
+                                           options: options ?? self.renderingOptions,
+                                           probed: document.probed),
              from: generator)
   }
 
@@ -1643,9 +1826,11 @@ extension AttributedStringGenerator {
                          -> sending NSAttributedString {
     let diagrams = await self.diagramResults(in: blocks)
     let generator = self.htmlGenerator(options: options, pinning: diagrams)
-    let html = self.generateHtml(generator.generate(blocks: blocks, parent: .none))
+    let document = self.generateHtmlForImport(generator.generate(blocks: blocks, parent: .none))
     return self.addingDiagrams(
-             to: try await self.renderHTML(html, options: options ?? self.renderingOptions),
+             to: try await self.renderHTML(document.html,
+                                           options: options ?? self.renderingOptions,
+                                           probed: document.probed),
              from: generator)
   }
 
@@ -1714,16 +1899,18 @@ extension AttributedStringGenerator {
       completion: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
     let renderingOptions = options ?? self.renderingOptions
     if self.mermaidConfig == nil {
-      self.renderHTML(self.generateHtml(html(self.htmlGenerator(options: options))),
+      let document = self.generateHtmlForImport(html(self.htmlGenerator(options: options)))
+      self.renderHTML(document.html,
                       options: renderingOptions,
+                      probed: document.probed,
                       completion: completion)
     } else {
       let deliver = CompletionHandler(completion)
       Task {
         let diagrams = await prepare(self)
         let generator = self.htmlGenerator(options: options, pinning: diagrams)
-        let document = self.generateHtml(html(generator))
-        self.renderHTML(document, options: renderingOptions) { result in
+        let document = self.generateHtmlForImport(html(generator))
+        self.renderHTML(document.html, options: renderingOptions, probed: document.probed) { result in
           switch result {
             case .success(let string):
               // The attributed string is created by the system's HTML loader and not used by
@@ -1764,6 +1951,7 @@ extension AttributedStringGenerator {
   /// the result.
   internal func renderHTML(_ html: String,
                            options: RenderingOptions,
+                           probed: Bool = false,
                            watchdogGrace: TimeInterval = 5,
                            ignore: Bool = false,
                            completion: @escaping (sending Result<NSAttributedString,
@@ -1773,7 +1961,9 @@ extension AttributedStringGenerator {
       // The result is created by the system's HTML loader and not used by anybody else; it is
       // handed over to the completion handler (which is also not used by anybody else
       // after this point) on the main thread.
-      nonisolated(unsafe) let result = result
+      nonisolated(unsafe) let result = result.map {
+        self.finishingImport(of: $0, probed: probed, textSizeMultiplier: options.textSizeMultiplier)
+      }
       nonisolated(unsafe) let completion = completion
       DispatchQueue.main.async {
         completion(result)
@@ -1786,6 +1976,7 @@ extension AttributedStringGenerator {
   /// `RenderingError.cancelled` at once.
   internal func renderHTML(_ html: String,
                            options: RenderingOptions,
+                           probed: Bool = false,
                            watchdogGrace: TimeInterval = 5,
                            ignore: Bool = false) async throws -> sending NSAttributedString {
     if Task.isCancelled {
@@ -1798,7 +1989,10 @@ extension AttributedStringGenerator {
         state.install { result in
           // The attributed string is created by the system's HTML loader and not used by
           // anybody else; it is handed over to the caller of `renderHTML`.
-          nonisolated(unsafe) let result = result.mapError { $0 as Error }
+          nonisolated(unsafe) let result = result.map {
+            self.finishingImport(of: $0, probed: probed,
+                                 textSizeMultiplier: options.textSizeMultiplier)
+          }.mapError { $0 as Error }
           continuation.resume(with: result)
         }
         state.start(html, options: options, watchdogGrace: watchdogGrace, ignore: ignore)

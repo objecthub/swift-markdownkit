@@ -372,6 +372,27 @@ final class MermaidTests: XCTestCase {
     }
   }
 
+  /// The line height multiple of the text would also scale the height of a diagram.
+  @MainActor
+  func testDiagramsKeepTheirLineHeight() throws {
+    let renderer = try self.makeRenderer()
+    let source = "graph TD\n  A --> B\n"
+    let config = MermaidConfig()
+    renderer.store(try self.makeImage(width: 100, height: 40), for: source, config: config)
+    let generator = AttributedStringGenerator(lineSpacing: 1.5, mermaid: config,
+                                              mermaidRenderer: renderer)
+    let markdown = "Text above.\n\n```mermaid\n\(source)```\n\nText below.\n"
+    let result = try XCTUnwrap(generator.generate(doc: self.parse(markdown)))
+    let found = try XCTUnwrap(self.attachments(in: result).first)
+    let diagram = try XCTUnwrap(result.attribute(.paragraphStyle, at: found.range.location,
+                                                 effectiveRange: nil) as? NSParagraphStyle)
+    XCTAssertEqual(diagram.lineHeightMultiple, 0)
+    XCTAssertEqual(try self.paragraphStyle(of: "Text above.", in: result).lineHeightMultiple,
+                   1.5, accuracy: 0.001)
+    XCTAssertEqual(try self.paragraphStyle(of: "Text below.", in: result).lineHeightMultiple,
+                   1.5, accuracy: 0.001)
+  }
+
   @MainActor
   func testDiagramsAtTheBeginningAndEndOfTheTextAndNextToEachOther() throws {
     let renderer = try self.makeRenderer()

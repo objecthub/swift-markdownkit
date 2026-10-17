@@ -4,7 +4,7 @@
 
 ### Creating a generator
 
-- ``init(version:options:fontSize:fontFamily:fontColor:codeFontSize:codeFontFamily:codeFontColor:codeBlockFontSize:codeBlockFontColor:codeBlockBackground:syntaxHighlighting:syntaxHighlighter:mermaid:mermaidRenderer:borderColor:blockquoteColor:h1Color:h2Color:h3Color:h4Color:maxImageWidth:maxImageHeight:customStyle:imageBaseUrl:renderingOptions:)``
+- ``init(version:options:fontSize:fontFamily:fontColor:lineSpacing:codeFontSize:codeFontFamily:codeFontColor:codeBlockFontSize:codeBlockFontColor:codeBlockLineSpacing:codeBlockBackground:syntaxHighlighting:syntaxHighlighter:mermaid:mermaidRenderer:borderColor:blockquoteColor:h1Color:h2Color:h3Color:h4Color:maxImageWidth:maxImageHeight:customStyle:imageBaseUrl:renderingOptions:)``
 - ``standard``
 - ``Version``
 - ``version-swift.property``
@@ -31,16 +31,18 @@
 - ``renderingOptions-swift.property``
 - ``imageBaseUrl``
 
-### Choosing fonts and colors
+### Choosing fonts, colors and line spacing
 
 - ``fontSize``
 - ``fontFamily``
 - ``fontColor``
+- ``lineSpacing``
 - ``codeFontSize``
 - ``codeFontFamily``
 - ``codeFontColor``
 - ``codeBlockFontSize``
 - ``codeBlockFontColor``
+- ``codeBlockLineSpacing``
 - ``codeBlockBackground``
 - ``borderColor``
 - ``blockquoteColor``
