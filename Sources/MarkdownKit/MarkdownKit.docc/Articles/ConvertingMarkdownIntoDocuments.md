@@ -66,7 +66,7 @@ try pdf.write(to: URL(fileURLWithPath: "Notes.pdf"))
 
 The pages are ``MarkdownUtil/usLetter`` (the default) or ``MarkdownUtil/a4``, or any size in points, with margins of one inch (use `Insets`; see ``MarkdownUtil/Insets``). A page is broken between lines of text, not through them. A list item, a code block or a row of a table moves to the next page as a whole if it fits on a page, and a heading is not the last line of a page. Only a block that is taller than a page is broken. The size of the text can be changed with the rendering option `textSizeMultiplier`.
 
-The text is black on white, whatever the appearance of the system is. The numbers and bullets of lists sit on the baseline of the first line of their items. Links are not clickable yet. ``MarkdownUtil/PDFError`` says why a PDF document cannot be created, for example because the margins leave no room for text.
+The text is black on white, whatever the appearance of the system is. The numbers and bullets of lists sit on the baseline of the first line of their items. Links are clickable: each line of a link is an area that opens its URL (links to a place in the same document, `#name`, are not). ``MarkdownUtil/PDFError`` says why a PDF document cannot be created, for example because the margins leave no room for text.
 
 ### Prepare your own attributed string
 

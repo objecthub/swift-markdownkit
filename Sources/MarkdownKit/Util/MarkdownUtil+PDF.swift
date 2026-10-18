@@ -60,6 +60,7 @@ extension MarkdownUtil {
   /// are broken into pages. Diagrams (see <doc:DrawingMermaidDiagrams>) and formulas (see
   /// <doc:MathematicalFormulas>) are drawn as images; they are scaled down if they are wider than
   /// the text. The numbers and bullets of lists sit on the baseline of the first line of their items.
+  /// Links are clickable (except those to a place in the same document, `#name`).
   ///
   /// This method is available on macOS and iOS. It draws diagrams and formulas with the renderers
   /// of the utility, which take a moment for the first image.
@@ -136,6 +137,15 @@ extension MarkdownUtil {
           let context = CGContext(consumer: consumer, mediaBox: &mediaBox, auxiliary as CFDictionary) else {
       throw PDFError.cannotCreateDocument
     }
+    let links = Self.linkRects(in: storage, layout: layout, container: container)
+    // The text system of macOS makes links of the text it draws clickable, the one of iOS does not:
+    // draw text without links, and make them clickable here, so that it is the same on both
+    // (the color and the underline of a link are attributes of their own)
+    storage.removeAttribute(.link, range: NSRange(location: 0, length: storage.length))
+    let textArea = CGRect(x: margins.left,
+                          y: pageSize.height - margins.top - textSize.height,
+                          width: textSize.width,
+                          height: textSize.height)
     for page in pages {
       context.beginPDFPage(nil)
       context.saveGState()
@@ -147,6 +157,17 @@ extension MarkdownUtil {
       context.translateBy(x: 0, y: -page.minY)
       Self.draw(page, of: layout, in: container, into: context)
       context.restoreGState()
+      // The links of the lines on this page, in the coordinates of the page (the origin is in the
+      // lower left corner)
+      for link in links where link.rect.midY >= page.minY && link.rect.midY < page.maxY {
+        let rect = CGRect(x: margins.left + link.rect.minX,
+                          y: pageSize.height - margins.top - (link.rect.maxY - page.minY),
+                          width: link.rect.width,
+                          height: link.rect.height).intersection(textArea)
+        if !rect.isNull && !rect.isEmpty {
+          context.setURL(link.url as CFURL, for: rect)
+        }
+      }
       context.endPDFPage()
     }
     context.closePDF()
@@ -267,6 +288,37 @@ extension MarkdownUtil {
       pages.append(CGRect(x: 0, y: 0, width: width, height: pageHeight))
     }
     return pages
+  }
+
+  /// Returns the rectangles of the lines of text with a link, in the coordinates of the text view
+  /// (the origin is in the upper left corner), with the URL of the link. Links which only point
+  /// to a place in the same document (`#name`) are left out: they cannot be followed.
+  private static func linkRects(in storage: NSTextStorage,
+                                layout: NSLayoutManager,
+                                container: NSTextContainer) -> [(url: URL, rect: CGRect)] {
+    var result: [(url: URL, rect: CGRect)] = []
+    storage.enumerateAttribute(.link, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
+      let url: URL?
+      if let value = value as? URL {
+        url = value
+      } else if let value = value as? String {
+        url = URL(string: value)
+      } else {
+        url = nil
+      }
+      guard let url, !url.absoluteString.isEmpty, !url.absoluteString.hasPrefix("#") else {
+        return
+      }
+      let glyphs = layout.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+      layout.enumerateEnclosingRects(forGlyphRange: glyphs,
+                                     withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0),
+                                     in: container) { rect, _ in
+        if rect.width > 0 && rect.height > 0 {
+          result.append((url, rect))
+        }
+      }
+    }
+    return result
   }
 
   /// Draws the part `page` of the text of `layout`, in the coordinate system of the text view (the

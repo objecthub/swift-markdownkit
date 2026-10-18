@@ -181,6 +181,104 @@ final class MarkdownUtilPDFTests: XCTestCase {
     }
   }
 
+  // MARK: Links
+
+  /// The links of a page: the URL and the text under the rectangle of the link.
+  private func links(of page: PDFPage) -> [(url: URL, text: String)] {
+    return page.annotations.compactMap { annotation in
+      guard let url = annotation.url ?? (annotation.action as? PDFActionURL)?.url else {
+        return nil
+      }
+      return (url, page.selection(for: annotation.bounds)?.string ?? "")
+    }
+  }
+
+  func testLinksAreClickable() async throws {
+    let (document, _) = try await self.makePDF(
+      "A [link text](https://example.org/page) and <https://example.com/auto> in a paragraph.")
+    let links = self.links(of: try XCTUnwrap(document.page(at: 0)))
+    XCTAssertEqual(links.count, 2)
+    let page = try XCTUnwrap(links.first { $0.url.absoluteString == "https://example.org/page" })
+    XCTAssertTrue(page.text.contains("link text"), page.text)
+    let auto = try XCTUnwrap(links.first { $0.url.absoluteString == "https://example.com/auto" })
+    XCTAssertTrue(auto.text.contains("example.com/auto"), auto.text)
+  }
+
+  func testALinkOverSeveralLinesHasARectangleForEachLine() async throws {
+    let words = (1...30).map { "word\($0)" }.joined(separator: " ")
+    let (document, _) = try await self.makePDF("Before [\(words)](https://example.org/long) after.",
+                                               pageSize: CGSize(width: 300, height: 400),
+                                               margins: MarkdownUtil.Insets(30))
+    let links = self.links(of: try XCTUnwrap(document.page(at: 0)))
+    XCTAssertGreaterThan(links.count, 2)
+    XCTAssertTrue(links.allSatisfy { $0.url.absoluteString == "https://example.org/long" })
+    let text = links.map { $0.text }.joined(separator: " ")
+    XCTAssertTrue(text.contains("word1"), text)
+    XCTAssertTrue(text.contains("word30"), text)
+    XCTAssertFalse(text.contains("Before"), text)
+    XCTAssertFalse(text.contains("after"), text)
+  }
+
+  func testLinksAreOnTheirPages() async throws {
+    let markdown = (1...60).map { number in
+      number == 45 ? "Paragraph \(number) with the [target link](https://example.org/target)."
+                   : "Paragraph \(number) of the document."
+    }.joined(separator: "\n\n")
+    let (document, _) = try await self.makePDF(markdown, pageSize: self.shortPage, margins: self.shortMargins)
+    XCTAssertGreaterThan(document.pageCount, 5)
+    var found = 0
+    for index in 0..<document.pageCount {
+      let page = try XCTUnwrap(document.page(at: index))
+      let links = self.links(of: page)
+      if (page.string ?? "").contains("target link") {
+        XCTAssertEqual(links.count, 1, "page \(index + 1)")
+        XCTAssertTrue(links.first?.text.contains("target link") ?? false, links.first?.text ?? "")
+        found += 1
+      } else {
+        XCTAssertTrue(links.isEmpty, "page \(index + 1)")
+      }
+    }
+    XCTAssertEqual(found, 1)
+  }
+
+  func testLinksInListsAndTablesAreClickable() async throws {
+    let (document, _) = try await self.makePDF("""
+      - An item with [a list link](https://example.org/list)
+
+      | Name | Link |
+      | ---- | ---- |
+      | cell | [a table link](https://example.org/table) |
+      """)
+    let links = self.links(of: try XCTUnwrap(document.page(at: 0)))
+    XCTAssertEqual(Set(links.map { $0.url.absoluteString }),
+                   ["https://example.org/list", "https://example.org/table"])
+    XCTAssertTrue(try XCTUnwrap(links.first { $0.url.lastPathComponent == "list" }).text.contains("a list link"))
+    XCTAssertTrue(try XCTUnwrap(links.first { $0.url.lastPathComponent == "table" }).text.contains("a table link"))
+  }
+
+  func testLinkRectanglesAreWithinThePage() async throws {
+    let (document, _) = try await self.makePDF("Text with a [link](https://example.org/a).",
+                                               margins: MarkdownUtil.Insets(100))
+    let page = try XCTUnwrap(document.page(at: 0))
+    let box = page.bounds(for: .mediaBox).insetBy(dx: 100, dy: 100)
+    let annotations = page.annotations.filter { $0.url != nil || $0.action is PDFActionURL }
+    XCTAssertEqual(annotations.count, 1)
+    for annotation in annotations {
+      XCTAssertTrue(box.insetBy(dx: -1, dy: -1).contains(annotation.bounds), "\(annotation.bounds)")
+    }
+  }
+
+  func testTextWithoutLinksHasNoLinkAnnotations() async throws {
+    let (document, _) = try await self.makePDF("Plain text, `code` and **strong**.")
+    XCTAssertTrue(self.links(of: try XCTUnwrap(document.page(at: 0))).isEmpty)
+  }
+
+  func testLinksToAPlaceInTheSameDocumentAreNotClickable() async throws {
+    let (document, _) = try await self.makePDF("A [reference](#somewhere) and a [link](https://example.org/x).")
+    let links = self.links(of: try XCTUnwrap(document.page(at: 0)))
+    XCTAssertEqual(links.map { $0.url.absoluteString }, ["https://example.org/x"])
+  }
+
   // MARK: Colors
 
   func testDocumentsAreBlackOnWhiteWhateverTheAppearance() {
