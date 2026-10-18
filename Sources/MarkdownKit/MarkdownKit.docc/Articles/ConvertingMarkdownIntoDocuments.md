@@ -1,6 +1,6 @@
 # Converting Markdown into Documents
 
-Turn a Markdown document into text, HTML, RTF or RTFD with one call.
+Turn a Markdown document into text, HTML, RTF, RTFD or PDF with one call.
 
 ## Overview
 
@@ -13,6 +13,7 @@ Turn a Markdown document into text, HTML, RTF or RTFD with one call.
 | ``MarkdownUtil/html(_:math:safeMode:)`` | HTML, with formulas typeset as MathML | all (formulas stay code on watchOS) |
 | ``MarkdownUtil/rtf(_:title:author:renderingOptions:)`` | the data of an RTF file | macOS and iOS |
 | ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:renderingOptions:)`` | an RTFD document, with diagrams and formulas as images | macOS and iOS |
+| ``MarkdownUtil/pdf(_:title:author:pageSize:margins:renderingOptions:)`` | the data of a PDF file, with diagrams and formulas as images | macOS and iOS |
 
 ```swift
 let doc = MarkdownDialect.fullLaTeX.parser.parse(markdown)
@@ -22,6 +23,7 @@ let text = util.text(doc, width: 72)
 let html = util.html(doc)
 let rtf = try await util.rtf(doc, title: "Notes", author: "Matthias")
 let document = try await util.rtfd(doc, title: "Notes", author: "Matthias")
+let pdf = try await util.pdf(doc, title: "Notes", author: "Matthias")
 try document.write(to: URL(fileURLWithPath: "Notes.rtfd"), options: .atomic, originalContentsURL: nil)
 ```
 
@@ -51,6 +53,20 @@ let document = try await util.rtfd(MarkdownDialect.fullLaTeX.parser.parse("The a
 ```
 
 `title` and `author` become properties of the document on macOS; iOS does not write the properties of a document.
+
+### Convert into PDF
+
+``MarkdownUtil/pdf(_:title:author:pageSize:margins:renderingOptions:)`` lays the document out as a text view does, in the width of a page, and draws it into pages: headings, paragraphs, lists, quotes, code blocks (with syntax highlighting) and tables, and diagrams and formulas as images, which are scaled down if they are wider than the text. The result is the content of a `.pdf` file; `title` and `author` become properties of the document.
+
+```swift
+let pdf = try await util.pdf(doc, title: "Notes", pageSize: MarkdownUtil.a4,
+                             margins: MarkdownUtil.Insets(top: 60, left: 72, bottom: 60, right: 72))
+try pdf.write(to: URL(fileURLWithPath: "Notes.pdf"))
+```
+
+The pages are ``MarkdownUtil/usLetter`` (the default) or ``MarkdownUtil/a4``, or any size in points, with margins of one inch (use `Insets`; see ``MarkdownUtil/Insets``). A page is broken between lines of text, not through them. A list item, a code block or a row of a table moves to the next page as a whole if it fits on a page, and a heading is not the last line of a page. Only a block that is taller than a page is broken. The size of the text can be changed with the rendering option `textSizeMultiplier`.
+
+The text is black on white, whatever the appearance of the system is. The numbers and bullets of lists sit on the baseline of the first line of their items. Links are not clickable yet. ``MarkdownUtil/PDFError`` says why a PDF document cannot be created, for example because the margins leave no room for text.
 
 ### Prepare your own attributed string
 

@@ -478,20 +478,21 @@ See [Drawing Images of Diagrams and Formulas](https://objecthub.github.io/swift-
 
 #### Converting Markdown into documents
 
-`MarkdownUtil` also converts a Markdown document into text, HTML, RTF or RTFD with one call: `text(_:width:)`, `ansi(_:width:)` and `html(_:math:safeMode:)` are available on all platforms, `rtf(_:title:author:renderingOptions:)` and `rtfd(_:title:author:maxImageWidth:renderingOptions:)` on macOS and iOS. An RTFD document contains diagrams and formulas as images, which are sized correctly, and formulas within a line are aligned with the text. Call `preparedForRTFD()` on your own `NSAttributedString` to get the same when you export it as RTFD yourself:
+`MarkdownUtil` also converts a Markdown document into text, HTML, RTF, RTFD or PDF with one call: `text(_:width:)`, `ansi(_:width:)` and `html(_:math:safeMode:)` are available on all platforms, `rtf(_:title:author:renderingOptions:)`, `rtfd(_:title:author:maxImageWidth:renderingOptions:)` and `pdf(_:title:author:pageSize:margins:renderingOptions:)` on macOS and iOS. An RTFD document contains diagrams and formulas as images, which are sized correctly, and formulas within a line are aligned with the text. Call `preparedForRTFD()` on your own `NSAttributedString` to get the same when you export it as RTFD yourself:
 
 ```swift
 let doc = MarkdownDialect.fullLaTeX.parser.parse(markdown)
 let html = MarkdownUtil.standard.html(doc)
 let document = try await MarkdownUtil.standard.rtfd(doc, title: "Notes")   // a FileWrapper
 try document.write(to: URL(fileURLWithPath: "Notes.rtfd"), options: .atomic, originalContentsURL: nil)
+let pdf = try await MarkdownUtil.standard.pdf(doc, title: "Notes")   // the data of a PDF file, in US Letter
 ```
 
 See [Converting Markdown into Documents](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/convertingmarkdownintodocuments) for details.
 
 ### Using the command-line tools
 
-The _Swift MarkdownKit_ Xcode project also implements a [very simple command-line tool](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKitProcess/MarkdownKitProcess.swift) that outputs Markdown content (parsed with `FullMarkdownParser`) either as HTML, RTF, RTFD, or pretty-printed text, including the option to output ANSI-compliant markup. The tool either outputs a single Markdown text file into an output file or, when applied to a folder, outputs all Markdown files within the folder into output files in a target folder. Existing output files are not touched unless the option `--overwrite` is used.
+The _Swift MarkdownKit_ Xcode project also implements a [very simple command-line tool](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKitProcess/MarkdownKitProcess.swift) that outputs Markdown content (parsed with `FullMarkdownParser`) either as HTML, RTF, RTFD, PDF, or pretty-printed text, including the option to output ANSI-compliant markup. The tool either outputs a single Markdown text file into an output file or, when applied to a folder, outputs all Markdown files within the folder into output files in a target folder. Existing output files are not touched unless the option `--overwrite` is used.
 
 The tool is a thin wrapper around `MarkdownUtil`, which provides the conversions. It is provided to serve as a demo and basis for customization to specific use cases. The simplest way to build the binary is to use the Swift Package Manager (SPM):
 
@@ -511,7 +512,7 @@ Build of product 'MarkdownKitProcess' complete! (0.07s)
 USAGE: MarkdownKitProcess [<option> ...] <source> [<target>]
 OPTIONS:
   -f, --format <format>
-      Output format: 'text' (plain text, default), 'ansi' (text marked up with ANSI escape codes), 'html', 'rtf', or 'rtfd'.
+      Output format: 'text' (plain text, default), 'ansi' (text marked up with ANSI escape codes), 'html', 'rtf', 'rtfd', or 'pdf'.
   -w, --width <columns>
       Width in columns of the formats 'text' and 'ansi', at least 10 (default: the width of the terminal, or 80).
   -o, --overwrite
@@ -523,14 +524,17 @@ PARAMETERS:
       A Markdown file, or a directory of Markdown files (the files ending in '.md').
   <target>
       The file, or the directory into which the converted files are written. The converted
-      file of 'a.md' is called 'a.txt' ('text' and 'ansi'), 'a.html', 'a.rtf' or 'a.rtfd'.
-      '-' prints the output (not possible for 'rtfd'). If there is no target, the converted
-      files are written next to the source files.
-Diagrams in fenced code blocks with language 'mermaid' are drawn in the format 'rtfd'.
-RTF files cannot contain images: the format 'rtf' shows the code of a diagram.
+      file of 'a.md' is called 'a.txt' ('text' and 'ansi'), 'a.html', 'a.rtf', 'a.rtfd' or
+      'a.pdf'. '-' prints the output (not possible for 'rtfd' and 'pdf'). If there is no
+      target, the converted files are written next to the source files.
+Diagrams in fenced code blocks with language 'mermaid' are drawn in the formats 'rtfd' and
+'pdf'. Formulas (LaTeX between '$' or '$$', between '\(' and '\)' or '\[' and '\]', or in
+fenced code blocks with language 'math') are typeset in the formats 'rtfd' and 'pdf' (as
+images) and 'html' (as MathML). RTF files cannot contain images: the format 'rtf' shows the
+code of a diagram and the LaTeX of a formula, as do the formats 'text' and 'ansi'.
 ```
 
-The format `rtfd` includes [Mermaid](https://mermaid.js.org) diagrams (see [Drawing Mermaid diagrams](#drawing-mermaid-diagrams)) and formulas (see [Drawing mathematical formulas](#drawing-mathematical-formulas)) as images, and the format `html` typesets formulas as MathML, which browsers display without a style sheet or fonts. RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram and the LaTeX of a formula instead, like the formats `text` and `ansi`. The images of an RTFD document are in the files `Image 1.png`, `Formula 1.png` and so on, and a formula within a line is aligned with the text. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool:
+The formats `rtfd` and `pdf` include [Mermaid](https://mermaid.js.org) diagrams (see [Drawing Mermaid diagrams](#drawing-mermaid-diagrams)) and formulas (see [Drawing mathematical formulas](#drawing-mathematical-formulas)) as images, and the format `html` typesets formulas as MathML, which browsers display without a style sheet or fonts. RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram and the LaTeX of a formula instead, like the formats `text` and `ansi`. The images of an RTFD document are in the files `Image 1.png`, `Formula 1.png` and so on, and a formula within a line is aligned with the text. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool:
 
 ```sh
 > swift run MarkdownKitProcess --format rtfd Examples/Demo.md /tmp/Demo.rtfd

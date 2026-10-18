@@ -220,6 +220,8 @@
 		CCBF00362FD00000BBBB0002 /* NSAttributedString+RTFD.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00362FD00000BBBB0001 /* NSAttributedString+RTFD.swift */; };
 		CCBF00372FD00000BBBB0002 /* NSAttributedStringRTFDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00372FD00000BBBB0001 /* NSAttributedStringRTFDTests.swift */; };
 		CCBF00382FD00000BBBB0002 /* MarkdownUtilConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00382FD00000BBBB0001 /* MarkdownUtilConversionTests.swift */; };
+		CCBF003B2FD00000BBBB0002 /* MarkdownUtil+PDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF003B2FD00000BBBB0001 /* MarkdownUtil+PDF.swift */; };
+		CCBF003C2FD00000BBBB0002 /* MarkdownUtilPDFTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF003C2FD00000BBBB0001 /* MarkdownUtilPDFTests.swift */; };
 		CCBF00392FD00000BBBB0002 /* ListMarkers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00392FD00000BBBB0001 /* ListMarkers.swift */; };
 		CCBF003A2FD00000BBBB0002 /* ListMarkerAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF003A2FD00000BBBB0001 /* ListMarkerAlignmentTests.swift */; };
 		CCC48BF525D880FA00D082AD /* String+Entities.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC48BF425D880FA00D082AD /* String+Entities.swift */; };
@@ -539,6 +541,8 @@
 		CCBF00362FD00000BBBB0001 /* NSAttributedString+RTFD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSAttributedString+RTFD.swift"; sourceTree = "<group>"; };
 		CCBF00372FD00000BBBB0001 /* NSAttributedStringRTFDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSAttributedStringRTFDTests.swift; sourceTree = "<group>"; };
 		CCBF00382FD00000BBBB0001 /* MarkdownUtilConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownUtilConversionTests.swift; sourceTree = "<group>"; };
+		CCBF003B2FD00000BBBB0001 /* MarkdownUtil+PDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MarkdownUtil+PDF.swift"; sourceTree = "<group>"; };
+		CCBF003C2FD00000BBBB0001 /* MarkdownUtilPDFTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownUtilPDFTests.swift; sourceTree = "<group>"; };
 		CCBF00392FD00000BBBB0001 /* ListMarkers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListMarkers.swift; sourceTree = "<group>"; };
 		CCBF003A2FD00000BBBB0001 /* ListMarkerAlignmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListMarkerAlignmentTests.swift; sourceTree = "<group>"; };
 		CCC48BF425D880FA00D082AD /* String+Entities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Entities.swift"; sourceTree = "<group>"; };
@@ -721,6 +725,7 @@
 				CCBF00312FD00000BBBB0001 /* MarkdownUtilImageTests.swift */,
 				CCBF00372FD00000BBBB0001 /* NSAttributedStringRTFDTests.swift */,
 				CCBF00382FD00000BBBB0001 /* MarkdownUtilConversionTests.swift */,
+				CCBF003C2FD00000BBBB0001 /* MarkdownUtilPDFTests.swift */,
 				CCBF003A2FD00000BBBB0001 /* ListMarkerAlignmentTests.swift */,
 				CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */,
 				CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */,
@@ -971,6 +976,7 @@
 				CCBF00342FD00000BBBB0001 /* MarkdownUtil.swift */,
 				CCBF00302FD00000BBBB0001 /* MarkdownUtil+Images.swift */,
 				CCBF00352FD00000BBBB0001 /* MarkdownUtil+Documents.swift */,
+				CCBF003B2FD00000BBBB0001 /* MarkdownUtil+PDF.swift */,
 			);
 			path = Util;
 			sourceTree = "<group>";
@@ -1337,6 +1343,7 @@
 				CCBF00302FD00000BBBB0002 /* MarkdownUtil+Images.swift in Sources */,
 				CCBF00342FD00000BBBB0002 /* MarkdownUtil.swift in Sources */,
 				CCBF00352FD00000BBBB0002 /* MarkdownUtil+Documents.swift in Sources */,
+				CCBF003B2FD00000BBBB0002 /* MarkdownUtil+PDF.swift in Sources */,
 				CCBF00362FD00000BBBB0002 /* NSAttributedString+RTFD.swift in Sources */,
 				CCBF00392FD00000BBBB0002 /* ListMarkers.swift in Sources */,
 				CCAF00012FD00000AAAA0004 /* MarkdownKit.docc in Sources */,
@@ -1437,6 +1444,7 @@
 				CCBF00312FD00000BBBB0002 /* MarkdownUtilImageTests.swift in Sources */,
 				CCBF00372FD00000BBBB0002 /* NSAttributedStringRTFDTests.swift in Sources */,
 				CCBF00382FD00000BBBB0002 /* MarkdownUtilConversionTests.swift in Sources */,
+				CCBF003C2FD00000BBBB0002 /* MarkdownUtilPDFTests.swift in Sources */,
 				CCBF003A2FD00000BBBB0002 /* ListMarkerAlignmentTests.swift in Sources */,
 				CCBF00212FD00000BBBB0002 /* LaTeXMathParserTests.swift in Sources */,
 				CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */,

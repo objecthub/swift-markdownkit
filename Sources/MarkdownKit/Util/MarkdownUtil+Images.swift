@@ -146,8 +146,9 @@ extension MarkdownUtil {
 
   // MARK: Insets
 
-  /// The widths in points of the space between the content of an image and its edges, for each
-  /// edge.
+  /// The widths in points of the space between the content of an image (or the text of a page of a
+  /// PDF document, see ``pdf(_:title:author:pageSize:margins:renderingOptions:)``) and its edges, for
+  /// each edge.
   public struct Insets: Sendable, Equatable {
 
     /// Insets of width 0 on all edges.

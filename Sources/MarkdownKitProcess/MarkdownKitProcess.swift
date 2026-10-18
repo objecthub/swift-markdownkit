@@ -27,8 +27,8 @@ import CommandLineKit
 
 
 // This is a command-line tool for converting a text file in Markdown format into other
-// formats such as plain text, HTML, RTF, and RTFD. The tool also allows converting a
-// whole folder of Markdown files into an output format. RTFD output includes diagrams, which
+// formats such as plain text, HTML, RTF, RTFD, and PDF. The tool also allows converting a
+// whole folder of Markdown files into an output format. RTFD and PDF output include diagrams, which
 // are written in fenced code blocks with language `mermaid`, and formulas (LaTeX between
 // dollar signs or between `\(` and `\)`, or in fenced code blocks with language `math`), which
 // are also typeset in HTML output. Existing output files are only replaced if the option
@@ -44,6 +44,7 @@ struct MarkdownKitProcess {
     case html
     case rtf
     case rtfd
+    case pdf
     
     var pathExtension: String {
       switch self {
@@ -55,6 +56,8 @@ struct MarkdownKitProcess {
           return "rtf"
         case .rtfd:
           return "rtfd"
+        case .pdf:
+          return "pdf"
       }
     }
   }
@@ -105,7 +108,8 @@ struct MarkdownKitProcess {
         if let target = optTarget {
           try write(output, to: target)
           print("converted '\(source.lastPathComponent)' into '\(target.lastPathComponent)'")
-        } else if case .data(let data) = output, let string = String(data: data, encoding: .utf8) {
+        } else if format != .pdf, case .data(let data) = output,
+                  let string = String(data: data, encoding: .utf8) {
           print(string)
         } else {
           report("cannot print '\(source.lastPathComponent)' as \(format.rawValue)")
@@ -131,7 +135,7 @@ struct MarkdownKitProcess {
                                   paramIdent: "<format>",
                                   description: "Output format: 'text' (plain text, default), " +
                                                "'ansi' (text marked up with ANSI escape " +
-                                               "codes), 'html', 'rtf', or 'rtfd'.",
+                                               "codes), 'html', 'rtf', 'rtfd', or 'pdf'.",
                                   value: OutputFormat.text)
     let widthOption = flags.int("w", "width",
                                 paramIdent: "<columns>",
@@ -149,14 +153,14 @@ struct MarkdownKitProcess {
             A Markdown file, or a directory of Markdown files (the files ending in '.md').
         <target>
             The file, or the directory into which the converted files are written. The converted
-            file of 'a.md' is called 'a.txt' ('text' and 'ansi'), 'a.html', 'a.rtf' or 'a.rtfd'.
-            '-' prints the output (not possible for 'rtfd'). If there is no target, the converted
-            files are written next to the source files.
-      Diagrams in fenced code blocks with language 'mermaid' are drawn in the format 'rtfd'.
-      Formulas (LaTeX between '$' or '$$', between '\\(' and '\\)' or '\\[' and '\\]', or in fenced
-      code blocks with language 'math') are typeset in the formats 'rtfd' (as images) and 'html'
-      (as MathML). RTF files cannot contain images: the format 'rtf' shows the code of a diagram
-      and the LaTeX of a formula, as do the formats 'text' and 'ansi'.
+            file of 'a.md' is called 'a.txt' ('text' and 'ansi'), 'a.html', 'a.rtf', 'a.rtfd' or
+            'a.pdf'. '-' prints the output (not possible for 'rtfd' and 'pdf'). If there is no
+            target, the converted files are written next to the source files.
+      Diagrams in fenced code blocks with language 'mermaid' are drawn in the formats 'rtfd' and
+      'pdf'. Formulas (LaTeX between '$' or '$$', between '\\(' and '\\)' or '\\[' and '\\]', or in
+      fenced code blocks with language 'math') are typeset in the formats 'rtfd' and 'pdf' (as
+      images) and 'html' (as MathML). RTF files cannot contain images: the format 'rtf' shows the
+      code of a diagram and the LaTeX of a formula, as do the formats 'text' and 'ansi'.
 
       """
     if let failure = flags.parsingFailure() {
@@ -242,6 +246,9 @@ struct MarkdownKitProcess {
       case .rtfd:
         return .document(try await util.rtfd(document, title: title, author: "MarkdownKitProcess",
                                              renderingOptions: options))
+      case .pdf:
+        return .data(try await util.pdf(document, title: title, author: "MarkdownKitProcess",
+                                        renderingOptions: options))
     }
   }
 

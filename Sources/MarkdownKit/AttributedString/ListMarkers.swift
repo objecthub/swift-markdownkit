@@ -286,7 +286,11 @@ enum ListMarkers {
     for pair in pairs {
       let glyph = layoutManager.glyphIndexForCharacter(at: pair.marker.location)
       let line = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
-      guard let content = baseline(in: layoutManager, of: storage, at: pair.content.location) else {
+      // Text with several containers (pages): a marker and its item may be in different ones
+      let contentGlyph = layoutManager.glyphIndexForCharacter(at: pair.content.location)
+      guard layoutManager.textContainer(forGlyphAt: glyph, effectiveRange: nil) ===
+              layoutManager.textContainer(forGlyphAt: contentGlyph, effectiveRange: nil),
+            let content = baseline(in: layoutManager, of: storage, at: pair.content.location) else {
         continue
       }
       // Where the marker is now, which includes its offset
