@@ -415,7 +415,9 @@ public final class MathContext: @unchecked Sendable {
     platformImage?.accessibilityDescription = accessibility
     #else
     let platformImage = UIImage(data: data, scale: image.scale)
-    platformImage?.accessibilityLabel = accessibility
+    // UIKit declares the property as bound to the main actor, but this is called on any thread
+    // (the generators work in the background); a plain image only stores the value
+    platformImage?.setValue(accessibility, forKey: "accessibilityLabel")
     #endif
     return Baked(png: data, image: platformImage)
   }

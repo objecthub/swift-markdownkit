@@ -129,6 +129,20 @@ final class MathAttributedStringGeneratorTests: XCTestCase {
     XCTAssertTrue(result.string.contains("y^3"))
   }
 
+  @MainActor
+  func testTheImageOfAFormulaHasItsLatexAsAccessibilityLabel() throws {
+    let renderer = try self.makeRenderer()
+    try self.store([self.formula("x^2")], in: renderer)
+    let generator = MathAttributedStringGenerator(mathRenderer: renderer)
+    let result = try XCTUnwrap(generator.generate(doc: self.parse("Text $x^2$ more")))
+    let image = try XCTUnwrap(self.attachments(in: result).first?.attachment.image)
+    #if os(macOS)
+    XCTAssertEqual(image.accessibilityDescription, "x^2")
+    #else
+    XCTAssertEqual(image.accessibilityLabel, "x^2")
+    #endif
+  }
+
   func testFormulasWhichHaveNotBeenRenderedAreShownAsCode() throws {
     let generator = MathAttributedStringGenerator(mathRenderer: try self.makeRenderer())
     let doc = self.parse("Text $x^2$ more\n\n$$\ny^3\n$$\n")
