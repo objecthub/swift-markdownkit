@@ -16,7 +16,8 @@ Here is an overview of the supported Markdown features. The parser classes suppo
 - Underlined text: `~underlined~` (`FullMarkdownParser`)
 - Strikethrough text: `~~struck through~~` (`FullMarkdownParser`)
 - Task lists: `- [ ] to do` and `- [x] done` (`FullMarkdownParser`)
-- LaTeX math: `$a^2$`, `$$` … `$$` and fenced `math` code blocks (`MathMarkdownParser`)
+- [Mermaid](https://mermaid.js.org) diagrams: fenced code blocks with the language `mermaid` (all parsers; `AttributedStringGenerator` draws them, see [Drawing Mermaid diagrams](#drawing-mermaid-diagrams))
+- LaTeX math: `$a^2$`, `$$` … `$$` and fenced `math` code blocks (`MathMarkdownParser`; `MathAttributedStringGenerator` draws them, see [Drawing mathematical formulas](#drawing-mathematical-formulas))
 - Custom syntax defined by [extending the parser](#extending-the-parser)
 
 &nbsp;
@@ -133,13 +134,7 @@ print(HtmlGenerator.standard.generate(doc: doc))
 // <p>The area is <span class="math inline">\(\pi r^2\)</span>.</p>
 ```
 
-`MathAttributedStringGenerator`, a subclass of `AttributedStringGenerator`, shows formulas as images in attributed strings (macOS and iOS; elsewhere the LaTeX is shown as code). KaTeX typesets the formulas in a headless web view, which draws many formulas at once (a document with a hundred formulas takes a fraction of a second) and is released a minute after its last use. A formula within a line sits on the baseline of the text, is as large as the text (headings and the text size multiplier scale it) and has the colour of the text around it, including links; a formula that is a block is centered in a paragraph of its own and gets some space above and below. A formula that is wider than its line is scaled down to the width of the line. The images are cached by the `MathRenderer`; `MathConfig` sets macros and limits for KaTeX, the resolution of the images, the spacing around block formulas, the maximal width and a timeout. A formula that KaTeX does not understand is shown as code (a block with a note), and so is a formula that has not been rendered yet in the result of the synchronous method `generate(doc:)`. The asynchronous methods render the formulas first, as they do for Mermaid diagrams, and `prepareMath(in:)` renders them ahead of time. `MarkdownText(string:math:)` shows formulas, which are rendered in the background. The attachment of a formula carries the attribute `.mathSource` with the formula as it was written.
-
-```swift
-let generator = MathAttributedStringGenerator(fontSize: 16)
-let doc = MathMarkdownParser.standard.parse("The area is $\\pi r^2$.")
-let text = try await generator.generateAsync(doc: doc)   // an NSAttributedString with an image of the formula
-```
+`MathAttributedStringGenerator`, a subclass of `AttributedStringGenerator`, shows formulas as images in attributed strings (macOS and iOS); see [Drawing mathematical formulas](#drawing-mathematical-formulas).
 
 ### Configuring the parser
 
@@ -404,6 +399,8 @@ generator.generateAsync(doc: markdown) { result in
 }
 ```
 
+There are two generators for outputting formatted text. [`StringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/StringGenerator.swift) formats text based on the given Markdown and returns text that can be, e.g. edited in a text editor. [`TerminalGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/TerminalGenerator.swift) formats text for output in an ANSI-compliant terminal, using control sequences to mark up the text.
+
 #### Loading images securely
 
 By default, images referred to by Markdown may be loaded from any location: the system's HTML renderer loads any file that an image URL points to (also files outside of `imageBaseUrl`, reached via `../` or absolute paths), and `generateAsync` additionally fetches `http(s)` images and style sheets. Only the path extension of an image is checked by default (see `imageExtensions` below). For untrusted Markdown, use the preset `RenderingOptions.untrusted` (safe mode, and no local and no remote images): `AttributedStringGenerator(renderingOptions: .untrusted)`. Its counterpart `RenderingOptions.trusted` restricts nothing; it is the same as the default options, `RenderingOptions()`. To allow some images, restrict image loading with the options `localImages` and `remoteImages` instead. Each is an `ImageAccess`: `.none` (never load), `.any` (no restriction in terms of URL path), or `.within(url)` (local images: only image files inside this directory, symbolic links resolved; remote images: only URLs with the same scheme, host and port as `url` and a path below the path of `url`).
@@ -443,7 +440,27 @@ Rendered diagrams, and the errors of diagrams which Mermaid rejected, are kept i
 
 The web view cannot access the network or local files and has no connection to the rest of the application, and Mermaid runs with `securityLevel: 'strict'`. It is created when the first diagram is rendered and released after 60 seconds without requests; create the `MermaidRenderer` with `idleTime:` to change that (`0` releases it as soon as no request is waiting, `.infinity` never releases it). Replace `Sources/MarkdownKit/Mermaid/mermaid.min.js` to use another version of Mermaid; it has to be a build that defines the global `mermaid`. A `MermaidRenderer` reads the 3.6 MB file once and keeps it in memory; create it with `cachesScript: false` (`MermaidRenderer(mermaidJSURL:cachesScript:)`) to read the file again whenever the web view is created instead.
 
-There are two generators for outputting formatted text. [`StringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/StringGenerator.swift) formats text based on the given Markdown and returns text that can be, e.g. edited in a text editor. [`TerminalGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/String/TerminalGenerator.swift) formats text for output in an ANSI-compliant terminal, using control sequences to mark up the text.
+#### Drawing mathematical formulas
+
+Formulas are recognized by `MathMarkdownParser` (see [Markdown extensions](#markdown-extensions)). `MathAttributedStringGenerator`, a subclass of `AttributedStringGenerator`, shows them as images. It takes all parameters of its superclass plus `math:`, a `MathConfig` (the default is `MathConfig()`), and `mathRenderer:`. Every other generator shows a formula as code (`MathHtmlGenerator` typesets formulas in HTML instead):
+
+```swift
+let generator = MathAttributedStringGenerator(fontSize: 16)
+let doc = MathMarkdownParser.standard.parse("The area is $\\pi r^2$.")
+let attributedStr = try await generator.generateAsync(doc: doc)
+```
+
+Like Mermaid, KaTeX needs the layout engine of a web browser to place the parts of a formula: the system's HTML importer drops most CSS and flattens MathML, so it cannot show the HTML or MathML that KaTeX creates. The formulas are therefore drawn by `MathRenderer`, which loads the KaTeX that ships with _MarkdownKit_ (script, style sheet and fonts) into a headless `WKWebView`, renders up to a hundred formulas at a time, measures each one (its size and the distance of its baseline from the lower edge) and turns it into a PNG image with a transparent background. The generator puts a placeholder into the HTML and replaces it with an `NSTextAttachment` once the system has created the attributed string. A formula within a line sits on the baseline of the text, is as large as the text (headings and the text size multiplier scale it) and has the color of the text around it, also in links: the image is black, and the color is applied when the attachment is created, because only iOS tints template images. A formula that is wider than its line is scaled down to the width of the line. A formula that is a block is a centered paragraph with some space above and below it. Formulas are only supported on macOS and iOS; on other platforms, and for formulas which KaTeX rejects (a block then gets a note with the message of KaTeX), the LaTeX is shown as code. The attachment has the attribute `.mathSource` with the formula as it was written. The LaTeX command `\color` is not reflected in the image, `\tag` is not shown, and RTFD export keeps the images but loses their baseline offset.
+
+Rendering takes time, so it is asynchronous, just like drawing diagrams:
+
+  - `generateAsync` renders all formulas of the document before it generates the attributed string.
+  - `generate(doc:)` cannot wait for a web view; it shows the formulas that have been rendered before, and code for the others. Call `await generator.prepareMath(in: doc)` first to render them (it returns `true` if it rendered anything, i.e. if `generate(doc:)` now gives a different result). Code that does not use Swift concurrency calls `generator.prepareMath(in: doc) { rendered in … }` instead; the handler is called exactly once, asynchronously, on the main thread.
+  - `MarkdownText(_:math:)` and `MarkdownText(string:math:)` show the code first and replace it with the formulas once they are available. A string is parsed with `MathMarkdownParser` then, unless `dialect:` selects another parser.
+
+Rendered formulas, and the errors of formulas which KaTeX rejected, are kept in memory by the `MathRenderer` (`MathRenderer.shared` by default; pass `mathRenderer:` to the generator for another one), keyed by the formula (its LaTeX and whether it is display math), the font size of the generator and the KaTeX options and scale. The color is not part of the key, so generators for light and dark mode share the images. The cache holds at most 2,000 results and 32 MiB of images by default and drops the ones that were used least recently; `MathRenderer(katexFolder:idleTime:maxCachedFormulas:maxCacheBytes:)` sets other limits. `generateAsync` keeps the formulas of the document it generates itself, so it shows all of them whatever the size of the cache. `generate(doc:)`, and `MarkdownText`, which uses it, only show the formulas that are in the cache: `maxCachedFormulas` should be at least the number of formulas in the largest document that you display in this way. `MathRenderer.render(_:fontSize:config:)` (or `render(_:fontSize:config:completionHandler:)`) can also be used without a generator to get the PNG of a formula. A `MathConfig` sets the KaTeX options (`katex:`, a `KaTeXOptions` with `macros`, a limit for macro expansions, the maximal size and the maximal length of a formula, which is 10,000 bytes by default), the `scale` of the images (pixels per point, default 3), the `spacing` between a block formula and the text above and below it (at least 8 points), a `maxWidth` for a formula and the `timeout` for rendering a batch of formulas (15 seconds).
+
+The web view cannot access the network or local files and has no connection to the rest of the application, and KaTeX runs with `trust` set to `false`, so formulas cannot create links, images or HTML. It is created when the first formula is rendered and released after 60 seconds without requests; create the `MathRenderer` with `idleTime:` to change that (`0` releases it as soon as no request is waiting, `.infinity` never releases it). To use another version of KaTeX, replace the folder `Sources/MarkdownKit/Math/KaTeX` (it contains `katex.min.js`, `katex.min.css` and the folder `fonts`) and update `KaTeXEngine.bundledVersion`.
 
 ### Using the command-line tools
 

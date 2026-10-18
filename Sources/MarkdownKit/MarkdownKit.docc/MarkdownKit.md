@@ -16,7 +16,8 @@ These are the supported Markdown features. The parser classes supporting a featu
 - Underlined text: `~underlined~` (``FullMarkdownParser``)
 - Strikethrough text: `~~struck through~~` (``FullMarkdownParser``)
 - Task lists: `- [ ] to do` and `- [x] done` (``FullMarkdownParser``)
-- LaTeX math: `$a^2$`, `$$` … `$$` and fenced `math` code blocks (``MathMarkdownParser``)
+- [Mermaid](https://mermaid.js.org) diagrams: fenced code blocks with the language `mermaid` (all parsers; ``AttributedStringGenerator`` draws them, see <doc:DrawingMermaidDiagrams>)
+- LaTeX math: `$a^2$`, `$$` … `$$` and fenced `math` code blocks (``MathMarkdownParser``; ``MathAttributedStringGenerator`` draws them, see <doc:MathematicalFormulas>)
 - Custom syntax defined by extending the parser
 
 MarkdownKit supports macOS 11, iOS 15, tvOS 15 and watchOS 8 or later.
