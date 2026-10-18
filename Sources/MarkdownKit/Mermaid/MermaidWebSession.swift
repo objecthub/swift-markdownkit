@@ -509,41 +509,7 @@ private final class MermaidWebPage: NSObject, WKNavigationDelegate {
   /// Returns the content of a bitmap context without the transparent area around it, and with a
   /// transparent margin of `margin` pixels instead. Returns `nil` if the bitmap is empty.
   nonisolated private static func trimmed(_ context: CGContext, margin: Int) -> CGImage? {
-    let width = context.width, height = context.height
-    guard let data = context.data, let image = context.makeImage() else {
-      return nil
-    }
-    let pixels = data.bindMemory(to: UInt8.self, capacity: context.bytesPerRow * height)
-    // The area with pixels which are not (nearly) transparent. The bytes of a pixel are
-    // red, green, blue and alpha, and the first row is the top one.
-    var minX = width, maxX = -1, minY = height, maxY = -1
-    for y in 0..<height {
-      let row = y * context.bytesPerRow
-      for x in 0..<width where pixels[row + x * 4 + 3] > 4 {
-        minX = min(minX, x)
-        maxX = max(maxX, x)
-        minY = min(minY, y)
-        maxY = max(maxY, y)
-      }
-    }
-    guard maxX >= minX, maxY >= minY else {
-      return nil
-    }
-    let contentWidth = maxX - minX + 1, contentHeight = maxY - minY + 1
-    guard let content = image.cropping(to: CGRect(x: minX, y: minY,
-                                                  width: contentWidth, height: contentHeight)),
-          let result = CGContext(data: nil,
-                                 width: contentWidth + 2 * margin,
-                                 height: contentHeight + 2 * margin,
-                                 bitsPerComponent: 8,
-                                 bytesPerRow: 0,
-                                 space: CGColorSpaceCreateDeviceRGB(),
-                                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-      return nil
-    }
-    // The same margin on all sides, so the position in the (bottom-up) context does not matter
-    result.draw(content, in: CGRect(x: margin, y: margin, width: contentWidth, height: contentHeight))
-    return result.makeImage()
+    return context.makeImage()?.withInsets(top: margin, left: margin, bottom: margin, right: margin)
   }
 
   /// Renders `source` and returns an image of the diagram.

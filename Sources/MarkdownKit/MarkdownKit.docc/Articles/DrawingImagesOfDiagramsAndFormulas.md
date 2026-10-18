@@ -60,6 +60,18 @@ struct FormulaView: View {
 }
 ```
 
+### Give images uniform insets
+
+The images that Mermaid and KaTeX draw have a small transparent margin, which differs from image to image. For a document in which the images should have the same space around them, ``MarkdownImageUtil/image(_:withInsets:transparentAlpha:)`` makes the space between the content of an image and its edges an exact width, the inset, for each edge. It removes the transparent area around the content where it is wider than the inset, and adds transparent space where it is narrower:
+
+```swift
+let diagram = try await util.mermaidImage("graph LR\n  A --> B")
+let insets = MarkdownImageUtil.Insets(top: 4, left: 8, bottom: 4, right: 8)   // in points
+let padded = MarkdownImageUtil.image(diagram, withInsets: insets)
+```
+
+An ``MarkdownImageUtil/Insets`` value has a width in points for the upper, left, lower and right edge; `Insets(8)` is the same width on all edges, `Insets(horizontal: 8, vertical: 4)` has the same width on opposite edges, and `Insets.none` removes all of the space around the content. The content is the area with pixels that are not transparent. Pixels with an alpha value of at most `transparentAlpha` (0 to 255) count as transparent; the default, 4, ignores the faint edges that antialiasing creates, and 0 counts every pixel that is not completely transparent. The widths are rounded to whole pixels, and the resolution of the image does not change. The function works with any bitmap image with a transparent background, not just those of this utility. The result is a new image, so the setup of a formula for aligning it with text is not carried over, as the baseline moves with the insets. If the image has no content, because it is completely transparent, the result is `nil`.
+
 ### Handle errors
 
 The methods throw a ``MermaidError`` for diagrams and a ``MathError`` for formulas. `.syntaxError` has the message of Mermaid or KaTeX if it does not understand the input, and the other cases tell that rendering took too long (`.timedOut`), that the task was cancelled (`.cancelled`), or that images cannot be drawn on the platform or with the resources at hand. Formulas which KaTeX rejects are remembered, so asking for the same formula again fails at once.

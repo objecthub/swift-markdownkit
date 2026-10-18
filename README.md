@@ -466,7 +466,7 @@ The web view cannot access the network or local files, and KaTeX runs with `trus
 
 #### Drawing diagrams and formulas as images
 
-`MarkdownImageUtil` draws Mermaid diagrams and formulas into images without any Markdown, in one place. Its methods return an `NSImage` (macOS) or a `UIImage` (iOS), asynchronously or with a completion handler:
+`MarkdownImageUtil` draws Mermaid diagrams and formulas into images without any Markdown, in one place. Its methods return an `NSImage` (macOS) or a `UIImage` (iOS), asynchronously or with a completion handler, and `MarkdownImageUtil.image(_:withInsets:)` gives such an image transparent space of a given width between its content and each edge:
 
 ```swift
 let util = MarkdownImageUtil.standard

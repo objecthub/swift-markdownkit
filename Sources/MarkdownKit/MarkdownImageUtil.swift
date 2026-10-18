@@ -185,6 +185,137 @@ public struct MarkdownImageUtil: Sendable {
     }
   }
 
+  // MARK: Insets
+
+  /// The widths in points of the space between the content of an image and its edges, for each
+  /// edge.
+  public struct Insets: Sendable, Equatable {
+
+    /// Insets of width 0 on all edges.
+    public static let none = Insets(0)
+
+    /// The width of the inset at the upper edge.
+    public var top: CGFloat
+
+    /// The width of the inset at the left edge.
+    public var left: CGFloat
+
+    /// The width of the inset at the lower edge.
+    public var bottom: CGFloat
+
+    /// The width of the inset at the right edge.
+    public var right: CGFloat
+
+    /// Creates insets with the given widths in points.
+    public init(top: CGFloat, left: CGFloat, bottom: CGFloat, right: CGFloat) {
+      self.top = top
+      self.left = left
+      self.bottom = bottom
+      self.right = right
+    }
+
+    /// Creates insets which have the same width on all edges.
+    public init(_ width: CGFloat) {
+      self.init(top: width, left: width, bottom: width, right: width)
+    }
+
+    /// Creates insets with the same width at the left and the right edge, and the same width at
+    /// the upper and the lower edge.
+    public init(horizontal: CGFloat, vertical: CGFloat) {
+      self.init(top: vertical, left: horizontal, bottom: vertical, right: horizontal)
+    }
+  }
+
+  /// Returns a copy of an image whose content has transparent space of exactly the given widths
+  /// between it and the edges (the insets): the transparent area around the content of the image
+  /// is removed, wherever it is wider than the inset asks for, and transparent space is added
+  /// where it is narrower, for each edge individually. The images that Mermaid and KaTeX draw are
+  /// not all alike in the space around their content; this gives them uniform insets, for
+  /// example for showing them in a document.
+  ///
+  /// ```swift
+  /// let image = try await util.mermaidImage("graph LR\n  A --> B")
+  /// let padded = MarkdownImageUtil.image(image, withInsets: .init(horizontal: 8, vertical: 4))
+  /// ```
+  ///
+  /// The content of an image is the area which has pixels that are not transparent: those with an
+  /// alpha value of at most `transparentAlpha` count as transparent. The resolution of the image
+  /// is not changed (`scale`), and the widths of the insets are rounded to whole pixels. The image
+  /// has to be a bitmap image. The result is a new image: the setup of a formula for aligning it
+  /// with text (see ``mathImage(_:display:fontSize:color:config:)``) is not carried over, as the
+  /// baseline moves with the insets.
+  ///
+  /// - Parameters:
+  ///   - image: An image with a transparent background.
+  ///   - insets: The widths of the space around the content in points.
+  ///   - transparentAlpha: The pixels whose alpha value (0 to 255) is at most this value count as
+  ///                       transparent. The default, 4, ignores the faint edges that antialiasing
+  ///                       creates; 0 counts every pixel that is not completely transparent.
+  /// - Returns: The image with the insets, or `nil` if the image has no content (it is completely
+  ///            transparent) or is not a bitmap image.
+  public static func image(_ image: HRImage,
+                           withInsets insets: Insets,
+                           transparentAlpha: UInt8 = 4) -> HRImage? {
+    guard let (bitmap, scale) = Self.bitmap(of: image) else {
+      return nil
+    }
+    func pixels(_ points: CGFloat) -> Int {
+      return max(0, Int((points * scale).rounded()))
+    }
+    guard let result = bitmap.withInsets(top: pixels(insets.top),
+                                         left: pixels(insets.left),
+                                         bottom: pixels(insets.bottom),
+                                         right: pixels(insets.right),
+                                         transparentAlpha: transparentAlpha) else {
+      return nil
+    }
+    #if os(macOS)
+    let size = NSSize(width: CGFloat(result.width) / scale, height: CGFloat(result.height) / scale)
+    let copy = NSImage(cgImage: result, size: size)
+    // The size of the representation is the size in points, as it is for the images which are
+    // created from PNG data (see `makeImage`)
+    for representation in copy.representations {
+      representation.size = size
+    }
+    return copy
+    #else
+    return UIImage(cgImage: result, scale: scale, orientation: .up)
+    #endif
+  }
+
+  /// The bitmap of an image, and the number of its pixels per point. Returns `nil` if the image
+  /// has no bitmap.
+  private static func bitmap(of image: HRImage) -> (bitmap: CGImage, scale: CGFloat)? {
+    #if os(macOS)
+    // The representation with the most pixels
+    let representations = image.representations.compactMap { $0 as? NSBitmapImageRep }
+    var cgImage = representations.max { $0.pixelsWide * $0.pixelsHigh < $1.pixelsWide * $1.pixelsHigh }?.cgImage
+    if cgImage == nil {
+      var rect = CGRect(origin: .zero, size: image.size)
+      cgImage = image.cgImage(forProposedRect: &rect, context: nil, hints: nil)
+    }
+    guard let cgImage, image.size.width > 0 else {
+      return nil
+    }
+    return (cgImage, CGFloat(cgImage.width) / image.size.width)
+    #else
+    var source = image
+    if image.imageOrientation != .up {
+      // Draw the image as it is shown
+      let format = UIGraphicsImageRendererFormat()
+      format.scale = image.scale
+      format.opaque = false
+      source = UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+        image.draw(at: .zero)
+      }
+    }
+    guard let cgImage = source.cgImage else {
+      return nil
+    }
+    return (cgImage, source.scale)
+    #endif
+  }
+
   // MARK: Images
 
   /// Creates the image of the platform from PNG data. `size` is the size in points, `scale` the
