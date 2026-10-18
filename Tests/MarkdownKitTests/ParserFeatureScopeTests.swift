@@ -25,7 +25,8 @@ import XCTest
 /// `MarkdownParser` implements CommonMark and nothing else, `ExtendedMarkdownParser` adds
 /// tables and definition lists, `FullMarkdownParser` adds the other markup, and
 /// `MathMarkdownParser` supports all features of MarkdownKit, including math (`$` is only a
-/// special character for this parser). A new feature needs a row in `Feature`, and a decision in
+/// special character for this parser), and `LaTeXMarkdownParser` also recognizes the delimiters
+/// of LaTeX for math. A new feature needs a row in `Feature`, and a decision in
 /// which parser it is available.
 final class ParserFeatureScopeTests: XCTestCase {
 
@@ -146,6 +147,8 @@ final class ParserFeatureScopeTests: XCTestCase {
     ParserScope(name: "FullMarkdownParser", parser: FullMarkdownParser.standard,
                 features: Set(Feature.allCases.filter { $0 != .math })),
     ParserScope(name: "MathMarkdownParser", parser: MathMarkdownParser.standard,
+                features: Set(Feature.allCases)),
+    ParserScope(name: "LaTeXMarkdownParser", parser: LaTeXMarkdownParser.standard,
                 features: Set(Feature.allCases))
   ]
 
@@ -205,6 +208,11 @@ final class ParserFeatureScopeTests: XCTestCase {
     let math: [BlockParser.Type] = Array(extended.dropLast()) + [MathBlockParser.self, TableParser.self]
     XCTAssertEqual(types(MathMarkdownParser.defaultBlockParsers), types(math))
     XCTAssertEqual(MathMarkdownParser.standard.documentParser(input: "").blockParsers.count, 11)
+    // The LaTeX parser adds the parser for blocks between `\[` and `\]` after it
+    let latex: [BlockParser.Type] = Array(extended.dropLast()) +
+                                    [MathBlockParser.self, LaTeXMathBlockParser.self, TableParser.self]
+    XCTAssertEqual(types(LaTeXMarkdownParser.defaultBlockParsers), types(latex))
+    XCTAssertEqual(LaTeXMarkdownParser.standard.documentParser(input: "").blockParsers.count, 12)
     // Document parsers
     XCTAssertTrue(type(of: MarkdownParser.standard.documentParser(input: "")) == DocumentParser.self)
     XCTAssertTrue(type(of: ExtendedMarkdownParser.standard.documentParser(input: ""))
@@ -212,6 +220,8 @@ final class ParserFeatureScopeTests: XCTestCase {
     XCTAssertTrue(type(of: FullMarkdownParser.standard.documentParser(input: ""))
                     == ExtendedDocumentParser.self)
     XCTAssertTrue(type(of: MathMarkdownParser.standard.documentParser(input: ""))
+                    == ExtendedDocumentParser.self)
+    XCTAssertTrue(type(of: LaTeXMarkdownParser.standard.documentParser(input: ""))
                     == ExtendedDocumentParser.self)
   }
 
@@ -233,6 +243,11 @@ final class ParserFeatureScopeTests: XCTestCase {
                    types([LineEmphasisDelimiterTransformer.self, CodeLinkHtmlTransformer.self,
                           MathTransformer.self, LinkTransformer.self,
                           LineEmphasisTransformer.self, EscapeTransformer.self]))
+    // The LaTeX parser has a math transformer for the delimiters of LaTeX at the same place
+    XCTAssertEqual(types(LaTeXMarkdownParser.defaultInlineTransformers),
+                   types([LineEmphasisDelimiterTransformer.self, CodeLinkHtmlTransformer.self,
+                          LaTeXMathTransformer.self, LinkTransformer.self,
+                          LineEmphasisTransformer.self, EscapeTransformer.self]))
     // The escape transformer is always the last one
     for scope in Self.scopes {
       XCTAssertTrue(type(of: scope.parser).defaultInlineTransformers.last == EscapeTransformer.self,
@@ -249,6 +264,8 @@ final class ParserFeatureScopeTests: XCTestCase {
                     == TaskListInlineParser.self)
     // The math parser also turns fenced code blocks with the info string math into formulas
     XCTAssertTrue(type(of: MathMarkdownParser.standard.inlineParser(input: .document([])))
+                    == MathInlineParser.self)
+    XCTAssertTrue(type(of: LaTeXMarkdownParser.standard.inlineParser(input: .document([])))
                     == MathInlineParser.self)
   }
 

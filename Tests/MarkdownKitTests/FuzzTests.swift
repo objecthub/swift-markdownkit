@@ -69,6 +69,12 @@ class FuzzTests: XCTestCase {
     " ", "5", "\u{0}", "\u{1B}", "<b>", "<", ">", "- ", "> ", "| ", "# "
   ]
 
+  /// Fragments of the delimiters of LaTeX, for parsers that support them
+  private static let latexTokens: [String] = [
+    "\\(", "\\)", "\\[", "\\]", "\\(", "\\)", "\\[", "\\]", "\\\\", "\\\\(", "\\\\]", "\\", "(", ")",
+    "[", "]", "\\[\n", "\n\\]", "\\[ ", " \\]", "\\(x\\)", "\\[x\\]", "\n\n"
+  ]
+
   /// Fragments for generating code blocks (indented or fenced) which get syntax highlighted
   private static let codeTokens: [String] = [
     "```swift\n", "```c\n", "```html\n", "```js\n", "```\n", "\n```\n", "    ", "\t",
@@ -165,14 +171,14 @@ class FuzzTests: XCTestCase {
     XCTAssertGreaterThan(compared, self.iterations / 5)
   }
 
-  func testRandomMathDoesNotCrashParserAndGenerators() {
-    var rng = Xorshift(seed: 11)
+  private func checkRandomMath(parser: MarkdownParser, tokens: [String], seed: Int, name: String) {
+    var rng = Xorshift(seed: seed)
     for i in 0..<self.iterations {
-      let input = self.randomInput(Self.tokens + Self.mathTokens, &rng)
+      let input = self.randomInput(tokens, &rng)
       if self.verbose {
-        self.log("FUZZ math #\(i): \(input.debugDescription)")
+        self.log("FUZZ \(name) #\(i): \(input.debugDescription)")
       }
-      let doc = MathMarkdownParser.standard.parse(input)
+      let doc = parser.parse(input)
       _ = doc.description
       _ = doc.debugDescription
       _ = doc.string
@@ -192,6 +198,17 @@ class FuzzTests: XCTestCase {
     }
   }
 
+  func testRandomMathDoesNotCrashParserAndGenerators() {
+    self.checkRandomMath(parser: MathMarkdownParser.standard, tokens: Self.tokens + Self.mathTokens,
+                         seed: 11, name: "math")
+  }
+
+  func testRandomLaTeXMathDoesNotCrashParserAndGenerators() {
+    self.checkRandomMath(parser: LaTeXMarkdownParser.standard,
+                         tokens: Self.tokens + Self.mathTokens + Self.latexTokens,
+                         seed: 17, name: "latex")
+  }
+
   /// Without `$` and math fences, the math parser behaves like the full parser
   func testMathMarkdownParserAgreesWithTheFullParserWithoutMath() {
     var rng = Xorshift(seed: 13)
@@ -201,6 +218,23 @@ class FuzzTests: XCTestCase {
                      HtmlGenerator.standard.generate(doc: FullMarkdownParser.standard.parse(input)),
                      input.debugDescription)
     }
+  }
+
+  /// Without `\(` and `\[`, the LaTeX parser behaves like the math parser
+  func testLaTeXMarkdownParserAgreesWithTheMathParserWithoutLaTeXDelimiters() {
+    var rng = Xorshift(seed: 19)
+    var compared = 0
+    for _ in 0..<self.iterations {
+      let input = self.randomInput(Self.tokens + Self.mathTokens, &rng)
+      guard !input.contains("\\(") && !input.contains("\\[") else {
+        continue
+      }
+      compared += 1
+      XCTAssertEqual(HtmlGenerator.standard.generate(doc: LaTeXMarkdownParser.standard.parse(input)),
+                     HtmlGenerator.standard.generate(doc: MathMarkdownParser.standard.parse(input)),
+                     input.debugDescription)
+    }
+    XCTAssertGreaterThan(compared, self.iterations / 2)
   }
 
   func testRandomCodeBlocksDoNotCrashSyntaxHighlighting() throws {

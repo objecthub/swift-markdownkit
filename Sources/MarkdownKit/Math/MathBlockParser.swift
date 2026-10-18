@@ -42,33 +42,69 @@ import Foundation
 ///
 public final class MathBlockParser: RestorableBlockParser {
 
+  public override func tryParse() -> ParseResult {
+    return self.parseMathBlock(opening: "$$", closing: "$$")
+  }
+}
+
+///
+/// A block parser for formulas which are blocks of their own, which are written between the
+/// delimiters of LaTeX, returning ``MathBlock`` blocks:
+///
+/// ```
+/// \[
+/// \int_0^1 x^2 \, dx = \frac{1}{3}
+/// \]
+/// ```
+///
+/// This parser works like ``MathBlockParser``, with `\[` instead of the opening `$$` and `\]`
+/// instead of the closing one: the block starts with a line that begins with `\[` and ends with a
+/// line that ends with `\]`, the LaTeX can also be on these lines, a block can consist of a
+/// single line (`\[x^2\]`), and it cannot contain a blank line. Lines with more delimiters than
+/// the opening and the closing one (as in `\[a\] and \[b\]`) are not a block, but a paragraph with
+/// formulas (see ``LaTeXMathTransformer``).
+///
+/// The parser has to come before `TableParser` (see ``LaTeXMarkdownParser``). Since a backslash in
+/// front of a bracket escapes it in Markdown, text such as `\[not a link]` is a formula here.
+///
+public final class LaTeXMathBlockParser: RestorableBlockParser {
+
+  public override func tryParse() -> ParseResult {
+    return self.parseMathBlock(opening: "\\[", closing: "\\]")
+  }
+}
+
+extension RestorableBlockParser {
+
   /// The content of the current line, without its indentation and trailing white space.
-  private var content: String {
+  private var mathContent: String {
     return String(self.line[self.contentStartIndex..<self.contentEndIndex])
              .trimmingCharacters(in: .whitespaces)
   }
 
-  public override func tryParse() -> ParseResult {
+  /// Parses a formula that is a block, which starts with a line that begins with `opening` and
+  /// ends with a line that ends with `closing`.
+  func parseMathBlock(opening: String, closing: String) -> ParseResult {
     guard self.shortLineIndent && !self.lineEmpty else {
       return .none
     }
-    let first = self.content
-    guard first.hasPrefix("$$") else {
+    let first = self.mathContent
+    guard first.hasPrefix(opening) else {
       return .none
     }
-    var text = String(first.dropFirst(2))
+    var text = String(first.dropFirst(opening.count))
     var parts: [String] = []
     // A block which consists of a single line
-    if Self.endsWithDelimiter(text) {
-      text = String(text.dropLast(2)).trimmingCharacters(in: .whitespaces)
-      guard !text.isEmpty && !Self.containsDelimiter(text) else {
+    if Self.mathEnds(text, with: closing) {
+      text = String(text.dropLast(closing.count)).trimmingCharacters(in: .whitespaces)
+      guard !text.isEmpty && !Self.mathContains(text, opening, closing) else {
         return .none
       }
       self.readNextLine()
       return .block(.custom(MathBlock(tex: text)))
     }
     // The first line has to be the start of the formula and not of a paragraph with formulas
-    guard !Self.containsDelimiter(text) else {
+    guard !Self.mathContains(text, opening, closing) else {
       return .none
     }
     text = text.trimmingCharacters(in: .whitespaces)
@@ -78,10 +114,10 @@ public final class MathBlockParser: RestorableBlockParser {
     self.readNextLine()
     var closed = false
     while !self.finished && !self.lineLeavesContainer && !self.lineEmpty {
-      var line = self.content
-      if Self.endsWithDelimiter(line) {
-        line = String(line.dropLast(2)).trimmingCharacters(in: .whitespaces)
-        guard !Self.containsDelimiter(line) else {
+      var line = self.mathContent
+      if Self.mathEnds(line, with: closing) {
+        line = String(line.dropLast(closing.count)).trimmingCharacters(in: .whitespaces)
+        guard !Self.mathContains(line, opening, closing) else {
           return .none
         }
         if !line.isEmpty {
@@ -91,7 +127,7 @@ public final class MathBlockParser: RestorableBlockParser {
         self.readNextLine()
         break
       }
-      guard !Self.containsDelimiter(line) else {
+      guard !Self.mathContains(line, opening, closing) else {
         return .none
       }
       parts.append(line)
@@ -103,21 +139,25 @@ public final class MathBlockParser: RestorableBlockParser {
     return .block(.custom(MathBlock(tex: parts.joined(separator: "\n"))))
   }
 
-  /// Is the string followed by `$$` that is not escaped by a backslash?
-  private static func endsWithDelimiter(_ str: String) -> Bool {
-    guard str.hasSuffix("$$") else {
+  /// Is the string followed by `closing` that is not escaped by a backslash?
+  private static func mathEnds(_ str: String, with closing: String) -> Bool {
+    guard str.hasSuffix(closing) else {
       return false
     }
-    return !Self.isEscaped(Array(str), str.count - 2)
+    return !Self.mathIsEscaped(Array(str), str.count - closing.count)
   }
 
-  /// Does the string contain `$$` that is not escaped by a backslash?
-  private static func containsDelimiter(_ str: String) -> Bool {
+  /// Does the string contain `opening` or `closing` that is not escaped by a backslash?
+  private static func mathContains(_ str: String, _ opening: String, _ closing: String) -> Bool {
     let chars = Array(str)
+    let delimiters = [Array(opening), Array(closing)]
     var i = 0
-    while i + 1 < chars.count {
-      if chars[i] == "$" && chars[i + 1] == "$" && !Self.isEscaped(chars, i) {
-        return true
+    while i < chars.count {
+      for delimiter in delimiters where i + delimiter.count <= chars.count &&
+                                        Array(chars[i..<(i + delimiter.count)]) == delimiter {
+        if !Self.mathIsEscaped(chars, i) {
+          return true
+        }
       }
       i += 1
     }
@@ -125,7 +165,7 @@ public final class MathBlockParser: RestorableBlockParser {
   }
 
   /// Is the character at index `i` preceded by an odd number of backslashes?
-  private static func isEscaped(_ chars: [Character], _ i: Int) -> Bool {
+  private static func mathIsEscaped(_ chars: [Character], _ i: Int) -> Bool {
     var count = 0
     var j = i - 1
     while j >= 0 && chars[j] == "\\" {

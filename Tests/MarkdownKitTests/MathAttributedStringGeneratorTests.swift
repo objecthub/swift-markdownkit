@@ -151,6 +151,10 @@ final class MathAttributedStringGeneratorTests: XCTestCase {
       XCTAssertEqual(html.components(separatedBy: "MKM").count - 1, 2, "\(version)")
       XCTAssertTrue(html.contains("<code>$z$</code>"), "\(version)")
       XCTAssertFalse(html.contains("x^2"), "\(version)")
+      // An inline placeholder is in a box with the width of the image (the importer sizes the
+      // columns of tables by it), a block is not
+      XCTAssertTrue(html.contains("<span style=\"display: inline-block; width: 40px;\">\u{E000}MKM"),
+                    "\(version)")
       XCTAssertTrue(html.contains("<p style=\"text-align: center;\">\u{E000}MKM"), "\(version)")
     }
   }
@@ -272,6 +276,22 @@ final class MathAttributedStringGeneratorTests: XCTestCase {
     let below = try XCTUnwrap(result.attribute(.paragraphStyle, at: belowLocation, effectiveRange: nil)
                                 as? NSParagraphStyle)
     XCTAssertGreaterThanOrEqual(style.paragraphSpacing + below.paragraphSpacingBefore, 30)
+  }
+
+  func testFormulasWithTheDelimitersOfLaTeXAreShownLikeTheOthers() throws {
+    let renderer = try self.makeRenderer()
+    try self.store([self.formula("x"), self.formula("y", display: true),
+                    self.formula("z", display: true)], in: renderer)
+    let doc = LaTeXMarkdownParser.standard.parse("Text \\(x\\) and \\[y\\] more\n\n\\[\nz\n\\]\n")
+    for version in [AttributedStringGenerator.Version.OS26, .preOS26] {
+      let generator = MathAttributedStringGenerator(version: version, mathRenderer: renderer)
+      let result = try XCTUnwrap(generator.generate(doc: doc))
+      let found = self.attachments(in: result)
+      XCTAssertEqual(found.count, 3, "\(version)")
+      XCTAssertEqual(found.map { result.attribute(.mathSource, at: $0.range.location, effectiveRange: nil) as? String },
+                     ["\\(x\\)", "\\[y\\]", "$$\nz\n$$"], "\(version)")
+      XCTAssertFalse(result.string.contains("\\("), "\(version)")
+    }
   }
 
   func testFormulasHaveTheColorOfTheirText() throws {

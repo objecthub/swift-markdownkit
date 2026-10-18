@@ -44,6 +44,11 @@ public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
   /// parsed by ``MathMarkdownParser``.
   case fullMath
 
+  /// Everything that MarkdownKit supports, including LaTeX formulas between dollar signs and
+  /// between the delimiters of LaTeX (`\(`…`\)` and `\[`…`\]`), parsed by
+  /// ``LaTeXMarkdownParser``.
+  case fullLaTeX
+
   /// The standard parser of this dialect, e.g. ``MarkdownParser/standard`` for
   /// ``commonMark``.
   public var parser: MarkdownParser {
@@ -56,6 +61,8 @@ public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
         return FullMarkdownParser.standard
       case .fullMath:
         return MathMarkdownParser.standard
+      case .fullLaTeX:
+        return LaTeXMarkdownParser.standard
     }
   }
 }

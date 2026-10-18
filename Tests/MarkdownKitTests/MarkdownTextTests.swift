@@ -284,6 +284,19 @@ final class MarkdownTextTests: XCTestCase {
     XCTAssertTrue(plain.contains("Area $x$ here"), plain)
   }
 
+  func testTheDelimitersOfLaTeXNeedTheLaTeXDialect() {
+    // The dialect of `math:` only knows dollar signs; the backslashes escape the parentheses
+    let dollars = Host(MarkdownText(string: "Area \\(x\\) here", math: MathConfig()))
+    let plain = self.wait(for: dollars, timeout: 2) { _ in false }
+    XCTAssertTrue(plain.contains("Area (x) here"), plain)
+    #if canImport(WebKit)
+    let latex = Host(MarkdownText(string: "Area \\(x\\) here", dialect: .fullLaTeX, math: MathConfig()))
+    let text = self.wait(for: latex, timeout: 60) { $0.contains(self.attachmentCharacter) }
+    XCTAssertTrue(text.contains(self.attachmentCharacter), text)
+    XCTAssertTrue(text.contains("Area"), text)
+    #endif
+  }
+
   func testPrepareFunctionRunsAfterTheTextHasBeenShown() {
     nonisolated(unsafe) var prepared = 0
     nonisolated(unsafe) var generated = 0

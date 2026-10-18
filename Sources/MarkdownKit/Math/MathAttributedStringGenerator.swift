@@ -316,7 +316,12 @@ extension MathContextProviding {
     guard let image = self.math.image(for: formula) else {
       return "<code>" + fragment.source.encodingPredefinedXmlEntities() + "</code>"
     }
-    return self.math.placeholder(for: formula, image: image, source: fragment.source, block: false)
+    // The system's HTML importer sizes the columns of a table by the text in its cells. The text
+    // of the placeholder is much wider than most formulas, so it is wrapped into a box with the
+    // width of the image.
+    return "<span style=\"display: inline-block; width: \(Int(image.size.width.rounded(.up)))px;\">" +
+           self.math.placeholder(for: formula, image: image, source: fragment.source, block: false) +
+           "</span>"
   }
 
   /// The HTML for a formula that is a block: a paragraph with a placeholder for its image, or a

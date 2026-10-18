@@ -30,10 +30,12 @@ final class MarkdownDialectTests: XCTestCase {
     XCTAssertTrue(MarkdownDialect.extendedCommonMark.parser === ExtendedMarkdownParser.standard)
     XCTAssertTrue(MarkdownDialect.full.parser === FullMarkdownParser.standard)
     XCTAssertTrue(MarkdownDialect.fullMath.parser === MathMarkdownParser.standard)
+    XCTAssertTrue(MarkdownDialect.fullLaTeX.parser === LaTeXMarkdownParser.standard)
   }
 
   func testAllDialectsAreListedInOrderOfTheirSyntax() {
-    XCTAssertEqual(MarkdownDialect.allCases, [.commonMark, .extendedCommonMark, .full, .fullMath])
+    XCTAssertEqual(MarkdownDialect.allCases,
+                   [.commonMark, .extendedCommonMark, .full, .fullMath, .fullLaTeX])
   }
 
   /// The text fragments of the first paragraph of a document.
@@ -70,7 +72,8 @@ final class MarkdownDialectTests: XCTestCase {
           }
         }
       }
-      XCTAssertEqual(hasUnderline, dialect == .full || dialect == .fullMath, "\(dialect)")
+      XCTAssertEqual(hasUnderline, dialect == .full || dialect == .fullMath || dialect == .fullLaTeX,
+                     "\(dialect)")
     }
   }
 
@@ -85,7 +88,22 @@ final class MarkdownDialectTests: XCTestCase {
           }
         }
       }
-      XCTAssertEqual(hasFormula, dialect == .fullMath, "\(dialect)")
+      XCTAssertEqual(hasFormula, dialect == .fullMath || dialect == .fullLaTeX, "\(dialect)")
+    }
+  }
+
+  func testTheDelimitersOfLaTeXNeedTheLaTeXDialect() {
+    for dialect in MarkdownDialect.allCases {
+      let text = self.fragments("a \\(b\\) c", dialect)
+      var hasFormula = false
+      if let text {
+        for fragment in text {
+          if case .custom(let custom) = fragment, custom is MathFragment {
+            hasFormula = true
+          }
+        }
+      }
+      XCTAssertEqual(hasFormula, dialect == .fullLaTeX, "\(dialect)")
     }
   }
 }

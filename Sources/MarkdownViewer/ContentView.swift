@@ -22,7 +22,7 @@ import SwiftUI
 import MarkdownKit
 
 struct ContentView: View {
-  let content = FullMarkdownParser.standard.parse("""
+  let content = MarkdownDialect.fullLaTeX.parser.parse("""
     # Critical Document Title
     
     ## Summary
@@ -160,22 +160,22 @@ struct ContentView: View {
     vitae risus tempor, gravida faucibus dolor. Fusce facilisis nisi
     erat, et cursus justo dignissim sed.
     
-    ## Conclusion
+    ## Advanced Features
     
-    ### Represented as a Table
+    ### Tables
     
-    | Column 1     | Column 2       | Col 3 |
-    | ------------ | -------------: | :------: |
+    | Centered      | Left             | Right    |
+    | ------------- | :--------------- | -------: |
     | This text \
-      is very long | More `cell` text | One |
-    | Last **line**    | Last cell justo nec finibus. | Two |
-    | Ok one more | And this also | Three |
+      is long  | More `cell` text | One      |
+    | Last **line** | Last cell justo nec finibus. | Two |
+    | Ok one more   | And this also    | Three    |
     
     Lorem ipsum dolor sit amet, consectetur adipiscing elit.
     Aliquam non risus in massa ornare lacinia. Etiam at ullamcorper
     ligula. Mauris et orci ut lectus convallis euismod.
     
-    ## A Diagram
+    ### Mermaid Diagrams
     
     Fenced code blocks with language `mermaid` are drawn as diagrams:
     
@@ -187,13 +187,53 @@ struct ContentView: View {
       C -->|HTML| E[Web page]
     ```
     
+    ### Mathematical Formulas
+    
+    Formulas are typeset with KaTeX. A formula within a line is written
+    between dollar signs, like $e^{i\\pi} + 1 = 0$, or between the
+    delimiters of LaTeX, like \\(a^2 + b^2 = c^2\\). The solutions of
+    \\(ax^2 + bx + c = 0\\) are given by the quadratic formula:
+    
+    \\[
+    x_{1,2} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+    \\]
+    
+    A formula that is a block of its own can also be written between
+    double dollar signs, or as a fenced code block with language `math`:
+    
+    $$
+    \\int_{-\\infty}^{\\infty} e^{-x^2} \\, dx = \\sqrt{\\pi}
+    $$
+    
+    ```math
+    \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}
+    \\begin{pmatrix} x \\\\ y \\end{pmatrix}
+    =
+    \\begin{pmatrix} ax + by \\\\ cx + dy \\end{pmatrix}
+    ```
+    
+    Formulas sit on the baseline of the text, take its color, and also
+    work in lists, quotes and tables:
+    
+    1. The sum of the first \\(n\\) numbers is
+       \\(\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}\\).
+    2. Dollar signs in ordinary text, like $5 and $6, are not formulas.
+    
+    > Euler's identity \\[e^{i\\pi} + 1 = 0\\] connects five fundamental
+    > constants of mathematics.
+    
+    | Name   | Formula                                  |
+    | ------ | ---------------------------------------- |
+    | Circle | \\(A = \\pi r^2\\)                         |
+    | Gauss  | $\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}$    |
+    
     ***
     
     This is the end.
     """)
   
   var body: some View {
-    MarkdownText(self.content, mermaid: .default)
+    MarkdownText(self.content, mermaid: .default, math: MathConfig())
       .padding()
   }
 }

@@ -45,6 +45,14 @@ import Foundation
 ///
 open class MathTransformer: InlineTransformer {
 
+  /// True if the transformer also recognizes the delimiters of LaTeX: `\(a^2\)` is a formula
+  /// within the line and `\[a^2\]` a display formula within the line. This is `false`, and
+  /// ``LaTeXMathTransformer`` overrides it. Backslashes in front of parentheses and brackets
+  /// escape them in Markdown, so these forms change the meaning of existing text.
+  open class var recognizesLaTeXDelimiters: Bool {
+    return false
+  }
+
   /// Stands for a fragment which cannot be part of a formula (such as a code span) in the
   /// characters that are searched for formulas.
   private static let barrier: Character = "\u{FFFC}"
@@ -61,13 +69,14 @@ open class MathTransformer: InlineTransformer {
   }
 
   open override func transform(_ text: Text) -> Text {
-    let hasDollar = text.contains { fragment in
+    let latex = type(of: self).recognizesLaTeXDelimiters
+    let hasTrigger = text.contains { fragment in
       if case .text(let str) = fragment {
-        return str.contains("$")
+        return str.contains("$") || (latex && str.contains("\\"))
       }
       return false
     }
-    guard hasDollar else {
+    guard hasTrigger else {
       return text
     }
     // Flatten the text into characters; `starts[i]` is the index of the first character of the
@@ -102,7 +111,7 @@ open class MathTransformer: InlineTransformer {
       }
     }
     starts.append(chars.count)
-    let matches = Self.findFormulas(in: chars, isText: isText, codes: codes)
+    let matches = Self.findFormulas(in: chars, isText: isText, codes: codes, latex: latex)
     guard !matches.isEmpty else {
       return text
     }
@@ -161,7 +170,7 @@ open class MathTransformer: InlineTransformer {
   /// those of text fragments; only these can be dollar signs which start or end a formula.
   /// `codes` contains the code of the code spans, which are represented by a barrier character.
   private static func findFormulas(in chars: [Character], isText: [Bool],
-                                   codes: [Int: Substring]) -> [Match] {
+                                   codes: [Int: Substring], latex: Bool) -> [Match] {
     let n = chars.count
     var matches: [Match] = []
     // Is the character at index `i` a dollar sign that can start or end a formula?
@@ -178,8 +187,40 @@ open class MathTransformer: InlineTransformer {
       }
       return count % 2 == 1
     }
+    // Is there a backslash followed by `char`, both in text, at index `i`? The backslash must not
+    // be escaped itself: in `\\(`, the parenthesis is a delimiter and not part of the text.
+    func isBackslash(_ i: Int, _ char: Character) -> Bool {
+      return i + 1 < n && chars[i] == "\\" && chars[i + 1] == char && isText[i] && isText[i + 1] &&
+             !isEscaped(i)
+    }
     var i = 0
     while i < n {
+      // A formula within a line between `\(` and `\)` or, as display math, between `\[` and `\]`
+      if latex, i + 1 < n, chars[i] == "\\" {
+        let opening: Character? = isBackslash(i, "(") ? ")" : isBackslash(i, "[") ? "]" : nil
+        if let closing = opening {
+          var k = i + 2
+          var close: Int? = nil
+          while k + 1 < n && chars[k] != barrier {
+            if isBackslash(k, closing) {
+              close = k
+              break
+            }
+            k += 1
+          }
+          if let close {
+            let tex = String(chars[(i + 2)..<close]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !tex.isEmpty {
+              matches.append(Match(start: i, end: close + 2, tex: tex,
+                                   source: String(chars[i..<(close + 2)]), display: closing == "]"))
+              i = close + 2
+              continue
+            }
+          }
+          i += 2
+          continue
+        }
+      }
       guard isDollar(i) && !isEscaped(i) else {
         i += 1
         continue
@@ -240,5 +281,25 @@ open class MathTransformer: InlineTransformer {
       }
     }
     return matches
+  }
+}
+
+///
+/// A ``MathTransformer`` which also recognizes the delimiters of LaTeX for formulas within a line
+/// of text: `\(a^2\)` is a formula, and `\[a^2\]` is a display formula. (A formula which is a
+/// block of its own is recognized by ``LaTeXMathBlockParser``.) The formula ends at the first
+/// closing delimiter that is not escaped, so `\(\{x\}\)` is one formula. It can have white space
+/// and a line break at its ends, but it has to contain LaTeX.
+///
+/// The backslash in front of the opening delimiter must not be escaped itself: in `\\(a\\)`, the
+/// backslashes escape each other, and the parentheses are ordinary text. A formula which is not
+/// closed before the end of the paragraph, or before a code span, is text, too. The rules for
+/// the dollar signs are those of ``MathTransformer``; whichever formula starts first wins.
+/// ``LaTeXMarkdownParser`` uses this transformer instead of ``MathTransformer``.
+///
+open class LaTeXMathTransformer: MathTransformer {
+
+  open override class var recognizesLaTeXDelimiters: Bool {
+    return true
   }
 }

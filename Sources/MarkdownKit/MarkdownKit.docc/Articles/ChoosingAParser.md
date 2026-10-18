@@ -6,16 +6,17 @@ Pick the parser class that supports the Markdown syntax your documents use.
 
 ## Overview
 
-MarkdownKit has four parser classes. They share the same interface and differ in the syntax they recognize. Each one extends the previous one:
+MarkdownKit has five parser classes. They share the same interface and differ in the syntax they recognize. Each one extends the previous one:
 
 | Parser | Syntax |
 |---|---|
 | ``MarkdownParser`` | [CommonMark](https://commonmark.org) 0.31.2: headings, paragraphs, block quotes, lists, code blocks, thematic breaks, HTML, links, images, emphasis, code spans and line breaks |
 | ``ExtendedMarkdownParser`` | everything in ``MarkdownParser`` plus tables and definition lists |
 | ``FullMarkdownParser`` | everything in ``ExtendedMarkdownParser`` plus underlined text, struck-through text and task lists |
-| ``MathMarkdownParser`` | everything in ``FullMarkdownParser`` plus LaTeX math, see <doc:MathematicalFormulas> |
+| ``MathMarkdownParser`` | everything in ``FullMarkdownParser`` plus LaTeX math between dollar signs, see <doc:MathematicalFormulas> |
+| ``LaTeXMarkdownParser`` | everything in ``MathMarkdownParser`` plus the delimiters of LaTeX for math: `\(a^2\)` and `\[a^2\]` |
 
-``MarkdownDialect`` names the four syntaxes (`.commonMark`, `.extendedCommonMark`, `.full` and `.fullMath`) and gives access to their standard parsers, so that code which chooses a syntax at run time, such as the initializers of ``MarkdownText``, does not have to know the classes:
+``MarkdownDialect`` names the five syntaxes (`.commonMark`, `.extendedCommonMark`, `.full`, `.fullMath` and `.fullLaTeX`) and gives access to their standard parsers, so that code which chooses a syntax at run time, such as the initializers of ``MarkdownText``, does not have to know the classes:
 
 ```swift
 let doc = MarkdownDialect.fullMath.parser.parse("The area is $\\pi r^2$.")
@@ -67,7 +68,7 @@ Documents parsed by ``FullMarkdownParser`` contain the cases `underline` and `st
 
 ### Mathematical formulas
 
-``MathMarkdownParser`` is a subclass of ``FullMarkdownParser`` which also recognizes LaTeX math: `$a^2$` within a line, and `$$` on its own lines or a fenced code block with the info string `math` for a formula that is a block. Dollar signs are common in text (`costs $5 and $6`), so the other parsers leave them alone. The formulas are custom syntax tree nodes (``MathFragment`` and ``MathBlock``), so a `switch` over ``Block`` or ``TextFragment`` is not affected: they are handled by the `custom` cases. See <doc:MathematicalFormulas>.
+``MathMarkdownParser`` is a subclass of ``FullMarkdownParser`` which also recognizes LaTeX math: `$a^2$` within a line, and `$$` on its own lines or a fenced code block with the info string `math` for a formula that is a block. Dollar signs are common in text (`costs $5 and $6`), so the other parsers leave them alone. The formulas are custom syntax tree nodes (``MathFragment`` and ``MathBlock``), so a `switch` over ``Block`` or ``TextFragment`` is not affected: they are handled by the `custom` cases. ``LaTeXMarkdownParser`` also recognizes the delimiters `\(a^2\)` and `\[a^2\]`, which are escaped characters in Markdown and therefore change the meaning of existing text. See <doc:MathematicalFormulas>.
 
 ## See Also
 

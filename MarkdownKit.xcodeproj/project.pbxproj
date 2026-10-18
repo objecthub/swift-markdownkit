@@ -202,6 +202,7 @@
 		CCBF000A2FD00000BBBB0002 /* MathHtmlGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000A2FD00000BBBB0001 /* MathHtmlGenerator.swift */; };
 		CCBF000B2FD00000BBBB0002 /* KaTeXEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */; };
 		CCBF000C2FD00000BBBB0002 /* MathHtmlGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */; };
+		CCBF00212FD00000BBBB0002 /* LaTeXMathParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */; };
 		CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */; };
 		CCBF00102FD00000BBBB0002 /* MathConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00102FD00000BBBB0001 /* MathConfig.swift */; };
 		CCBF00112FD00000BBBB0002 /* MathWebSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00112FD00000BBBB0001 /* MathWebSession.swift */; };
@@ -505,6 +506,7 @@
 		CCBF000A2FD00000BBBB0001 /* MathHtmlGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathHtmlGenerator.swift; sourceTree = "<group>"; };
 		CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaTeXEngineTests.swift; sourceTree = "<group>"; };
 		CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathHtmlGeneratorTests.swift; sourceTree = "<group>"; };
+		CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaTeXMathParserTests.swift; sourceTree = "<group>"; };
 		CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownDialectTests.swift; sourceTree = "<group>"; };
 		CCBF00102FD00000BBBB0001 /* MathConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathConfig.swift; sourceTree = "<group>"; };
 		CCBF00112FD00000BBBB0001 /* MathWebSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathWebSession.swift; sourceTree = "<group>"; };
@@ -685,6 +687,7 @@
 				CCBF00062FD00000BBBB0001 /* AttributedStringExtensionTests.swift */,
 				CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */,
 				CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */,
+				CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */,
 				CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */,
 				CCBF00152FD00000BBBB0001 /* MathRendererTests.swift */,
 				CCBF00162FD00000BBBB0001 /* MathAttributedStringGeneratorTests.swift */,
@@ -1359,6 +1362,7 @@
 				CCBF00062FD00000BBBB0002 /* AttributedStringExtensionTests.swift in Sources */,
 				CCBF000B2FD00000BBBB0002 /* KaTeXEngineTests.swift in Sources */,
 				CCBF000C2FD00000BBBB0002 /* MathHtmlGeneratorTests.swift in Sources */,
+				CCBF00212FD00000BBBB0002 /* LaTeXMathParserTests.swift in Sources */,
 				CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */,
 				CCBF00152FD00000BBBB0002 /* MathRendererTests.swift in Sources */,
 				CCBF00162FD00000BBBB0002 /* MathAttributedStringGeneratorTests.swift in Sources */,

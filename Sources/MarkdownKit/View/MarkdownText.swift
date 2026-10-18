@@ -167,8 +167,9 @@ public struct MarkdownText: View {
   /// Creates a Markdown text view for the specified Markdown document as a string. See
   /// `init(_:waitingMessage:renderingOptions:mermaid:math:)`. The string is parsed with the
   /// standard parser of `dialect`. If `dialect` is `nil`, it is ``MarkdownDialect/fullMath`` (which
-  /// recognizes formulas) if `math` is not `nil`, and ``MarkdownDialect/extendedCommonMark``
-  /// otherwise. Pass a dialect to choose a different parser: formulas in a document that is
+  /// recognizes formulas between dollar signs) if `math` is not `nil`, and
+  /// ``MarkdownDialect/extendedCommonMark`` otherwise; pass ``MarkdownDialect/fullLaTeX`` for formulas
+  /// between `\(` and `\)` or `\[` and `\]` as well. Pass a dialect to choose a different parser: formulas in a document that is
   /// parsed by a parser that does not know them stay text, whatever `math` says.
   public init(string: String,
               dialect: MarkdownDialect? = nil,

@@ -108,6 +108,20 @@ class CommonMarkSpecTests: XCTestCase {
     XCTAssertGreaterThan(compared, 600)
   }
 
+  /// The LaTeX parser also handles `\(` and `\[` (which are escaped characters in Markdown)
+  func testSpecExamplesWithoutMathDelimitersAreParsedLikeTheFullParser() throws {
+    var compared = 0
+    for example in try loadExamples()
+        where !example.markdown.contains("$") && !example.markdown.contains("\\(") &&
+              !example.markdown.contains("\\[") {
+      compared += 1
+      XCTAssertEqual(HtmlGenerator.standard.generate(doc: LaTeXMarkdownParser.standard.parse(example.markdown)),
+                     HtmlGenerator.standard.generate(doc: FullMarkdownParser.standard.parse(example.markdown)),
+                     "example \(example.example) (\(example.section))")
+    }
+    XCTAssertGreaterThan(compared, 600)
+  }
+
   func testSpecExamples() throws {
     let examples = try loadExamples()
     XCTAssertEqual(examples.count, 652)

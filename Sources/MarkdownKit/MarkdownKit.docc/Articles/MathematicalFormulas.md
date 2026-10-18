@@ -6,7 +6,7 @@ Parse LaTeX formulas in Markdown text and show them in HTML, as plain text and a
 
 ## Overview
 
-``MathMarkdownParser`` recognizes LaTeX math. The other parsers do not: dollar signs are common in text (`costs $5 and $6`), so they leave them alone, and existing code does not change its behavior. A formula is a ``MathFragment`` within text or a ``MathBlock`` which is a block of its own. Both are custom syntax tree nodes (the `custom` cases of ``TextFragment`` and ``Block``), so a `switch` over these enumerations does not have to change.
+``MathMarkdownParser`` recognizes LaTeX math. The other parsers do not: dollar signs are common in text (`costs $5 and $6`), so they leave them alone, and existing code does not change its behavior. A formula is a ``MathFragment`` within text or a ``MathBlock`` which is a block of its own. ``LaTeXMarkdownParser`` recognizes the delimiters of LaTeX in addition. Both are custom syntax tree nodes (the `custom` cases of ``TextFragment`` and ``Block``), so a `switch` over these enumerations does not have to change.
 
 ```swift
 let doc = MathMarkdownParser.standard.parse("The area is $\\pi r^2$.")
@@ -37,6 +37,25 @@ A few restrictions follow from how Markdown is parsed:
 - A `$$` block cannot contain a blank line. A block which is not closed before the end of its container or a blank line is parsed as a paragraph, as are lines with more `$$` than the opening and closing ones (`$$a$$ and $$b$$` is text with two formulas).
 - Tables are split into cells before the formulas are parsed. Write `\vert` instead of `|` in a formula within a table cell.
 - A fenced code block with the info string `math` is only turned into a formula if the inline markup is parsed, which is not the case if the parser only runs the block parsers.
+
+### Use the delimiters of LaTeX
+
+Language models and many LaTeX users write formulas between `\(` and `\)` (within a line) and between `\[` and `\]` (display math). ``LaTeXMarkdownParser`` recognizes these forms in addition to everything that ``MathMarkdownParser`` does:
+
+- `\(a^2\)` is a formula within a line of text, and `\[a^2\]` a display formula within a line.
+- A formula which is a block of its own is enclosed by two lines with `\[` and `\]`; the LaTeX can also be on these lines, and a block can consist of a single line (`\[ a^2 \]`).
+
+```swift
+let doc = LaTeXMarkdownParser.standard.parse("The area is \\(\\pi r^2\\).")
+```
+
+```
+\[
+\int_0^1 x^2 \, dx = \frac{1}{3}
+\]
+```
+
+This is a parser of its own because a backslash in front of a parenthesis or a bracket escapes it in Markdown: `\(a\)` is the text `(a)` for all other parsers, so existing documents could change their meaning. The rules are simpler than those for dollar signs, since the delimiters are unambiguous. A formula ends at the first closing delimiter whose backslash is not escaped (`\(\{x\}\)` is one formula, and so is `\(a \\) b\)`, in which `\\)` is a line break and a parenthesis). It can have white space and a line break at its ends, but it has to contain LaTeX, and `\(\)` is text. A code span cannot be part of a formula, and a formula which is not closed before the end of the paragraph is text. A backslash which is itself escaped does not start a formula: in `\\(a\\)`, the parentheses are ordinary text. As with the dollar signs, the restrictions for formulas in tables and the other blocks apply, and the lines of a `\[` block are not parsed as Markdown. The forms with dollar signs and the fenced `math` code blocks work as before, and the formula that starts first wins: in `$a \(b$ c\)`, the first formula ends at the second dollar sign.
 
 ### Show formulas
 
@@ -112,7 +131,7 @@ The SwiftUI view ``MarkdownText`` shows formulas if it is given a ``MathConfig``
 
 ### Combine the parser with your own markup
 
-``MathMarkdownParser`` is a ``FullMarkdownParser`` with two additions. ``MathTransformer`` has to come after `CodeLinkHtmlTransformer` and before `LinkTransformer` in the list of inline transformers: code, HTML and autolinks are complete at this point, while emphasis, links and escapes have not yet changed the characters of the formula. ``MathBlockParser`` has to come before `TableParser`. ``MathInlineParser`` turns fenced code blocks into formulas. To use the syntax in another configuration, build the parser from the same pieces, as in ``MathMarkdownParser/defaultInlineTransformers``.
+``MathMarkdownParser`` is a ``FullMarkdownParser`` with two additions (``LaTeXMarkdownParser`` replaces them with ``LaTeXMathTransformer``, a ``MathTransformer`` that also recognizes `\(` and `\[`, and adds ``LaTeXMathBlockParser`` right after ``MathBlockParser``). ``MathTransformer`` has to come after `CodeLinkHtmlTransformer` and before `LinkTransformer` in the list of inline transformers: code, HTML and autolinks are complete at this point, while emphasis, links and escapes have not yet changed the characters of the formula. ``MathBlockParser`` has to come before `TableParser`. ``MathInlineParser`` turns fenced code blocks into formulas. To use the syntax in another configuration, build the parser from the same pieces, as in ``MathMarkdownParser/defaultInlineTransformers``.
 
 ## See Also
 
