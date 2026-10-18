@@ -22,6 +22,8 @@
 
 import XCTest
 import PDFKit
+import ImageIO
+import UniformTypeIdentifiers
 @testable import MarkdownKit
 
 /// Tests for `MarkdownUtil.pdf(_:title:author:pageSize:margins:renderingOptions:)`.
@@ -87,7 +89,7 @@ final class MarkdownUtilPDFTests: XCTestCase {
   }
 
   func testMarginsLimitTheText() async throws {
-    let markdown = (1...60).map { "Paragraph number \($0) of the document." }.joined(separator: "\n\n")
+    let markdown = (1...120).map { "Paragraph number \($0) of the document." }.joined(separator: "\n\n")
     let (normal, _) = try await self.makePDF(markdown)
     let (wide, _) = try await self.makePDF(markdown, margins: MarkdownUtil.Insets(top: 72, left: 150,
                                                                                   bottom: 200, right: 150))
@@ -118,6 +120,126 @@ final class MarkdownUtilPDFTests: XCTestCase {
     let big = try await MarkdownUtil.standard.pdf(self.parse(markdown), renderingOptions: bigOptions)
     XCTAssertGreaterThan(try XCTUnwrap(PDFDocument(data: big)).pageCount,
                          try XCTUnwrap(PDFDocument(data: small)).pageCount)
+  }
+
+  /// The size of the font of the first occurrence of `text` on the first page.
+  private func fontSize(of text: String, in data: Data) throws -> CGFloat {
+    let page = try XCTUnwrap(PDFDocument(data: data)?.page(at: 0))
+    let string = try XCTUnwrap(page.attributedString)
+    let range = (string.string as NSString).range(of: text)
+    XCTAssertNotEqual(range.location, NSNotFound, text)
+    let font = try XCTUnwrap(string.attribute(.font, at: range.location, effectiveRange: nil) as? HRFont)
+    return font.pointSize
+  }
+
+  func testTheTextIsSmallerThanInTheOtherFormats() async throws {
+    let doc = self.parse("# Heading\n\nParagraph text.\n\n- List text\n\nCode: `inline`\n")
+    let data = try await MarkdownUtil.standard.pdf(doc, renderingOptions: self.options)
+    // The text is smaller by the scale of PDF documents: 14 points for text, 20 for a heading, 13 for code
+    let scale = CGFloat(MarkdownUtil.pdfTextScale)
+    XCTAssertLessThan(scale, 1)
+    XCTAssertEqual(try self.fontSize(of: "Paragraph", in: data), 14 * scale, accuracy: 0.3)
+    XCTAssertEqual(try self.fontSize(of: "List text", in: data), 14 * scale, accuracy: 0.3)
+    XCTAssertEqual(try self.fontSize(of: "Heading", in: data), 20 * scale, accuracy: 0.3)
+    XCTAssertEqual(try self.fontSize(of: "inline", in: data), 13 * scale, accuracy: 0.3)
+    // The multiplier of the rendering options scales it further
+    let bigger = try await MarkdownUtil.standard.pdf(
+                   doc, renderingOptions: .init(remoteImages: .none, textSizeMultiplier: 1 / Double(scale)))
+    XCTAssertEqual(try self.fontSize(of: "Paragraph", in: bigger), 14, accuracy: 0.3)
+    XCTAssertEqual(try self.fontSize(of: "Heading", in: bigger), 20, accuracy: 0.3)
+  }
+
+
+  func testDiagramsAreScaledWithTheText() throws {
+    let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
+    let renderer = try XCTUnwrap(MermaidRenderer(mermaidJSURL: script))
+    let config = MermaidConfig(maxWidth: 400)
+    let source = "graph TD\n  A --> B\n"
+    // A fake diagram of 100 x 50 points
+    let image = MermaidImage(pngData: try self.tinyPNG(width: 200, height: 100, dpi: 144),
+                             size: CGSize(width: 100, height: 50), scale: 2)
+    renderer.store(image, for: source, config: config)
+    let generator = AttributedStringGenerator(mermaid: config, mermaidRenderer: renderer)
+    let string = try XCTUnwrap(generator.generate(doc: self.parse("Text\n\n```mermaid\n\(source)```\n")))
+    func sizes() -> [CGSize] {
+      var result: [CGSize] = []
+      string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) { value, _, _ in
+        if let attachment = value as? NSTextAttachment {
+          result.append(attachment.bounds.size)
+        }
+      }
+      return result
+    }
+    XCTAssertEqual(sizes(), [CGSize(width: 100, height: 50)])
+    MarkdownUtil.scalingDiagrams(in: string, by: 0.8)
+    XCTAssertEqual(sizes(), [CGSize(width: 80, height: 40)])
+  }
+
+  func testAllDiagramsAreScaledAlike() async throws {
+    let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
+    let renderer = try XCTUnwrap(MermaidRenderer(mermaidJSURL: script))
+    let config = MermaidConfig(maxWidth: nil)
+    let wide = "graph LR\n  A --> B\n"
+    let high = "sequenceDiagram\n  A->>B: Hi\n"
+    renderer.store(MermaidImage(pngData: try self.tinyPNG(width: 1500, height: 300, dpi: 144),
+                                size: CGSize(width: 750, height: 150), scale: 2), for: wide, config: config)
+    renderer.store(MermaidImage(pngData: try self.tinyPNG(width: 1000, height: 600, dpi: 144),
+                                size: CGSize(width: 500, height: 300), scale: 2), for: high, config: config)
+    let util = MarkdownUtil(mermaidRenderer: renderer)
+    let doc = self.parse("```mermaid\n\(wide)```\n\n```mermaid\n\(high)```\n")
+    func sizes(_ string: NSAttributedString) -> [CGSize] {
+      var result: [CGSize] = []
+      string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) { value, _, _ in
+        if let attachment = value as? NSTextAttachment {
+          result.append(attachment.bounds.size)
+        }
+      }
+      return result
+    }
+    // A page of text of 468 points: diagrams for 800 points are scaled by 0.585, whatever their sizes
+    let narrow = sizes(try await util.pdfAttributedString(doc, textWidth: 468, renderingOptions: self.options))
+    XCTAssertEqual(narrow.count, 2)
+    XCTAssertEqual(narrow[0].width, 750 * 0.585, accuracy: 0.01)
+    XCTAssertEqual(narrow[0].height, 150 * 0.585, accuracy: 0.01)
+    XCTAssertEqual(narrow[1].width, 500 * 0.585, accuracy: 0.01)
+    XCTAssertEqual(narrow[1].height, 300 * 0.585, accuracy: 0.01)
+    // A diagram is never made larger than it is
+    let large = sizes(try await util.pdfAttributedString(doc, textWidth: 1000, renderingOptions: self.options))
+    XCTAssertEqual(large, [CGSize(width: 750, height: 150), CGSize(width: 500, height: 300)])
+  }
+
+  /// A PNG which is filled with one color.
+  private func tinyPNG(width: Int, height: Int, dpi: Double) throws -> Data {
+    let context = try XCTUnwrap(CGContext(data: nil, width: width, height: height,
+                                          bitsPerComponent: 8, bytesPerRow: 0,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+    context.setFillColor(CGColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1))
+    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    let image = try XCTUnwrap(context.makeImage())
+    let data = NSMutableData()
+    let destination = try XCTUnwrap(CGImageDestinationCreateWithData(
+                                      data, UTType.png.identifier as CFString, 1, nil))
+    CGImageDestinationAddImage(destination, image,
+                               [kCGImagePropertyDPIWidth: dpi, kCGImagePropertyDPIHeight: dpi] as CFDictionary)
+    XCTAssertTrue(CGImageDestinationFinalize(destination))
+    return data as Data
+  }
+
+  func testScalingTheTextSizeKeepsTheOtherOptions() {
+    let base = URL(fileURLWithPath: "/tmp")
+    let options = AttributedStringGenerator.RenderingOptions(baseUrl: base, timeout: 7, localImages: .none,
+                                                             remoteImages: .within(base), safeMode: true,
+                                                             textSizeMultiplier: 2)
+    let scaled = options.scalingText(by: 0.5)
+    XCTAssertEqual(scaled.textSizeMultiplier, 1)
+    XCTAssertEqual(AttributedStringGenerator.RenderingOptions().scalingText(by: 0.8).textSizeMultiplier, 0.8)
+    XCTAssertEqual(scaled.baseUrl, base)
+    XCTAssertEqual(scaled.timeout, 7)
+    XCTAssertEqual(scaled.localImages, .none)
+    XCTAssertEqual(scaled.remoteImages, .within(base))
+    XCTAssertTrue(scaled.safeMode)
+    XCTAssertEqual(scaled.imageExtensions, options.imageExtensions)
   }
 
   // MARK: Page breaks
@@ -178,6 +300,54 @@ final class MarkdownUtilPDFTests: XCTestCase {
     }
     for word in ["code1", "code2", "cell1", "cell2"] {
       XCTAssertTrue(text.contains(word), word)
+    }
+  }
+
+  // MARK: Page sizes and margins from text
+
+  func testPageSizesFromNamesAndNumbers() {
+    XCTAssertEqual(MarkdownUtil.pageSize("a4"), MarkdownUtil.a4)
+    XCTAssertEqual(MarkdownUtil.pageSize(" A4 "), MarkdownUtil.a4)
+    XCTAssertEqual(MarkdownUtil.pageSize("letter"), MarkdownUtil.usLetter)
+    XCTAssertEqual(MarkdownUtil.pageSize("US-Letter"), MarkdownUtil.usLetter)
+    XCTAssertEqual(MarkdownUtil.pageSize("200x300"), CGSize(width: 200, height: 300))
+    XCTAssertEqual(MarkdownUtil.pageSize("200pt x 300pt"), CGSize(width: 200, height: 300))
+    XCTAssertEqual(MarkdownUtil.pageSize("8.5x11in"), CGSize(width: 612, height: 792))
+    XCTAssertEqual(MarkdownUtil.pageSize("8.5inx11in"), CGSize(width: 612, height: 792))
+    let a4 = try? XCTUnwrap(MarkdownUtil.pageSize("210x297mm"))
+    XCTAssertEqual(a4?.width ?? 0, 595.28, accuracy: 0.01)
+    XCTAssertEqual(a4?.height ?? 0, 841.89, accuracy: 0.01)
+    XCTAssertEqual(MarkdownUtil.pageSize("21x29.7cm")?.width ?? 0, 595.28, accuracy: 0.01)
+    XCTAssertEqual(MarkdownUtil.pageSize("100mmx2in")?.height ?? 0, 144, accuracy: 0.01)
+  }
+
+  func testPageSizesWhichAreNotSizes() {
+    for text in ["", "a5", "foo", "200", "200x", "x300", "0x300", "200x0", "-200x300", "200x300x400",
+                 "200 300", "twox3", "200x300km", "nanx3"] {
+      XCTAssertNil(MarkdownUtil.pageSize(text), text)
+    }
+  }
+
+  func testMarginsFromText() {
+    typealias Insets = MarkdownUtil.Insets
+    XCTAssertEqual(Insets("72"), Insets(72))
+    XCTAssertEqual(Insets("0"), Insets.none)
+    XCTAssertEqual(Insets("1in"), Insets(72))
+    XCTAssertEqual(Insets("10 20"), Insets(horizontal: 20, vertical: 10))
+    XCTAssertEqual(Insets("10, 20"), Insets(horizontal: 20, vertical: 10))
+    // As in CSS: top, right, bottom, left
+    XCTAssertEqual(Insets("10 20 30 40"), Insets(top: 10, left: 40, bottom: 30, right: 20))
+    XCTAssertEqual(Insets("10pt,20pt,30pt,40pt"), Insets(top: 10, left: 40, bottom: 30, right: 20))
+    XCTAssertEqual(Insets("1in 0.5in 1in 2in"), Insets(top: 72, left: 144, bottom: 72, right: 36))
+    XCTAssertEqual(Insets("20mm")?.top ?? 0, 56.69, accuracy: 0.01)
+    XCTAssertEqual(Insets("2cm 1in")?.left ?? 0, 72, accuracy: 0.01)
+    XCTAssertEqual(Insets("2cm 1in")?.top ?? 0, 56.69, accuracy: 0.01)
+    XCTAssertEqual(Insets("  72  ,  36 ")?.left, 36)
+  }
+
+  func testMarginsWhichAreNotMargins() {
+    for text in ["", " ", ",", "abc", "1 2 3", "1 2 3 4 5", "-1", "1 -2", "1,abc", "10km", "nan", "inf"] {
+      XCTAssertNil(MarkdownUtil.Insets(text), text)
     }
   }
 
@@ -282,7 +452,8 @@ final class MarkdownUtilPDFTests: XCTestCase {
   // MARK: Colors
 
   func testDocumentsAreBlackOnWhiteWhateverTheAppearance() {
-    let generator = MarkdownUtil.standard.documentGenerator(maxImageWidth: 400, renderingOptions: self.options)
+    let generator = MarkdownUtil.standard.documentGenerator(maxImageWidth: 400, diagramMaxWidth: 400,
+                                                                       renderingOptions: self.options)
     XCTAssertEqual(generator.fontColor, "#000000")
     XCTAssertEqual(generator.codeFontColor, "#000000")
     XCTAssertEqual(generator.codeBlockFontColor, "#000000")

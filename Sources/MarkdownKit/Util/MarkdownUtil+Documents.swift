@@ -97,6 +97,7 @@ extension MarkdownUtil {
                    renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted)
                  async throws -> sending FileWrapper {
     let generator = self.documentGenerator(maxImageWidth: maxImageWidth,
+                                           diagramMaxWidth: maxImageWidth,
                                            renderingOptions: renderingOptions)
     let string = try await generator.generateAsync(doc: doc).preparedForRTFD()
     return try string.fileWrapper(from: NSRange(location: 0, length: string.length),
@@ -114,6 +115,7 @@ extension MarkdownUtil {
   /// Returns the generator for documents with images (RTFD, for example): diagrams and formulas are
   /// not wider than `maxImageWidth`, and the colors do not depend on the appearance of the system.
   func documentGenerator(maxImageWidth: CGFloat,
+                         diagramMaxWidth: CGFloat?,
                          renderingOptions: AttributedStringGenerator.RenderingOptions)
                        -> MathAttributedStringGenerator {
     return MathAttributedStringGenerator(
@@ -121,7 +123,7 @@ extension MarkdownUtil {
              codeFontColor: Self.documentTextColor,
              codeBlockFontColor: Self.documentTextColor,
              codeBlockBackground: Self.documentBackgroundColor,
-             mermaid: MermaidConfig(maxWidth: maxImageWidth),
+             mermaid: MermaidConfig(maxWidth: diagramMaxWidth),
              mermaidRenderer: self.mermaidRenderer,
              math: MathConfig(maxWidth: maxImageWidth),
              mathRenderer: self.mathRenderer,

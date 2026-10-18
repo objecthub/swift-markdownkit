@@ -74,7 +74,7 @@ public final class MermaidDiagramContext: @unchecked Sendable {
   /// view offers for it whenever the text is laid out, so that it is never wider than the text
   /// (the text view can be resized later; a text view does not scale attachments by itself).
   ///
-  private final class MermaidTextAttachment: NSTextAttachment {
+  final class MermaidTextAttachment: NSTextAttachment {
 
     /// The size in points at which the diagram is shown if there is enough room.
     var diagramSize: CGSize = .zero

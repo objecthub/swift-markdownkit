@@ -55,11 +55,67 @@ extension MarkdownUtil {
   /// The size in points of a page of the format A4.
   public static let a4 = CGSize(width: 595, height: 842)
 
+  /// The number of points of the units that `pageSize(_:)` and `Insets.init(_:)` accept.
+  fileprivate static let lengthUnits: [(suffix: String, points: Double)] = [
+    ("pt", 1), ("in", 72), ("mm", 72 / 25.4), ("cm", 72 / 2.54)
+  ]
+
+  /// Returns the number of points of `text`: a number, with a unit (`pt`, `in`, `mm` or `cm`)
+  /// or without one (points). `nil` if it is no length, or less than 0.
+  fileprivate static func length(_ text: String, defaultPoints: Double = 1) -> (value: Double, unit: Double?)? {
+    let text = text.trimmingCharacters(in: .whitespaces).lowercased()
+    var number = text
+    var unit: Double?
+    for candidate in MarkdownUtil.lengthUnits where text.hasSuffix(candidate.suffix) {
+      number = String(text.dropLast(candidate.suffix.count))
+      unit = candidate.points
+      break
+    }
+    guard let value = Double(number.trimmingCharacters(in: .whitespaces)), value.isFinite, value >= 0 else {
+      return nil
+    }
+    return (value * (unit ?? defaultPoints), unit)
+  }
+
+  /// Returns the size of the pages of a PDF document that `description` stands for, or `nil` if
+  /// it does not describe a size. It is the name of a page format, `letter` (``usLetter``) or
+  /// `a4` (``a4``), or a width and a height separated by `x`, in points, or in the unit that
+  /// follows the numbers: `pt`, `in`, `mm` or `cm`. The unit of the height is the one of the
+  /// width, if the width has none (`210x297mm`).
+  ///
+  /// ```swift
+  /// MarkdownUtil.pageSize("a4")          // 595 x 842 points
+  /// MarkdownUtil.pageSize("8.5x11in")    // 612 x 792 points
+  /// MarkdownUtil.pageSize("200x300")     // 200 x 300 points
+  /// ```
+  public static func pageSize(_ description: String) -> CGSize? {
+    switch description.trimmingCharacters(in: .whitespaces).lowercased() {
+      case "letter", "usletter", "us-letter":
+        return MarkdownUtil.usLetter
+      case "a4":
+        return MarkdownUtil.a4
+      case let text:
+        let parts = text.split(separator: "x", omittingEmptySubsequences: false).map(String.init)
+        guard parts.count == 2,
+              let height = MarkdownUtil.length(parts[1]),
+              let width = MarkdownUtil.length(parts[0], defaultPoints: height.unit ?? 1),
+              width.value > 0, height.value > 0 else {
+          return nil
+        }
+        return CGSize(width: width.value, height: height.value)
+    }
+  }
+
+  /// The size of the text of a PDF document relative to the other formats: the text of a page
+  /// that is printed is smaller than the text of a text view (14 points become about 10 points).
+  static let pdfTextScale = 0.7071
+
   /// Returns the document as a PDF document: the content of a `.pdf` file. The text, lists, tables,
   /// quotes and code blocks are laid out as they are in a text view, in the width of the pages, and
   /// are broken into pages. Diagrams (see <doc:DrawingMermaidDiagrams>) and formulas (see
-  /// <doc:MathematicalFormulas>) are drawn as images; they are scaled down if they are wider than
-  /// the text. The numbers and bullets of lists sit on the baseline of the first line of their items.
+  /// <doc:MathematicalFormulas>) are drawn as images. All diagrams are scaled alike, so that a
+  /// diagram of the width of a page for which Mermaid draws (800 points) fills the text of a page;
+  /// formulas are scaled down if they are wider than the text. The numbers and bullets of lists sit on the baseline of the first line of their items.
   /// Links are clickable (except those to a place in the same document, `#name`).
   ///
   /// This method is available on macOS and iOS. It draws diagrams and formulas with the renderers
@@ -69,12 +125,15 @@ extension MarkdownUtil {
   ///   - doc: The Markdown document, or a part of it.
   ///   - title: The title of the document, which becomes one of its properties.
   ///   - author: The author of the document, which becomes one of its properties.
-  ///   - pageSize: The size of a page in points: ``usLetter`` (the default) or ``a4``, for example.
+  ///   - pageSize: The size of a page in points: ``usLetter`` (the default) or ``a4``, for example;
+  ///               ``pageSize(_:)`` reads a size from text, such as `210x297mm`.
   ///   - margins: The space in points between the text and the edges of a page. The default is
-  ///              one inch on each edge.
+  ///              one inch on each edge. `Insets("20mm")` reads margins from text.
   ///   - renderingOptions: The options for rendering the document, which restrict what it can load
-  ///                       (see <doc:RenderingUntrustedMarkdown>). Its `textSizeMultiplier` changes
-  ///                       the size of the text.
+  ///                       (see <doc:RenderingUntrustedMarkdown>). The text of a PDF document is about
+  ///                       70% as large as in the other formats (the text of a page is smaller than the
+  ///                       text of a view: 14 points become about 10 points), and so are the formulas;
+  ///                       its `textSizeMultiplier` scales it further.
   /// - Throws: A ``PDFError`` if the pages have no room for text or the system cannot create the
   ///           document, or a ``AttributedStringGenerator/RenderingError`` if the document
   ///           cannot be rendered.
@@ -90,16 +149,54 @@ extension MarkdownUtil {
     guard textSize.width >= 36, textSize.height >= 36 else {
       throw PDFError.noRoomForText
     }
-    // Diagrams and formulas are not wider than the text
-    let generator = self.documentGenerator(maxImageWidth: textSize.width,
-                                           renderingOptions: renderingOptions)
-    let string = try await generator.generateAsync(doc: doc)
+    let string = try await self.pdfAttributedString(doc, textWidth: textSize.width,
+                                                    renderingOptions: renderingOptions)
     return try Self.pdfData(from: string,
                             title: title,
                             author: author,
                             pageSize: pageSize,
                             margins: margins,
                             textSize: textSize)
+  }
+
+  /// Returns the attributed string for the pages of a PDF document: the text is about 70% as large as
+  /// in the other formats, the diagrams have one scale, and formulas are not wider than the text.
+  ///
+  /// Mermaid draws a diagram for a page of `MermaidConfig.width` points (800 by default), where it
+  /// has the size which the diagram needs. All diagrams get the same scale, which is the one that
+  /// makes a diagram that fills such a page fill the text of a page: they are shown at one size
+  /// relative to each other (a diagram which is wider than another one has smaller text only if it
+  /// is also wider on the page), and the text of a diagram is a little smaller than the text of the
+  /// document. A diagram is never made larger than it is, and it is scaled down further if it is
+  /// wider than the room which the text has for it (in a list or a quote).
+  func pdfAttributedString(_ doc: Block,
+                           textWidth: CGFloat,
+                           renderingOptions: AttributedStringGenerator.RenderingOptions)
+                         async throws -> NSAttributedString {
+    let generator = self.documentGenerator(maxImageWidth: textWidth,
+                                           diagramMaxWidth: nil,
+                                           renderingOptions: renderingOptions.scalingText(by: Self.pdfTextScale))
+    let string = try await generator.generateAsync(doc: doc)
+    Self.scalingDiagrams(in: string, by: min(1, textWidth / MermaidConfig.default.width))
+    return string
+  }
+
+  /// Scales the diagrams (not the other images) in `string` by `factor`. They are the attachments
+  /// of a string that the generator has just created, which nobody else uses.
+  static func scalingDiagrams(in string: NSAttributedString, by factor: CGFloat) {
+    string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) { value, _, _ in
+      guard let diagram = value as? MermaidDiagramContext.MermaidTextAttachment,
+            diagram.diagramSize.width > 0 else {
+        return
+      }
+      let size = CGSize(width: diagram.diagramSize.width * factor,
+                        height: diagram.diagramSize.height * factor)
+      diagram.diagramSize = size
+      diagram.bounds = CGRect(origin: .zero, size: size)
+      #if os(macOS)
+      diagram.image?.size = size
+      #endif
+    }
   }
 
   /// Lays out `string` in one container which is as wide as the text and as tall as it needs to
@@ -340,6 +437,58 @@ extension MarkdownUtil {
     layout.drawGlyphs(forGlyphRange: glyphs, at: .zero)
     UIGraphicsPopContext()
     #endif
+  }
+}
+
+
+extension AttributedStringGenerator.RenderingOptions {
+
+  /// Returns these options with a text size multiplier which is `factor` times the multiplier of
+  /// these options (or 1, if there is none).
+  func scalingText(by factor: Double) -> AttributedStringGenerator.RenderingOptions {
+    return AttributedStringGenerator.RenderingOptions(
+             baseUrl: self.baseUrl,
+             timeout: self.timeout,
+             localImages: self.localImages,
+             remoteImages: self.remoteImages,
+             imageExtensions: self.imageExtensions,
+             safeMode: self.safeMode,
+             textSizeMultiplier: (self.textSizeMultiplier ?? 1) * factor)
+  }
+}
+
+
+extension MarkdownUtil.Insets {
+
+  /// Creates insets from a list of widths, separated by commas or white space, in points or in the
+  /// unit that follows a number (`pt`, `in`, `mm` or `cm`), as the margins of a page are written
+  /// in CSS: one width is the width of all edges, two are the widths of the upper and the lower
+  /// edge, and of the left and the right edge, and four are the widths of the upper, the right,
+  /// the lower and the left edge. The result is `nil` if the list has another length or a width
+  /// is not a number which is at least 0.
+  ///
+  /// ```swift
+  /// MarkdownUtil.Insets("72")           // one inch on all edges
+  /// MarkdownUtil.Insets("20mm, 15mm")   // 20 mm above and below, 15 mm at the sides
+  /// MarkdownUtil.Insets("1in 0.5in 1in 0.5in")
+  /// ```
+  public init?(_ description: String) {
+    let tokens = description.split(whereSeparator: { $0 == "," || $0 == " " || $0 == "\t" }).map(String.init)
+    let widths = tokens.compactMap { MarkdownUtil.length($0)?.value }
+    guard widths.count == tokens.count else {
+      return nil
+    }
+    switch widths.count {
+      case 1:
+        self.init(CGFloat(widths[0]))
+      case 2:
+        self.init(horizontal: CGFloat(widths[1]), vertical: CGFloat(widths[0]))
+      case 4:
+        self.init(top: CGFloat(widths[0]), left: CGFloat(widths[3]),
+                  bottom: CGFloat(widths[2]), right: CGFloat(widths[1]))
+      default:
+        return nil
+    }
   }
 }
 

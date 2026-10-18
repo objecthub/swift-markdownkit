@@ -24,6 +24,10 @@ OPTIONS:
       Output format: 'text' (plain text, default), 'ansi' (text marked up with ANSI escape codes), 'html', 'rtf', 'rtfd', or 'pdf'.
   -w, --width <columns>
       Width in columns of the formats 'text' and 'ansi', at least 10 (default: the width of the terminal, or 80).
+  -p, --page <size>
+      Size of the pages of the format 'pdf': 'a4' (default), 'letter', or '<width>x<height>' in points, or with a unit ('pt', 'in', 'mm' or 'cm'), e.g. '210x297mm'.
+  -m, --margins <widths>
+      Margins of the pages of the format 'pdf', in points or with a unit ('pt', 'in', 'mm' or 'cm'): one width for all sides, two for top and bottom and for left and right, or four for top, right, bottom and left, e.g. '20mm 15mm' (default: '1in').
   -o, --overwrite
       Replaces output files which already exist. Without this option, they are not touched.
   -h, --help
@@ -45,7 +49,7 @@ code of a diagram and the LaTeX of a formula, as do the formats 'text' and 'ansi
 
 ### Include diagrams
 
-The formats `rtfd` and `pdf` include [Mermaid](https://mermaid.js.org) diagrams (see <doc:DrawingMermaidDiagrams>) and formulas (see <doc:MathematicalFormulas>) as images, and the format `html` typesets formulas as MathML, which browsers display without a style sheet or fonts. RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram and the LaTeX of a formula instead, like the formats `text` and `ansi`. The images of an RTFD document are in the files `Image 1.png`, `Formula 1.png` and so on, and a formula within a line is aligned with the text. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool:
+The formats `rtfd` and `pdf` include [Mermaid](https://mermaid.js.org) diagrams (see <doc:DrawingMermaidDiagrams>) and formulas (see <doc:MathematicalFormulas>) as images, and the format `html` typesets formulas as MathML, which browsers display without a style sheet or fonts. RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram and the LaTeX of a formula instead, like the formats `text` and `ansi`. The images of an RTFD document are in the files `Image 1.png`, `Formula 1.png` and so on, and a formula within a line is aligned with the text. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool: The pages of the format `pdf` are A4 with margins of one inch, unless `--page` and `--margins` say otherwise: `--page letter --margins 20mm` for US Letter with margins of 20 millimeters, or `--page 210x297mm --margins "25mm 20mm"` for a size and margins of your own.
 
 ```sh
 > swift run MarkdownKitProcess --format rtfd Examples/Demo.md /tmp/Demo.rtfd

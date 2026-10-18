@@ -70,6 +70,12 @@ struct MarkdownKitProcess {
     case document(FileWrapper)
   }
 
+  /// The size and the margins of the pages of PDF documents.
+  struct PageLayout {
+    var size = MarkdownUtil.a4
+    var margins = MarkdownUtil.Insets(72)
+  }
+
   /// A conversion that failed.
   struct ConversionError: Error {
     let message: String
@@ -79,7 +85,7 @@ struct MarkdownKitProcess {
   /// thread (and its run loop, which the program runs while it waits for a diagram).
   @MainActor
   static func main() async {
-    let (format, width, overwrite, jobs) = parseCommandLine()
+    let (format, width, layout, overwrite, jobs) = parseCommandLine()
     var failures = 0
     for (source, optTarget) in jobs {
       // Do not do any work if the result cannot be written
@@ -104,7 +110,8 @@ struct MarkdownKitProcess {
         let output = try await convert(MarkdownDialect.fullLaTeX.parser.parse(text),
                                        from: source,
                                        into: format,
-                                       width: width)
+                                       width: width,
+                                       pages: layout)
         if let target = optTarget {
           try write(output, to: target)
           print("converted '\(source.lastPathComponent)' into '\(target.lastPathComponent)'")
@@ -129,7 +136,8 @@ struct MarkdownKitProcess {
   /// Defines the options of the tool, parses the command line, and returns the format, the width,
   /// whether existing files are replaced, and the files to convert. It terminates the tool if
   /// the command line is not valid, or if help was requested.
-  static func parseCommandLine() -> (format: OutputFormat, width: Int, overwrite: Bool, jobs: [Job]) {
+  static func parseCommandLine() -> (format: OutputFormat, width: Int, layout: PageLayout,
+                                     overwrite: Bool, jobs: [Job]) {
     let flags = Flags()
     let formatOption = flags.enum("f", "format",
                                   paramIdent: "<format>",
@@ -142,6 +150,18 @@ struct MarkdownKitProcess {
                                 description: "Width in columns of the formats 'text' and 'ansi', " +
                                              "at least 10 (default: the width of the terminal, " +
                                              "or 80).")
+    let pageOption = flags.string("p", "page",
+                                  paramIdent: "<size>",
+                                  description: "Size of the pages of the format 'pdf': 'a4' (default), " +
+                                               "'letter', or '<width>x<height>' in points, or with " +
+                                               "a unit ('pt', 'in', 'mm' or 'cm'), e.g. '210x297mm'.")
+    let marginsOption = flags.string("m", "margins",
+                                     paramIdent: "<widths>",
+                                     description: "Margins of the pages of the format 'pdf', in points " +
+                                                  "or with a unit ('pt', 'in', 'mm' or 'cm'): one " +
+                                                  "width for all sides, two for top and bottom and for " +
+                                                  "left and right, or four for top, right, bottom and " +
+                                                  "left, e.g. '20mm 15mm' (default: '1in').")
     let overwriteOption = flags.option("o", "overwrite",
                                        description: "Replaces output files which already " +
                                                     "exist. Without this option, they are not " +
@@ -174,6 +194,21 @@ struct MarkdownKitProcess {
       fail("expected a source and optionally a target", usage: usage)
     }
     let format = formatOption.value ?? .text
+    var layout = PageLayout()
+    if let page = pageOption.value {
+      guard let size = MarkdownUtil.pageSize(page) else {
+        fail("error parsing flag `page`: `\(page)` is not 'a4', 'letter', or a size like '595x842'",
+             usage: usage)
+      }
+      layout.size = size
+    }
+    if let margins = marginsOption.value {
+      guard let insets = MarkdownUtil.Insets(margins) else {
+        fail("error parsing flag `margins`: `\(margins)` is not one, two or four widths like '72' or '20mm 15mm'",
+             usage: usage)
+      }
+      layout.margins = insets
+    }
     var width = Terminal.size?.columns ?? 80
     if let w = widthOption.value {
       guard w > 9 else {
@@ -217,7 +252,7 @@ struct MarkdownKitProcess {
         jobs.append((sourceUrl, targetUrl))
       }
     }
-    return (format, width, overwriteOption.wasSet, jobs)
+    return (format, width, layout, overwriteOption.wasSet, jobs)
   }
 
   /// Converts the Markdown `document`, which was read from `source`, into the format `format`.
@@ -228,7 +263,8 @@ struct MarkdownKitProcess {
   static func convert(_ document: Block,
                       from source: URL,
                       into format: OutputFormat,
-                      width: Int) async throws -> Output {
+                      width: Int,
+                      pages: PageLayout = PageLayout()) async throws -> Output {
     let util = MarkdownUtil.standard
     let title = source.lastPathComponent
     // The tool does not load any images from the web
@@ -247,7 +283,11 @@ struct MarkdownKitProcess {
         return .document(try await util.rtfd(document, title: title, author: "MarkdownKitProcess",
                                              renderingOptions: options))
       case .pdf:
-        return .data(try await util.pdf(document, title: title, author: "MarkdownKitProcess",
+        return .data(try await util.pdf(document,
+                                        title: title,
+                                        author: "MarkdownKitProcess",
+                                        pageSize: pages.size,
+                                        margins: pages.margins,
                                         renderingOptions: options))
     }
   }
