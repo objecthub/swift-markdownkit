@@ -2153,13 +2153,28 @@ extension AttributedStringGenerator {
     /// (on an arbitrary thread). For testing, `watchdogGrace` shortens the watchdog and `ignore`
     /// skips the system's HTML loader, so that no result ever arrives except from the watchdog
     /// or cancellation.
+    /// Returns `html` with a style that sets the size of the text to `multiplier` times the size
+    /// of the style sheet. WebKit enlarges ("autosizes") the text of the paragraphs and lists of
+    /// larger documents on its own in the asynchronous importer of iOS, so the sizes of the
+    /// attributed string would not be those of the style sheet (14 points become 21 or 23, while
+    /// the text of tables does not change). A style that fixes the size also replaces the option
+    /// `textSizeMultiplier` of the importer, which works through the same property of WebKit.
+    internal static func fixingTextSize(of html: String, multiplier: Double?) -> String {
+      let percent = (multiplier ?? 0) > 0 ? multiplier! * 100 : 100
+      let rule = "<style>html { -webkit-text-size-adjust: \(String(format: "%g", percent))%; }</style>"
+      if let head = html.range(of: "</head>") {
+        return html.replacingCharacters(in: head.lowerBound..<head.lowerBound, with: rule)
+      }
+      return rule + html
+    }
+
     internal func start(_ html: String,
                         options: RenderingOptions,
                         watchdogGrace: TimeInterval,
                         ignore: Bool = false) {
       if !ignore {
         NSAttributedString.loadFromHTML(
-            string: html,
+            string: Self.fixingTextSize(of: html, multiplier: options.textSizeMultiplier),
             options: options.renderingOptions(forLoadFromHTML: true)) { string, _, error in
           if let error = error {
             if let wkError = error as? WKError,

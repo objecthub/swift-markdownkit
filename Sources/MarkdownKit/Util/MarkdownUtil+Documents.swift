@@ -48,7 +48,15 @@ extension MarkdownUtil {
                   author: String? = nil,
                   renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted)
                 async throws -> Data {
-    let generator = AttributedStringGenerator(renderingOptions: renderingOptions)
+    let generator = AttributedStringGenerator(fontColor: Self.documentTextColor,
+                                              codeFontColor: Self.documentTextColor,
+                                              codeBlockFontColor: Self.documentTextColor,
+                                              codeBlockBackground: Self.documentBackgroundColor,
+                                              h1Color: Self.documentTextColor,
+                                              h2Color: Self.documentTextColor,
+                                              h3Color: Self.documentTextColor,
+                                              h4Color: Self.documentTextColor,
+                                              renderingOptions: renderingOptions)
     let string = try await generator.generateAsync(doc: doc)
     return try string.data(from: NSRange(location: 0, length: string.length),
                            documentAttributes: Self.documentAttributes(.rtf, title: title, author: author))
@@ -88,15 +96,40 @@ extension MarkdownUtil {
                    maxImageWidth: CGFloat = 400,
                    renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted)
                  async throws -> sending FileWrapper {
-    let generator = MathAttributedStringGenerator(
-                      mermaid: MermaidConfig(maxWidth: maxImageWidth),
-                      mermaidRenderer: self.mermaidRenderer,
-                      math: MathConfig(maxWidth: maxImageWidth),
-                      mathRenderer: self.mathRenderer,
-                      renderingOptions: renderingOptions)
+    let generator = self.documentGenerator(maxImageWidth: maxImageWidth,
+                                           renderingOptions: renderingOptions)
     let string = try await generator.generateAsync(doc: doc).preparedForRTFD()
     return try string.fileWrapper(from: NSRange(location: 0, length: string.length),
                                   documentAttributes: Self.documentAttributes(.rtfd, title: title, author: author))
+  }
+
+  /// The color of the text of documents (black), and of the background of code blocks (white): the
+  /// documents that are created here look the same whatever the appearance of the system is (the
+  /// default colors of the generators depend on it).
+  static let documentTextColor = "#000000"
+
+  /// See `documentTextColor`.
+  static let documentBackgroundColor = "#FFFFFF"
+
+  /// Returns the generator for documents with images (RTFD, for example): diagrams and formulas are
+  /// not wider than `maxImageWidth`, and the colors do not depend on the appearance of the system.
+  func documentGenerator(maxImageWidth: CGFloat,
+                         renderingOptions: AttributedStringGenerator.RenderingOptions)
+                       -> MathAttributedStringGenerator {
+    return MathAttributedStringGenerator(
+             fontColor: Self.documentTextColor,
+             codeFontColor: Self.documentTextColor,
+             codeBlockFontColor: Self.documentTextColor,
+             codeBlockBackground: Self.documentBackgroundColor,
+             mermaid: MermaidConfig(maxWidth: maxImageWidth),
+             mermaidRenderer: self.mermaidRenderer,
+             math: MathConfig(maxWidth: maxImageWidth),
+             mathRenderer: self.mathRenderer,
+             h1Color: Self.documentTextColor,
+             h2Color: Self.documentTextColor,
+             h3Color: Self.documentTextColor,
+             h4Color: Self.documentTextColor,
+             renderingOptions: renderingOptions)
   }
 
   /// The attributes of an RTF or RTFD document.

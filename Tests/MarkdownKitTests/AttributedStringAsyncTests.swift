@@ -942,4 +942,58 @@ private final class SilentServer: @unchecked Sendable {
   }
 }
 
+#if os(macOS) || os(iOS)
+
+extension AttributedStringAsyncTests {
+
+  /// A document which is large enough for WebKit's text autosizing.
+  private var largeDocument: Block {
+    let paragraph = String(repeating: "Some words of a longer paragraph. ", count: 6)
+    var markdown = (1...30).map { "Paragraph \($0): \(paragraph)" }.joined(separator: "\n\n")
+    markdown += "\n\n" + (1...10).map { "- List item \($0): \(paragraph)" }.joined(separator: "\n")
+    markdown += "\n\n| First | Second |\n| ----- | ------ |\n| cell  | other  |\n\n"
+    markdown += "Text with `inline code`.\n"
+    return ExtendedMarkdownParser.standard.parse(markdown)
+  }
+
+  private func fontSize(of text: String, in string: NSAttributedString) throws -> CGFloat {
+    let range = (string.string as NSString).range(of: text)
+    XCTAssertNotEqual(range.location, NSNotFound, text)
+    let font = try XCTUnwrap(string.attribute(.font, at: range.location, effectiveRange: nil) as? HRFont)
+    return font.pointSize
+  }
+
+  /// The sizes of the text are those of the style. The asynchronous importer of iOS enlarged the
+  /// text of the paragraphs and lists of a larger document (WebKit's text autosizing).
+  func testTheAsynchronousImporterKeepsTheFontSizesOfTheStyle() async throws {
+    let string = try await AttributedStringGenerator().generateAsync(doc: self.largeDocument)
+    XCTAssertEqual(try self.fontSize(of: "Paragraph 1:", in: string), 14, accuracy: 0.5)
+    XCTAssertEqual(try self.fontSize(of: "Paragraph 30:", in: string), 14, accuracy: 0.5)
+    XCTAssertEqual(try self.fontSize(of: "List item 1:", in: string), 14, accuracy: 0.5)
+    XCTAssertEqual(try self.fontSize(of: "other", in: string), 14, accuracy: 0.5)
+    XCTAssertEqual(try self.fontSize(of: "inline code", in: string), 13, accuracy: 0.5)
+  }
+
+  func testTheTextSizeMultiplierScalesAllTextOfTheAsynchronousImporter() async throws {
+    let generator = AttributedStringGenerator(renderingOptions: .init(textSizeMultiplier: 1.5))
+    let string = try await generator.generateAsync(doc: self.largeDocument)
+    XCTAssertEqual(try self.fontSize(of: "Paragraph 1:", in: string), 21, accuracy: 0.5)
+    XCTAssertEqual(try self.fontSize(of: "List item 1:", in: string), 21, accuracy: 0.5)
+    XCTAssertEqual(try self.fontSize(of: "other", in: string), 21, accuracy: 0.5)
+    XCTAssertEqual(try self.fontSize(of: "inline code", in: string), 19.5, accuracy: 0.5)
+  }
+
+  func testTheStyleForTheTextSizeIsInTheHead() {
+    typealias State = AttributedStringGenerator.RenderingState
+    XCTAssertEqual(State.fixingTextSize(of: "<html><head></head><body></body></html>", multiplier: nil),
+                   "<html><head><style>html { -webkit-text-size-adjust: 100%; }</style></head><body></body></html>")
+    XCTAssertTrue(State.fixingTextSize(of: "<html><head></head></html>", multiplier: 1.5)
+                    .contains("-webkit-text-size-adjust: 150%"))
+    XCTAssertTrue(State.fixingTextSize(of: "<p>No head</p>", multiplier: 2).hasPrefix("<style>html { -webkit-text-size-adjust: 200%; }</style><p>"))
+    XCTAssertTrue(State.fixingTextSize(of: "<p></p>", multiplier: 0).contains(": 100%"))
+  }
+}
+
+#endif
+
 #endif
