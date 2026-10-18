@@ -460,9 +460,21 @@ Like Mermaid, KaTeX needs the layout engine of a web browser, so the formulas ar
 
 Rendering is asynchronous, just like drawing diagrams. `generateAsync` renders all formulas of the document first. `generate(doc:)` only shows the formulas that have been rendered before: call `await generator.prepareMath(in: doc)` first (or `prepareMath(in:completionHandler:)`). `MarkdownText(_:math:)` and `MarkdownText(string:math:)` show the code first and replace it once the formulas are available; a string is parsed with `MathMarkdownParser` then, unless `dialect:` selects another parser.
 
-The images, and the errors of rejected formulas, are cached by the `MathRenderer` (`MathRenderer.shared` by default; pass `mathRenderer:` for another one): at most 2,000 results and 32 MiB by default. `generateAsync` shows all formulas whatever the size of the cache, whereas `generate(doc:)` and `MarkdownText` only show those in the cache. `MathRenderer.render(_:fontSize:config:)` returns the PNG of a formula without a generator. A `MathConfig` sets the KaTeX options (macros and limits), the `scale` of the images, the `spacing` around blocks, a `maxWidth` and the `timeout`.
+The images, and the errors of rejected formulas, are cached by the `MathRenderer` (`MathRenderer.shared` by default; pass `mathRenderer:` for another one): at most 2,000 results and 32 MiB by default. `generateAsync` shows all formulas whatever the size of the cache, whereas `generate(doc:)` and `MarkdownText` only show those in the cache. `MathRenderer.render(_:display:fontSize:config:)` returns the PNG of a formula, given its LaTeX, without a generator. A `MathConfig` sets the KaTeX options (macros and limits), the `scale` of the images, the `spacing` around blocks, a `maxWidth` and the `timeout`.
 
 The web view cannot access the network or local files, and KaTeX runs with `trust` set to `false`, so formulas cannot create links, images or HTML. It is released after 60 seconds without requests (`idleTime:`). To use another version of KaTeX, replace the folder `Sources/MarkdownKit/Math/KaTeX` and update `KaTeXEngine.bundledVersion`. See [Mathematical Formulas](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/mathematicalformulas) for details.
+
+#### Drawing diagrams and formulas as images
+
+`MarkdownImageUtil` draws Mermaid diagrams and formulas into images without any Markdown, in one place. Its methods return an `NSImage` (macOS) or a `UIImage` (iOS), asynchronously or with a completion handler:
+
+```swift
+let util = MarkdownImageUtil.standard
+let diagram = try await util.mermaidImage("graph LR\n  A --> B")
+let formula = try await util.mathImage("x^2 + y^2 = z^2", fontSize: 16, color: .systemBlue)
+```
+
+See [Drawing Images of Diagrams and Formulas](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/drawingimagesofdiagramsandformulas) for details.
 
 ### Using the command-line tools
 

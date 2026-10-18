@@ -335,6 +335,75 @@ final class MathRendererTests: XCTestCase {
     XCTAssertTrue(found)
   }
 
+  func testASingleFormulaIsRenderedWithoutADictionary() async throws {
+    let renderer = try self.renderer()
+    let inline = try await renderer.render("\\frac{a}{b}")
+    let display = try await renderer.render("\\frac{a}{b}", display: true)
+    XCTAssertGreaterThan(inline.size.width, 5)
+    XCTAssertGreaterThan(inline.depth, 0)
+    XCTAssertEqual(inline.scale, 3)
+    // Display math is typeset larger
+    XCTAssertGreaterThan(display.size.height, inline.size.height)
+    // The image is the one that the method for several formulas gives (it is cached)
+    let formula = self.formula("\\frac{a}{b}")
+    let batch = await renderer.render([formula])
+    XCTAssertEqual(try self.success(batch[formula]), inline)
+    XCTAssertEqual(renderer.cachedImage(for: formula), inline)
+    // The font size and the configuration are parameters
+    let big = try await renderer.render("\\frac{a}{b}", fontSize: 28)
+    XCTAssertEqual(big.size.height / inline.size.height, 2, accuracy: 0.3)
+    let macro = try await renderer.render("\\RR", config: MathConfig(katex: KaTeXOptions(macros: ["\\RR": "\\mathbb{R}"])))
+    XCTAssertGreaterThan(macro.size.width, 5)
+  }
+
+  func testASingleFormulaThrowsItsError() async throws {
+    let renderer = try self.renderer()
+    do {
+      _ = try await renderer.render("\\frac{")
+      XCTFail("KaTeX accepted the formula")
+    } catch let error as MathError {
+      guard case .syntaxError(let message) = error else {
+        return XCTFail("\(error)")
+      }
+      XCTAssertTrue(message.contains("KaTeX parse error"), message)
+    }
+    do {
+      _ = try await renderer.render("xxxxxxxxxx", config: MathConfig(katex: KaTeXOptions(maxLength: 5)))
+      XCTFail("the formula is too long")
+    } catch let error as MathError {
+      XCTAssertEqual(error, .tooLong(5))
+    }
+  }
+
+  func testASingleFormulaWithACompletionHandler() async throws {
+    let renderer = try self.renderer()
+    let expectation = expectation(description: "completion handlers")
+    expectation.expectedFulfillmentCount = 2
+    nonisolated(unsafe) var image: MathImage?
+    nonisolated(unsafe) var failure: MathError?
+    nonisolated(unsafe) var onMainThread = true
+    renderer.render("a^2", display: true) { result in
+      onMainThread = onMainThread && Thread.isMainThread
+      if case .success(let value) = result {
+        image = value
+      }
+      expectation.fulfill()
+    }
+    renderer.render("\\frac{") { result in
+      onMainThread = onMainThread && Thread.isMainThread
+      if case .failure(let error) = result {
+        failure = error
+      }
+      expectation.fulfill()
+    }
+    await fulfillment(of: [expectation], timeout: 30)
+    XCTAssertTrue(onMainThread)
+    XCTAssertGreaterThan(image?.size.width ?? 0, 5)
+    guard case .syntaxError? = failure else {
+      return XCTFail("\(String(describing: failure))")
+    }
+  }
+
   func testSharedRendererExists() {
     XCTAssertNotNil(MathRenderer.shared)
     XCTAssertNil(MathRenderer(katexFolder: URL(fileURLWithPath: "/nonexistent")))

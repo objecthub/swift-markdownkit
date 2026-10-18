@@ -170,6 +170,7 @@
 		CCAB291D3084265B0038D445 /* MathFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAB291C308426570038D445 /* MathFragment.swift */; };
 		CCAB291F308437420038D445 /* MarkdownDialect.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAB291E3084373E0038D445 /* MarkdownDialect.swift */; };
 		CCAF00012FD00000AAAA0002 /* Resources.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0001 /* Resources.swift */; };
+		CCBF00302FD00000BBBB0002 /* MarkdownImageUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00302FD00000BBBB0001 /* MarkdownImageUtil.swift */; };
 		CCAF00012FD00000AAAA0004 /* MarkdownKit.docc in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */; };
 		CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */; };
 		CCAF00032FD00000AAAA0002 /* MermaidError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00032FD00000AAAA0001 /* MermaidError.swift */; };
@@ -202,6 +203,7 @@
 		CCBF000A2FD00000BBBB0002 /* MathHtmlGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000A2FD00000BBBB0001 /* MathHtmlGenerator.swift */; };
 		CCBF000B2FD00000BBBB0002 /* KaTeXEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */; };
 		CCBF000C2FD00000BBBB0002 /* MathHtmlGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */; };
+		CCBF00312FD00000BBBB0002 /* MarkdownImageUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00312FD00000BBBB0001 /* MarkdownImageUtilTests.swift */; };
 		CCBF00212FD00000BBBB0002 /* LaTeXMathParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */; };
 		CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */; };
 		CCBF00102FD00000BBBB0002 /* MathConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00102FD00000BBBB0001 /* MathConfig.swift */; };
@@ -475,6 +477,7 @@
 		CCAB291C308426570038D445 /* MathFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathFragment.swift; sourceTree = "<group>"; };
 		CCAB291E3084373E0038D445 /* MarkdownDialect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownDialect.swift; sourceTree = "<group>"; };
 		CCAF00012FD00000AAAA0001 /* Resources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resources.swift; sourceTree = "<group>"; };
+		CCBF00302FD00000BBBB0001 /* MarkdownImageUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownImageUtil.swift; sourceTree = "<group>"; };
 		CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = MarkdownKit.docc; sourceTree = "<group>"; };
 		CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidConfig.swift; sourceTree = "<group>"; };
 		CCAF00032FD00000AAAA0001 /* MermaidError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidError.swift; sourceTree = "<group>"; };
@@ -506,6 +509,7 @@
 		CCBF000A2FD00000BBBB0001 /* MathHtmlGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathHtmlGenerator.swift; sourceTree = "<group>"; };
 		CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaTeXEngineTests.swift; sourceTree = "<group>"; };
 		CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathHtmlGeneratorTests.swift; sourceTree = "<group>"; };
+		CCBF00312FD00000BBBB0001 /* MarkdownImageUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownImageUtilTests.swift; sourceTree = "<group>"; };
 		CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaTeXMathParserTests.swift; sourceTree = "<group>"; };
 		CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownDialectTests.swift; sourceTree = "<group>"; };
 		CCBF00102FD00000BBBB0001 /* MathConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathConfig.swift; sourceTree = "<group>"; };
@@ -650,6 +654,7 @@
 				CC088C0A22DB74090059460E /* TextFragment.swift */,
 				CC87987F264B434F006950A7 /* CustomTextFragment.swift */,
 				CCAF00012FD00000AAAA0001 /* Resources.swift */,
+				CCBF00302FD00000BBBB0001 /* MarkdownImageUtil.swift */,
 				CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */,
 				CC8CBC1A22862F4F0084683B /* Parser */,
 				CC8307402FC0F49200FDD777 /* Highlighter */,
@@ -687,6 +692,7 @@
 				CCBF00062FD00000BBBB0001 /* AttributedStringExtensionTests.swift */,
 				CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */,
 				CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */,
+				CCBF00312FD00000BBBB0001 /* MarkdownImageUtilTests.swift */,
 				CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */,
 				CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */,
 				CCBF00152FD00000BBBB0001 /* MathRendererTests.swift */,
@@ -1268,6 +1274,7 @@
 				CCB033D2227CDB2F00E1C4DC /* BlockParser.swift in Sources */,
 				CC8308212FC591EB00FDD777 /* AnsiHighlightingConfig.swift in Sources */,
 				CCAF00012FD00000AAAA0002 /* Resources.swift in Sources */,
+				CCBF00302FD00000BBBB0002 /* MarkdownImageUtil.swift in Sources */,
 				CCAF00012FD00000AAAA0004 /* MarkdownKit.docc in Sources */,
 				CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */,
 				CCAF00032FD00000AAAA0002 /* MermaidError.swift in Sources */,
@@ -1362,6 +1369,7 @@
 				CCBF00062FD00000BBBB0002 /* AttributedStringExtensionTests.swift in Sources */,
 				CCBF000B2FD00000BBBB0002 /* KaTeXEngineTests.swift in Sources */,
 				CCBF000C2FD00000BBBB0002 /* MathHtmlGeneratorTests.swift in Sources */,
+				CCBF00312FD00000BBBB0002 /* MarkdownImageUtilTests.swift in Sources */,
 				CCBF00212FD00000BBBB0002 /* LaTeXMathParserTests.swift in Sources */,
 				CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */,
 				CCBF00152FD00000BBBB0002 /* MathRendererTests.swift in Sources */,

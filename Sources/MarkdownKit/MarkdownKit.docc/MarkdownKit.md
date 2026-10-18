@@ -139,6 +139,12 @@ MarkdownKit supports macOS 11, iOS 15, tvOS 15 and watchOS 8 or later.
 - ``MermaidError``
 - ``MermaidDiagramContext``
 
+### Drawing images of diagrams and formulas
+
+- <doc:DrawingImagesOfDiagramsAndFormulas>
+- ``MarkdownImageUtil``
+- ``HRImage``
+
 ### Displaying Markdown with SwiftUI
 
 - <doc:DisplayingMarkdownWithSwiftUI>

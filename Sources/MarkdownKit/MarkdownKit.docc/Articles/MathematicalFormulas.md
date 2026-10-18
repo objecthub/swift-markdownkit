@@ -115,15 +115,7 @@ The images look like the text around them:
 
 The attachment of a formula has the attribute ``Foundation/NSAttributedString/Key/mathSource``, which holds the formula as it was written, for example to copy it as text, and an accessibility label with the LaTeX. The data of the attachment is a PNG image, so the formula survives copy and paste. RTFD export keeps the images but loses the baseline offset of formulas within a line, and RTF cannot contain images.
 
-``MathRenderer`` renders formulas with [KaTeX](https://katex.org) in a headless web view that is created when the first formula is rendered and released a minute after the last use (`idleTime`). The web view cannot load anything from the network or from files: the style sheet and the fonts of KaTeX are part of its page. It draws up to a hundred formulas at a time, so a document with many formulas takes a fraction of a second; for each formula, it determines its size and the distance of its baseline from the lower edge. The images are PNG images at three pixels per point (``MathConfig/scale``), which are black on a transparent background, and about 10 KB each. The renderer caches them: by default 2,000 formulas and 32 MB. A renderer of your own (`MathRenderer(katexFolder:idleTime:maxCachedFormulas:maxCacheBytes:)`) lets you choose the limits; ``MathRenderer/shared`` is used if the generator is not given one. You can also call the renderer yourself if you need the images of formulas:
-
-```swift
-let formula = MathFormula(tex: "\\sum_{i=1}^n i = \\frac{n(n+1)}{2}", display: true)
-let results = await MathRenderer.shared?.render([formula], fontSize: 14)
-if case .success(let image)? = results?[formula] {
-  // image.pngData is a PNG image of image.size points
-}
-```
+``MathRenderer`` renders formulas with [KaTeX](https://katex.org) in a headless web view that is created when the first formula is rendered and released a minute after the last use (`idleTime`). The web view cannot load anything from the network or from files: the style sheet and the fonts of KaTeX are part of its page. It draws up to a hundred formulas at a time, so a document with many formulas takes a fraction of a second; for each formula, it determines its size and the distance of its baseline from the lower edge. The images are PNG images at three pixels per point (``MathConfig/scale``), which are black on a transparent background, and about 10 KB each. The renderer caches them: by default 2,000 formulas and 32 MB. A renderer of your own (`MathRenderer(katexFolder:idleTime:maxCachedFormulas:maxCacheBytes:)`) lets you choose the limits; ``MathRenderer/shared`` is used if the generator is not given one. You can also call the renderer yourself if you need the image of a formula, see below.
 
 Formulas in untrusted Markdown are as safe in the web view as in HTML: the options of KaTeX do not allow links and images, macros are limited, and formulas of more than 10,000 bytes are rejected (``KaTeXOptions/maxLength``); the page has a content security policy without network access. Use the limit ``MathConfig/timeout`` for the time a rendering may take.
 
@@ -152,6 +144,35 @@ A ``MathConfig`` sets:
 - the `timeout` for rendering a batch of formulas (15 seconds).
 
 The web view is created when the first formula is rendered and released after 60 seconds without requests; create the ``MathRenderer`` with `idleTime:` to change that (`0` releases it as soon as no request is waiting, `.infinity` never releases it). To use another version of KaTeX, replace the folder `Sources/MarkdownKit/Math/KaTeX` (it contains `katex.min.js`, `katex.min.css` and the folder `fonts`) and update ``KaTeXEngine/bundledVersion``.
+
+### Use the renderer on its own
+
+To get a formula as an `NSImage` or a `UIImage`, use ``MarkdownImageUtil``, see <doc:DrawingImagesOfDiagramsAndFormulas>. ``MathRenderer`` draws formulas without a generator and without Markdown: given the LaTeX of a formula, it returns a PNG image, for example to show a formula in a custom view or to put it into a file:
+
+```swift
+if let renderer = MathRenderer.shared {
+  let image = try await renderer.render("\\sum_{i=1}^n i = \\frac{n(n+1)}{2}", display: true, fontSize: 16)
+  try image.pngData.write(to: URL(fileURLWithPath: "/tmp/formula.png"))
+}
+```
+
+The ``MathImage`` has the PNG data (`pngData`), the size of the image in points for the given font size (`size`), the number of pixels per point (`scale`, 3 by default, see ``MathConfig/scale``), and the distance in points from the lower edge of the image up to the baseline of the formula (`depth`). A formula within a line of text is placed that much below the baseline of the text. The image is black on a transparent background, with a small margin around the formula, so it can be drawn in any color by using it as a mask. Display math (`display: true`) is centered and uses larger operators, like a formula between `$$` is typeset; pass `false` for a formula within a line.
+
+`render(_:display:fontSize:config:)` throws a ``MathError``: `.syntaxError` with the message of KaTeX if it does not understand the LaTeX, `.tooLong` if the formula is longer than ``KaTeXOptions/maxLength``, `.timedOut` if rendering takes longer than ``MathConfig/timeout``, `.cancelled` if the task was cancelled, and `.unsupportedPlatform` or `.resourcesMissing` if formulas cannot be drawn at all. The method `render(_:display:fontSize:config:completionHandler:)` is the variant for code that does not use Swift concurrency; its handler is called exactly once, asynchronously, on the main thread.
+
+To draw many formulas, use `render(_:fontSize:config:)` with an array of ``MathFormula`` values. The formulas are drawn together, which is much faster than one after the other, and the result is a dictionary with an image or an error for each formula:
+
+```swift
+let formulas = [MathFormula(tex: "x^2", display: false), MathFormula(tex: "\\frac{a}{b}", display: false)]
+let results = await MathRenderer.shared?.render(formulas, fontSize: 14) ?? [:]
+for formula in formulas {
+  if case .success(let image)? = results[formula] {
+    // use the image of formula
+  }
+}
+```
+
+The images are cached, as described above, so asking for a formula a second time is cheap. A formula which KaTeX rejects is remembered as well.
 
 ### Combine the parser with your own markup
 

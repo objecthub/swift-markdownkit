@@ -343,6 +343,58 @@ public final class MathRenderer: @unchecked Sendable {
       }
     }
   }
+
+  /// Renders a formula and returns its image. If the formula has been rendered before, the
+  /// cached image is returned at once. To render many formulas, use `render(_:fontSize:config:)`,
+  /// which draws them together. Code which does not use Swift concurrency can use
+  /// `render(_:display:fontSize:config:completionHandler:)`.
+  ///
+  /// - Parameters:
+  ///   - tex: The LaTeX of the formula, without dollar signs.
+  ///   - display: True for display math, which is centered and uses larger operators; false for a
+  ///              formula within a line of text.
+  ///   - fontSize: The font size in points of the text in which the formula is shown.
+  ///   - config: The configuration for the rendering.
+  /// - Throws: A `MathError`, for example `.syntaxError` if KaTeX does not understand the LaTeX.
+  public func render(_ tex: String,
+                     display: Bool = false,
+                     fontSize: Float = 14,
+                     config: MathConfig = MathConfig()) async throws -> MathImage {
+    let formula = MathFormula(tex: tex, display: display)
+    switch await self.render([formula], fontSize: fontSize, config: config)[formula] {
+      case .success(let image)?:
+        return image
+      case .failure(let error)?:
+        throw error
+      case nil:
+        throw MathError.renderingFailed("the formula was not rendered")
+    }
+  }
+
+  /// Renders a formula without blocking the calling thread and reports the result via a
+  /// completion handler. This is the variant of `render(_:display:fontSize:config:)` for code
+  /// which does not use Swift concurrency.
+  ///
+  /// `completionHandler` is called exactly once, asynchronously (also if the image is cached
+  /// already), and always on the main thread.
+  public func render(_ tex: String,
+                     display: Bool = false,
+                     fontSize: Float = 14,
+                     config: MathConfig = MathConfig(),
+                     completionHandler: @escaping @Sendable (Result<MathImage, MathError>) -> Void) {
+    Task {
+      let result: Result<MathImage, MathError>
+      do {
+        result = .success(try await self.render(tex, display: display, fontSize: fontSize,
+                                                config: config))
+      } catch {
+        result = .failure(error as? MathError ?? .renderingFailed("\(error)"))
+      }
+      await MainActor.run {
+        completionHandler(result)
+      }
+    }
+  }
 }
 
 #else

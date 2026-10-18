@@ -420,6 +420,15 @@ public final class MathContext: @unchecked Sendable {
     return Baked(png: data, image: platformImage)
   }
 
+  /// Returns the PNG data of a copy of the black image `png` which has the color `color`, or `nil`
+  /// if the image cannot be recolored.
+  static func tintedPNG(_ png: Data, color: HRColor) -> Data? {
+    guard let rgba = RGBA(color) else {
+      return nil
+    }
+    return MathContext.tint(png: png, color: rgba)
+  }
+
   /// Returns the PNG data of a copy of the black image `png` which has the colour `color`.
   /// The image is a mask: black pixels with the alpha value of the formula. Drawing a colour with
   /// the blend mode "source in" keeps the alpha values and replaces the colour.
@@ -452,7 +461,14 @@ public final class MathContext: @unchecked Sendable {
                                                              nil) else {
       return nil
     }
-    CGImageDestinationAddImage(destination, tinted, nil)
+    // The resolution of the image gives it its size in points: keep it
+    var properties: [CFString : Any] = [:]
+    if let original = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString : Any] {
+      for key in [kCGImagePropertyDPIWidth, kCGImagePropertyDPIHeight] {
+        properties[key] = original[key]
+      }
+    }
+    CGImageDestinationAddImage(destination, tinted, properties as CFDictionary)
     guard CGImageDestinationFinalize(destination) else {
       return nil
     }

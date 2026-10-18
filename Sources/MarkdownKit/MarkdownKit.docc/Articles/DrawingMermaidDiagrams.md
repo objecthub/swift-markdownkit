@@ -48,7 +48,7 @@ A diagram that is wider than the text view is scaled down to fit when the text i
 
 ### Use the renderer on its own
 
-``MermaidRenderer`` can also be used without a generator to get the PNG of a diagram:
+To get a diagram as an `NSImage` or a `UIImage`, use ``MarkdownImageUtil``, see <doc:DrawingImagesOfDiagramsAndFormulas>. ``MermaidRenderer`` can also be used without a generator to get the PNG of a diagram:
 
 ```swift
 if let renderer = MermaidRenderer.shared {
