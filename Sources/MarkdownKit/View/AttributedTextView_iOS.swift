@@ -17,10 +17,13 @@ struct AttributedTextView: UIViewRepresentable {
   let availableWidth: CGFloat
   @Binding var contentHeight: CGFloat
   @Binding var colorScheme: ColorScheme?
+  /// True if the markers of list items are put on the baseline of the first line of their items
+  /// after each layout (see `ListMarkers`).
+  var alignsListMarkers = false
   
   func makeUIView(context: Context) -> UITextView {
     // Configure a UITextView to display the attributed string
-    let textView = UITextView()
+    let textView = ListAligningTextView()
     textView.isEditable = false
     textView.isScrollEnabled = false
     textView.isSelectable = true
@@ -43,9 +46,16 @@ struct AttributedTextView: UIViewRepresentable {
   func updateUIView(_ textView: UITextView, context: Context) {
     // Propagate the attributed text and line limit constraints. Setting the text resets the
     // text selection; it is only done if the text changed.
-    if context.coordinator.attributedText !== attributedText {
+    let textChanged = context.coordinator.attributedText !== attributedText
+    if textChanged {
       context.coordinator.attributedText = attributedText
       textView.attributedText = attributedText
+    }
+    // Finding the markers of lists costs time: only do it if it is asked for
+    if textChanged || context.coordinator.alignsListMarkers != self.alignsListMarkers {
+      context.coordinator.alignsListMarkers = self.alignsListMarkers
+      (textView as? ListAligningTextView)?.pairs =
+        self.alignsListMarkers ? ListMarkers.pairs(in: attributedText) : []
     }
     textView.textContainer.maximumNumberOfLines = context.environment.lineLimit ?? 0
     // Calculate the required height for the content
@@ -67,10 +77,35 @@ struct AttributedTextView: UIViewRepresentable {
     return Coordinator()
   }
   
+  /// A text view which puts the markers of list items on the baseline of the first line of
+  /// their items after each layout: the first line depends on the width of the text.
+  final class ListAligningTextView: UITextView {
+    /// The markers of lists in the text. The layout of a text view is only touched if there are
+    /// any (using its layout manager makes it use TextKit 1, as lists need anyway).
+    var pairs: [ListMarkers.Pair] = []
+    private var isAligning = false
+
+    override func layoutSubviews() {
+      super.layoutSubviews()
+      guard !pairs.isEmpty, !isAligning else {
+        return
+      }
+      isAligning = true
+      defer {
+        isAligning = false
+      }
+      let layout = self.layoutManager
+      layout.ensureLayout(for: self.textContainer)
+      ListMarkers.align(self.textStorage, layoutManager: layout, pairs: pairs)
+    }
+  }
+
   class Coordinator: NSObject, UITextViewDelegate {
     var openURL: OpenURLAction? = nil
     /// The attributed text that was set last
     var attributedText: NSAttributedString? = nil
+    /// Whether the markers of lists were looked for in that text
+    var alignsListMarkers = false
     
     func textView(_ textView: UITextView,
                   primaryActionFor textItem: UITextItem,

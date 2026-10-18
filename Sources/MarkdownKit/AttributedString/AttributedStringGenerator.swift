@@ -911,6 +911,21 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// the generator inserts for vertical space keep their line height.
   public let lineSpacing: Float
 
+  /// If true, the numbers and bullets of list items sit on the baseline of the first line of
+  /// their items, also if an image (such as a formula) makes that line taller than the text
+  /// (macOS and iOS; the default is `false`).
+  ///
+  /// The system's HTML importer turns lists into tables whose cells are laid out at their top, so
+  /// a marker is above the text of an item whose first line has a tall image. With this option,
+  /// the generator lowers the marker (with the character attribute `baselineOffset`, which text
+  /// views and the RTFD format keep). Which line is the first line of an item depends on the width
+  /// of the text, which the generator does not know: it assumes 30 times the font size, so a
+  /// formula that is farther from the start of its item counts as being on another line. A text
+  /// view of your own shows the markers for that width. ``MarkdownText`` measures its layout
+  /// instead (see its parameter `alignListMarkers`). Exporting RTFD documents does not need the
+  /// option (see ``Foundation/NSAttributedString/preparedForRTFD()``).
+  public let alignListMarkers: Bool
+
   /// The code font size.
   public let codeFontSize: Float
 
@@ -1024,6 +1039,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
               maxImageHeight: String? = nil,
               customStyle: String = "",
               imageBaseUrl: URL? = nil,
+              alignListMarkers: Bool = false,
               renderingOptions: RenderingOptions = RenderingOptions()) {
     self.version = version
     self.options = options
@@ -1040,6 +1056,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
     }
     self.fontColor = fontColor
     self.lineSpacing = lineSpacing
+    self.alignListMarkers = alignListMarkers
     self.codeFontSize = codeFontSize
     if codeFontFamily.isEmpty {
       switch version {
@@ -1097,7 +1114,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
   open func generate(doc: Block) -> NSAttributedString? {
     let generator = self.htmlGenerator()
     return self.generateAttributedString(generator.generate(doc: doc)).map {
-      self.finishAttributedString($0, from: generator)
+      self.completingImport($0, from: generator)
     }
   }
 
@@ -1105,7 +1122,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
   open func generate(block: Block) -> NSAttributedString? {
     let generator = self.htmlGenerator()
     return self.generateAttributedString(generator.generate(block: block, parent: .none)).map {
-      self.finishAttributedString($0, from: generator)
+      self.completingImport($0, from: generator)
     }
   }
 
@@ -1113,7 +1130,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
   open func generate(blocks: Blocks) -> NSAttributedString? {
     let generator = self.htmlGenerator()
     return self.generateAttributedString(generator.generate(blocks: blocks, parent: .none)).map {
-      self.finishAttributedString($0, from: generator)
+      self.completingImport($0, from: generator)
     }
   }
 
@@ -1131,6 +1148,18 @@ open class AttributedStringGenerator: @unchecked Sendable {
   open func finishAttributedString(_ string: NSAttributedString,
                                    from generator: InternalHtmlGenerator) -> NSAttributedString {
     return self.insertingDiagrams(into: string, from: generator) ?? string
+  }
+
+  /// Completes the string which the importer created: `finishAttributedString(_:from:)`, and, on
+  /// macOS and iOS, the alignment of the markers of list items (see `ListMarkers`).
+  internal func completingImport(_ string: NSAttributedString,
+                                 from generator: InternalHtmlGenerator) -> NSAttributedString {
+    let result = self.finishAttributedString(string, from: generator)
+    #if os(macOS) || os(iOS)
+    return self.alignListMarkers ? ListMarkers.aligned(result) : result
+    #else
+    return result
+    #endif
   }
 
   /// True if the asynchronous methods (`generateAsync`) have to prepare the generation of an
@@ -1865,7 +1894,7 @@ extension AttributedStringGenerator {
     // Generate HTML for this document
     let document = self.generateHtmlForImport(generator.generate(doc: doc))
     // Replace placeholders, e.g. with the images of diagrams
-    return self.finishAttributedString(
+    return self.completingImport(
              try await self.renderHTML(document.html,
                                        options: options ?? self.renderingOptions,
                                        probed: document.probed),
@@ -1879,7 +1908,7 @@ extension AttributedStringGenerator {
                          -> sending NSAttributedString {
     let generator = await self.asyncHtmlGenerator(for: block, options: options)
     let document = self.generateHtmlForImport(generator.generate(block: block, parent: .none))
-    return self.finishAttributedString(
+    return self.completingImport(
              try await self.renderHTML(document.html,
                                        options: options ?? self.renderingOptions,
                                        probed: document.probed),
@@ -1893,7 +1922,7 @@ extension AttributedStringGenerator {
                          -> sending NSAttributedString {
     let generator = await self.asyncHtmlGenerator(for: blocks, options: options)
     let document = self.generateHtmlForImport(generator.generate(blocks: blocks, parent: .none))
-    return self.finishAttributedString(
+    return self.completingImport(
              try await self.renderHTML(document.html,
                                        options: options ?? self.renderingOptions,
                                        probed: document.probed),
@@ -1993,7 +2022,7 @@ extension AttributedStringGenerator {
           // The attributed string is created by the system's HTML loader and not used by
           // anybody else
           nonisolated(unsafe) let string = string
-          deliver(.success(self.finishAttributedString(string, from: generator)))
+          deliver(.success(self.completingImport(string, from: generator)))
         case .failure(let error):
           deliver(.failure(error))
       }

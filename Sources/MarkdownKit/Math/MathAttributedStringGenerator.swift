@@ -127,6 +127,7 @@ open class MathAttributedStringGenerator: AttributedStringGenerator, @unchecked 
               maxImageHeight: String? = nil,
               customStyle: String = "",
               imageBaseUrl: URL? = nil,
+              alignListMarkers: Bool = false,
               renderingOptions: RenderingOptions = RenderingOptions()) {
     self.mathConfig = math
     self.mathRenderer = mathRenderer
@@ -157,6 +158,7 @@ open class MathAttributedStringGenerator: AttributedStringGenerator, @unchecked 
                maxImageHeight: maxImageHeight,
                customStyle: customStyle,
                imageBaseUrl: imageBaseUrl,
+               alignListMarkers: alignListMarkers,
                renderingOptions: renderingOptions)
   }
 

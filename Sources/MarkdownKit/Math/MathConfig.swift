@@ -25,6 +25,9 @@ import Foundation
 /// ``MathAttributedStringGenerator``).
 ///
 public struct MathConfig: Sendable, Equatable {
+  
+  /// The default `MathConfig`.
+  public static let `default` = MathConfig()
 
   /// The options for KaTeX: macros and limits. The kind of markup (`output`) is irrelevant: the
   /// formulas are always typeset as HTML, which is drawn into an image.

@@ -220,6 +220,8 @@
 		CCBF00362FD00000BBBB0002 /* NSAttributedString+RTFD.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00362FD00000BBBB0001 /* NSAttributedString+RTFD.swift */; };
 		CCBF00372FD00000BBBB0002 /* NSAttributedStringRTFDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00372FD00000BBBB0001 /* NSAttributedStringRTFDTests.swift */; };
 		CCBF00382FD00000BBBB0002 /* MarkdownUtilConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00382FD00000BBBB0001 /* MarkdownUtilConversionTests.swift */; };
+		CCBF00392FD00000BBBB0002 /* ListMarkers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00392FD00000BBBB0001 /* ListMarkers.swift */; };
+		CCBF003A2FD00000BBBB0002 /* ListMarkerAlignmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF003A2FD00000BBBB0001 /* ListMarkerAlignmentTests.swift */; };
 		CCC48BF525D880FA00D082AD /* String+Entities.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC48BF425D880FA00D082AD /* String+Entities.swift */; };
 		CCC48C0425D98FCB00D082AD /* MarkdownStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */; };
 		CCC48C0A25D9AF7500D082AD /* NamedCharacters.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC48C0925D9AF7500D082AD /* NamedCharacters.swift */; };
@@ -537,6 +539,8 @@
 		CCBF00362FD00000BBBB0001 /* NSAttributedString+RTFD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSAttributedString+RTFD.swift"; sourceTree = "<group>"; };
 		CCBF00372FD00000BBBB0001 /* NSAttributedStringRTFDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSAttributedStringRTFDTests.swift; sourceTree = "<group>"; };
 		CCBF00382FD00000BBBB0001 /* MarkdownUtilConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownUtilConversionTests.swift; sourceTree = "<group>"; };
+		CCBF00392FD00000BBBB0001 /* ListMarkers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListMarkers.swift; sourceTree = "<group>"; };
+		CCBF003A2FD00000BBBB0001 /* ListMarkerAlignmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListMarkerAlignmentTests.swift; sourceTree = "<group>"; };
 		CCC48BF425D880FA00D082AD /* String+Entities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Entities.swift"; sourceTree = "<group>"; };
 		CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownStringTests.swift; sourceTree = "<group>"; };
 		CCC48C0925D9AF7500D082AD /* NamedCharacters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamedCharacters.swift; sourceTree = "<group>"; };
@@ -628,6 +632,7 @@
 			children = (
 				CC72627522F318F3001AB6D9 /* AttributedStringGenerator.swift */,
 				CCBF00362FD00000BBBB0001 /* NSAttributedString+RTFD.swift */,
+				CCBF00392FD00000BBBB0001 /* ListMarkers.swift */,
 				CC3E4F522309FE9100C8A3DD /* Color.swift */,
 			);
 			path = AttributedString;
@@ -716,6 +721,7 @@
 				CCBF00312FD00000BBBB0001 /* MarkdownUtilImageTests.swift */,
 				CCBF00372FD00000BBBB0001 /* NSAttributedStringRTFDTests.swift */,
 				CCBF00382FD00000BBBB0001 /* MarkdownUtilConversionTests.swift */,
+				CCBF003A2FD00000BBBB0001 /* ListMarkerAlignmentTests.swift */,
 				CCBF00212FD00000BBBB0001 /* LaTeXMathParserTests.swift */,
 				CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */,
 				CCBF00152FD00000BBBB0001 /* MathRendererTests.swift */,
@@ -1332,6 +1338,7 @@
 				CCBF00342FD00000BBBB0002 /* MarkdownUtil.swift in Sources */,
 				CCBF00352FD00000BBBB0002 /* MarkdownUtil+Documents.swift in Sources */,
 				CCBF00362FD00000BBBB0002 /* NSAttributedString+RTFD.swift in Sources */,
+				CCBF00392FD00000BBBB0002 /* ListMarkers.swift in Sources */,
 				CCAF00012FD00000AAAA0004 /* MarkdownKit.docc in Sources */,
 				CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */,
 				CCAF00032FD00000AAAA0002 /* MermaidError.swift in Sources */,
@@ -1430,6 +1437,7 @@
 				CCBF00312FD00000BBBB0002 /* MarkdownUtilImageTests.swift in Sources */,
 				CCBF00372FD00000BBBB0002 /* NSAttributedStringRTFDTests.swift in Sources */,
 				CCBF00382FD00000BBBB0002 /* MarkdownUtilConversionTests.swift in Sources */,
+				CCBF003A2FD00000BBBB0002 /* ListMarkerAlignmentTests.swift in Sources */,
 				CCBF00212FD00000BBBB0002 /* LaTeXMathParserTests.swift in Sources */,
 				CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */,
 				CCBF00152FD00000BBBB0002 /* MathRendererTests.swift in Sources */,

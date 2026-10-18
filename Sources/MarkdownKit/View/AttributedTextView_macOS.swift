@@ -29,6 +29,9 @@ struct AttributedTextView: NSViewRepresentable {
   let availableWidth: CGFloat
   @Binding var contentHeight: CGFloat
   @Binding var colorScheme: ColorScheme?
+  /// True if the markers of list items are put on the baseline of the first line of their items
+  /// after each layout (see `ListMarkers`).
+  var alignsListMarkers = false
   
   func makeNSView(context: Context) -> NSTextView {
     // Configure an NSTextView to display the attributed string
@@ -58,9 +61,15 @@ struct AttributedTextView: NSViewRepresentable {
   func updateNSView(_ textView: NSTextView, context: Context) {
     // Propagate the attributed text. Setting the text resets the text selection; it is only
     // done if the text changed.
-    if context.coordinator.attributedText !== attributedText {
+    let textChanged = context.coordinator.attributedText !== attributedText
+    if textChanged {
       context.coordinator.attributedText = attributedText
       textView.textStorage?.setAttributedString(attributedText)
+    }
+    // Finding the markers of lists costs time: only do it if it is asked for, once for each text
+    if textChanged || context.coordinator.alignsListMarkers != self.alignsListMarkers {
+      context.coordinator.alignsListMarkers = self.alignsListMarkers
+      context.coordinator.listMarkers = self.alignsListMarkers ? ListMarkers.pairs(in: attributedText) : []
     }
     // Set the text container width
     textView.textContainer?.containerSize = NSSize(width: self.availableWidth,
@@ -73,6 +82,14 @@ struct AttributedTextView: NSViewRepresentable {
     }
     // Calculate the required height for the content
     textView.layoutManager?.ensureLayout(for: textView.textContainer!)
+    // Put the markers of list items on the baseline of the first line of their items, which
+    // depends on the width of the text
+    if !context.coordinator.listMarkers.isEmpty,
+       let storage = textView.textStorage, let layout = textView.layoutManager,
+       let container = textView.textContainer,
+       ListMarkers.align(storage, layoutManager: layout, pairs: context.coordinator.listMarkers) {
+      layout.ensureLayout(for: container)
+    }
     let usedRect = textView.layoutManager?.usedRect(for: textView.textContainer!) ?? .zero
     let size = usedRect.size
     let colorScheme = context.environment.colorScheme
@@ -95,6 +112,10 @@ struct AttributedTextView: NSViewRepresentable {
     var openURL: OpenURLAction? = nil
     /// The attributed text that was set last
     var attributedText: NSAttributedString? = nil
+    /// Whether the markers of lists were looked for in that text
+    var alignsListMarkers = false
+    /// The markers of lists in that text, if `alignsListMarkers` is true
+    var listMarkers: [ListMarkers.Pair] = []
     
     func textView(_ textView: NSTextView,
                   clickedOnLink link: Any,

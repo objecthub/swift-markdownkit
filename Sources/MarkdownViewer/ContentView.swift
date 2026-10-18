@@ -233,7 +233,10 @@ struct ContentView: View {
     """)
   
   var body: some View {
-    MarkdownText(self.content, mermaid: .default, math: MathConfig())
+    MarkdownText(self.content,
+                 mermaid: .default,
+                 math: .default,
+                 alignListMarkers: true)
       .padding()
   }
 }

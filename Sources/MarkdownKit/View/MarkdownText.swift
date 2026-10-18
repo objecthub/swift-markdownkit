@@ -65,6 +65,10 @@ public struct MarkdownText: View {
   /// attributed string.
   private let waitingMessage: NSAttributedString
   
+  /// True if the view puts the numbers and bullets of list items on the baseline of the first
+  /// line of their items after each layout.
+  let alignListMarkers: Bool
+  
   /// The attributed string generated from the markdown document.
   @State private var attributedText: NSAttributedString? = nil
   
@@ -97,14 +101,19 @@ public struct MarkdownText: View {
   ///                to use the default generators.
   ///   - prepare: Prepares the content of a document for a color scheme, or `nil` (the default)
   ///              if the generator does not need to prepare anything.
+  ///   - alignListMarkers: If `true`, the view puts the numbers and bullets of list items on the
+  ///                       baseline of the first line of their items, after each layout; see
+  ///                       `init(_:waitingMessage:renderingOptions:mermaid:math:alignListMarkers:)`.
   public init(_ content: Block,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               generator: ((Block, ColorScheme) -> NSAttributedString?)?,
-              prepare: (@Sendable (Block, ColorScheme) async -> Bool)? = nil) {
+              prepare: (@Sendable (Block, ColorScheme) async -> Bool)? = nil,
+              alignListMarkers: Bool = false) {
     self.content = content
     self.waitingMessage = waitingMessage
     self.generator = generator ?? MarkdownText.defaultGenerator(.trusted)
     self.prepare = prepare
+    self.alignListMarkers = alignListMarkers
   }
   
   /// Creates a Markdown text view for the specified Markdown document. The view uses the
@@ -136,15 +145,27 @@ public struct MarkdownText: View {
   ///              show them as code like any other code block.
   ///   - math: The configuration for showing formulas, or `nil` (the default) to show the
   ///           LaTeX as code.
+  ///   - alignListMarkers: If `true` (the default is `false`), the view puts the number or bullet
+  ///                       of a list item on the baseline of the first line of its item, also
+  ///                       if an image (such as a formula) makes that line taller than the text.
+  ///                       The system lays out the cells of the table that a list is at their
+  ///                       top, so the marker is above the text otherwise. This is only
+  ///                       noticeable for images in the first line of an item. The view measures
+  ///                       its layout after each layout (also when its size changes) for this
+  ///                       and needs the text system of TextKit 1 for lists on iOS, which
+  ///                       costs time for long texts; this is why it is optional. It is
+  ///                       available on macOS and iOS.
   public init(_ text: Block,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
               mermaid: MermaidConfig? = nil,
-              math: MathConfig? = nil) {
+              math: MathConfig? = nil,
+              alignListMarkers: Bool = false) {
     self.init(text,
               waitingMessage: waitingMessage,
               generator: Self.defaultGenerator(renderingOptions, mermaid: mermaid, math: math),
-              prepare: Self.defaultPreparer(renderingOptions, mermaid: mermaid, math: math))
+              prepare: Self.defaultPreparer(renderingOptions, mermaid: mermaid, math: math),
+              alignListMarkers: alignListMarkers)
   }
   
   /// Creates a Markdown text view for the specified Markdown document as a string.
@@ -157,11 +178,13 @@ public struct MarkdownText: View {
               dialect: MarkdownDialect? = nil,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               generator: ((Block, ColorScheme) -> NSAttributedString?)?,
-              prepare: (@Sendable (Block, ColorScheme) async -> Bool)? = nil) {
+              prepare: (@Sendable (Block, ColorScheme) async -> Bool)? = nil,
+              alignListMarkers: Bool = false) {
     self.init((dialect ?? .extendedCommonMark).parser.parse(string),
               waitingMessage: waitingMessage,
               generator: generator,
-              prepare: prepare)
+              prepare: prepare,
+              alignListMarkers: alignListMarkers)
   }
   
   /// Creates a Markdown text view for the specified Markdown document as a string. See
@@ -176,13 +199,15 @@ public struct MarkdownText: View {
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
               mermaid: MermaidConfig? = nil,
-              math: MathConfig? = nil) {
+              math: MathConfig? = nil,
+              alignListMarkers: Bool = false) {
     self.init((math == nil ? (dialect ?? .extendedCommonMark) : (dialect ?? .fullMath))
                 .parser.parse(string),
               waitingMessage: waitingMessage,
               renderingOptions: renderingOptions,
               mermaid: mermaid,
-              math: math)
+              math: math,
+              alignListMarkers: alignListMarkers)
   }
   
   public var body: some View {
@@ -191,7 +216,8 @@ public struct MarkdownText: View {
         AttributedTextView(attributedText: self.attributedText ?? self.waitingMessage,
                            availableWidth: geometry.size.width,
                            contentHeight: self.$contentHeight,
-                           colorScheme: self.$cachedColorScheme)
+                           colorScheme: self.$cachedColorScheme,
+                           alignsListMarkers: self.alignListMarkers)
         .frame(width: geometry.size.width, height: contentHeight)
       }
     }

@@ -53,10 +53,15 @@ extension NSAttributedString {
   /// - The files of the images have names that say what they are: `Formula 1.png` for a formula
   ///   of ``MathAttributedStringGenerator`` (see ``Foundation/NSAttributedString/Key/mathSource``)
   ///   and `Image 1.png` for any other image.
+  /// - The numbers and bullets of list items sit on the baseline of the first line of their items,
+  ///   also if a formula or another image makes that line taller than the text: a viewer lays out
+  ///   an image that is lowered by `baselineOffset` differently than a text view, so the copy
+  ///   lowers the markers again, for a text of 30 times the font size (see
+  ///   ``AttributedStringGenerator/alignListMarkers``).
   ///
   /// The attachments of the copy are new objects: neither the attributed string nor its attachments
   /// are changed. Attachments without data or without a size are left as they are, and so is the rest
-  /// of the string.
+  /// of the string, except for the markers of lists.
   ///
   /// ```swift
   /// let document = try string.preparedForRTFD()
@@ -92,7 +97,8 @@ extension NSAttributedString {
         result.addAttribute(.baselineOffset, value: bounds.origin.y, range: range)
       }
     }
-    return result
+    // A viewer lays out the images differently, so the markers of lists need to move again
+    return ListMarkers.aligned(result)
   }
 
   /// Returns PNG data of the image in `data` that has a resolution which makes its size in points
