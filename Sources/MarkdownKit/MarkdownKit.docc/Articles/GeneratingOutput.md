@@ -17,6 +17,8 @@ MarkdownKit provides several _generators_, i.e. Markdown processors which output
 
 All generators take a document that a parser returned: ``Block/document(_:)``. They work with every parser, see <doc:ChoosingAParser>.
 
+``MarkdownUtil`` combines the generators for the common cases: it converts a document into text, ANSI text, HTML, RTF or RTFD with one call, see <doc:ConvertingMarkdownIntoDocuments>.
+
 ### Generate HTML
 
 ``HtmlGenerator`` defines a simple mapping from Markdown into HTML. Here is an example for the usage of the generator:

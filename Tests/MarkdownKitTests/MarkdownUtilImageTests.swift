@@ -1,5 +1,5 @@
 //
-//  MarkdownImageUtilTests.swift
+//  MarkdownUtilImageTests.swift
 //  MarkdownKitTests
 //
 //  Created by Matthias Zenger on 18/10/2026.
@@ -30,15 +30,15 @@ import UIKit
 #endif
 @testable import MarkdownKit
 
-/// Tests for `MarkdownImageUtil`, which draws diagrams and formulas into `NSImage` or `UIImage`.
-final class MarkdownImageUtilTests: XCTestCase {
+/// Tests for `MarkdownUtil`, which draws diagrams and formulas into `NSImage` or `UIImage`.
+final class MarkdownUtilImageTests: XCTestCase {
 
-  private func makeUtil() throws -> (util: MarkdownImageUtil, math: MathRenderer, mermaid: MermaidRenderer) {
+  private func makeUtil() throws -> (util: MarkdownUtil, math: MathRenderer, mermaid: MermaidRenderer) {
     let katex = try XCTUnwrap(Resources.katexFolder)
     let math = try XCTUnwrap(MathRenderer(katexFolder: katex))
     let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
     let mermaid = try XCTUnwrap(MermaidRenderer(mermaidJSURL: script))
-    return (MarkdownImageUtil(mermaidRenderer: mermaid, mathRenderer: math), math, mermaid)
+    return (MarkdownUtil(mermaidRenderer: mermaid, mathRenderer: math), math, mermaid)
   }
 
   /// The pixels of an image (red, green, blue and alpha, not premultiplied), and its width
@@ -259,8 +259,8 @@ final class MarkdownImageUtilTests: XCTestCase {
   // MARK: The shared utility
 
   func testTheStandardUtilityUsesTheSharedRenderers() {
-    XCTAssertNil(MarkdownImageUtil.standard.mermaidRenderer)
-    XCTAssertNil(MarkdownImageUtil.standard.mathRenderer)
+    XCTAssertNil(MarkdownUtil.standard.mermaidRenderer)
+    XCTAssertNil(MarkdownUtil.standard.mathRenderer)
     XCTAssertNotNil(MermaidRenderer.shared)
     XCTAssertNotNil(MathRenderer.shared)
   }

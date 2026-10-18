@@ -28,7 +28,7 @@ import UIKit
 @testable import MarkdownKit
 
 /// Tests for giving images transparent insets of a given width (`CGImage.withInsets` and, on
-/// macOS and iOS, `MarkdownImageUtil.image(_:withInsets:)`).
+/// macOS and iOS, `MarkdownUtil.image(_:withInsets:)`).
 final class ImageInsetsTests: XCTestCase {
 
   /// The margins of the content of an image in pixels.
@@ -193,7 +193,7 @@ final class ImageInsetsTests: XCTestCase {
     // 3 pixels per point: the content has a margin of 12, 6, 3 and 30 pixels, which is
     // 4, 2, 1 and 10 points
     let image = try self.makeImage(width: 90, height: 60, scale: 3, content: CGRect(x: 6, y: 12, width: 54, height: 45))
-    let result = try XCTUnwrap(MarkdownImageUtil.image(image, withInsets: .init(top: 2, left: 3, bottom: 4, right: 1)))
+    let result = try XCTUnwrap(MarkdownUtil.image(image, withInsets: .init(top: 2, left: 3, bottom: 4, right: 1)))
     let measured = try self.measure(result)
     XCTAssertEqual(measured.margins, Margins(top: 6, left: 9, bottom: 12, right: 3))
     XCTAssertEqual(measured.width, 9 + 54 + 3)
@@ -211,7 +211,7 @@ final class ImageInsetsTests: XCTestCase {
   func testInsetsAreRoundedToWholePixels() throws {
     let image = try self.makeImage(width: 40, height: 30, scale: 2, content: CGRect(x: 5, y: 5, width: 10, height: 10))
     // 1.25 points are 2.5 pixels, which become 3; 0.2 points are 0.4 pixels, which become 0
-    let result = try XCTUnwrap(MarkdownImageUtil.image(image, withInsets: .init(top: 1.25, left: 0.2, bottom: 0.7, right: 2)))
+    let result = try XCTUnwrap(MarkdownUtil.image(image, withInsets: .init(top: 1.25, left: 0.2, bottom: 0.7, right: 2)))
     XCTAssertEqual(try self.measure(result).margins, Margins(top: 3, left: 0, bottom: 1, right: 4))
   }
 
@@ -223,24 +223,24 @@ final class ImageInsetsTests: XCTestCase {
     #else
     let image = UIImage(cgImage: bitmap, scale: 1, orientation: .up)
     #endif
-    let tight = try XCTUnwrap(MarkdownImageUtil.image(image, withInsets: .init(2)))
+    let tight = try XCTUnwrap(MarkdownUtil.image(image, withInsets: .init(2)))
     XCTAssertEqual(try self.measure(tight).width, 14)
-    let wide = try XCTUnwrap(MarkdownImageUtil.image(image, withInsets: .init(2), transparentAlpha: 0))
+    let wide = try XCTUnwrap(MarkdownUtil.image(image, withInsets: .init(2), transparentAlpha: 0))
     XCTAssertEqual(try self.measure(wide).width, 44)
     XCTAssertEqual(try self.measure(wide).height, 34)
-    XCTAssertNil(MarkdownImageUtil.image(image, withInsets: .init(2), transparentAlpha: 255))
+    XCTAssertNil(MarkdownUtil.image(image, withInsets: .init(2), transparentAlpha: 255))
   }
 
   func testTheInsetsHaveConvenienceInitializers() {
-    XCTAssertEqual(MarkdownImageUtil.Insets(5), MarkdownImageUtil.Insets(top: 5, left: 5, bottom: 5, right: 5))
-    XCTAssertEqual(MarkdownImageUtil.Insets(horizontal: 2, vertical: 7),
-                   MarkdownImageUtil.Insets(top: 7, left: 2, bottom: 7, right: 2))
-    XCTAssertEqual(MarkdownImageUtil.Insets.none, MarkdownImageUtil.Insets(0))
+    XCTAssertEqual(MarkdownUtil.Insets(5), MarkdownUtil.Insets(top: 5, left: 5, bottom: 5, right: 5))
+    XCTAssertEqual(MarkdownUtil.Insets(horizontal: 2, vertical: 7),
+                   MarkdownUtil.Insets(top: 7, left: 2, bottom: 7, right: 2))
+    XCTAssertEqual(MarkdownUtil.Insets.none, MarkdownUtil.Insets(0))
   }
 
   func testAnImageWithoutContentOfThePlatformGivesNothing() throws {
     let image = try self.makeImage(width: 20, height: 10, scale: 1, content: nil)
-    XCTAssertNil(MarkdownImageUtil.image(image, withInsets: .init(4)))
+    XCTAssertNil(MarkdownUtil.image(image, withInsets: .init(4)))
   }
 
   #endif
@@ -252,21 +252,21 @@ final class ImageInsetsTests: XCTestCase {
     let math = try XCTUnwrap(MathRenderer(katexFolder: katex))
     let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
     let mermaid = try XCTUnwrap(MermaidRenderer(mermaidJSURL: script))
-    let util = MarkdownImageUtil(mermaidRenderer: mermaid, mathRenderer: math)
-    let insets = MarkdownImageUtil.Insets(horizontal: 4, vertical: 2)
+    let util = MarkdownUtil(mermaidRenderer: mermaid, mathRenderer: math)
+    let insets = MarkdownUtil.Insets(horizontal: 4, vertical: 2)
     var images: [(HRImage, CGFloat)] = []
     for tex in ["x", "\\frac{a}{b}", "\\sum_{i=1}^{n} i^2"] {
       images.append((try await util.mathImage(tex), 3))
     }
     images.append((try await util.mermaidImage("graph LR\n  A --> B\n"), 2))
     for (image, scale) in images {
-      let padded = try XCTUnwrap(MarkdownImageUtil.image(image, withInsets: insets))
+      let padded = try XCTUnwrap(MarkdownUtil.image(image, withInsets: insets))
       let measured = try self.measure(padded)
       XCTAssertEqual(measured.scale, scale)
       XCTAssertEqual(measured.margins, Margins(top: Int(2 * scale), left: Int(4 * scale),
                                                bottom: Int(2 * scale), right: Int(4 * scale)))
       // Doing it twice changes nothing
-      let again = try XCTUnwrap(MarkdownImageUtil.image(padded, withInsets: insets))
+      let again = try XCTUnwrap(MarkdownUtil.image(padded, withInsets: insets))
       XCTAssertEqual(try self.measure(again).margins, measured.margins)
       XCTAssertEqual(again.size, padded.size)
     }

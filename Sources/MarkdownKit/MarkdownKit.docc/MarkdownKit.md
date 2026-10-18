@@ -6,7 +6,7 @@ Parse, process and display text in Markdown format.
 
 _Swift MarkdownKit_ is a framework for parsing, processing and displaying text in [Markdown](https://daringfireball.net/projects/markdown/) format. The supported syntax is based on the [CommonMark Markdown specification](https://commonmark.org) (version 0.31.2). The framework also provides four extended versions of the parser: ``ExtendedMarkdownParser`` (tables and definition lists), ``FullMarkdownParser`` (additionally underline, strikethrough, and task lists), ``MathMarkdownParser`` (additionally LaTeX math with dollar signs) and ``LaTeXMarkdownParser`` (additionally the delimiters of LaTeX for math).
 
-_Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it provides a parser for parsing strings into abstract syntax trees, and comes with generators for creating output in plain text, HTML and [attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring). There is also a generator which can be used to display Markdown documents in ANSI-compliant terminals.
+_Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it provides a parser for parsing strings into abstract syntax trees, and comes with generators for creating output in plain text, HTML and [attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring). There is also a generator which can be used to display Markdown documents in ANSI-compliant terminals. ``MarkdownUtil`` converts Markdown documents into text, HTML, RTF and RTFD with one call, see <doc:ConvertingMarkdownIntoDocuments>.
 
 These are the supported Markdown features. The parser classes supporting a feature are given in parentheses:
 
@@ -139,10 +139,14 @@ MarkdownKit supports macOS 11, iOS 15, tvOS 15 and watchOS 8 or later.
 - ``MermaidError``
 - ``MermaidDiagramContext``
 
+### Converting Markdown into documents
+
+- <doc:ConvertingMarkdownIntoDocuments>
+- ``MarkdownUtil``
+
 ### Drawing images of diagrams and formulas
 
 - <doc:DrawingImagesOfDiagramsAndFormulas>
-- ``MarkdownImageUtil``
 - ``HRImage``
 
 ### Displaying Markdown with SwiftUI

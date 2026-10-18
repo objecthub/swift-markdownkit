@@ -466,21 +466,34 @@ The web view cannot access the network or local files, and KaTeX runs with `trus
 
 #### Drawing diagrams and formulas as images
 
-`MarkdownImageUtil` draws Mermaid diagrams and formulas into images without any Markdown, in one place. Its methods return an `NSImage` (macOS) or a `UIImage` (iOS), asynchronously or with a completion handler, and `MarkdownImageUtil.image(_:withInsets:)` gives such an image transparent space of a given width between its content and each edge:
+`MarkdownUtil` draws Mermaid diagrams and formulas into images without any Markdown, in one place. Its methods return an `NSImage` (macOS) or a `UIImage` (iOS), asynchronously or with a completion handler, and `MarkdownUtil.image(_:withInsets:)` gives such an image transparent space of a given width between its content and each edge:
 
 ```swift
-let util = MarkdownImageUtil.standard
+let util = MarkdownUtil.standard
 let diagram = try await util.mermaidImage("graph LR\n  A --> B")
 let formula = try await util.mathImage("x^2 + y^2 = z^2", fontSize: 16, color: .systemBlue)
 ```
 
 See [Drawing Images of Diagrams and Formulas](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/drawingimagesofdiagramsandformulas) for details.
 
+#### Converting Markdown into documents
+
+`MarkdownUtil` also converts a Markdown document into text, HTML, RTF or RTFD with one call: `text(_:width:)`, `ansi(_:width:)` and `html(_:math:safeMode:)` are available on all platforms, `rtf(_:title:author:renderingOptions:)` and `rtfd(_:title:author:maxImageWidth:renderingOptions:)` on macOS and iOS. An RTFD document contains diagrams and formulas as images, which are sized correctly, and formulas within a line are aligned with the text. Call `preparedForRTFD()` on your own `NSAttributedString` to get the same when you export it as RTFD yourself:
+
+```swift
+let doc = MarkdownDialect.fullLaTeX.parser.parse(markdown)
+let html = MarkdownUtil.standard.html(doc)
+let document = try await MarkdownUtil.standard.rtfd(doc, title: "Notes")   // a FileWrapper
+try document.write(to: URL(fileURLWithPath: "Notes.rtfd"), options: .atomic, originalContentsURL: nil)
+```
+
+See [Converting Markdown into Documents](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/convertingmarkdownintodocuments) for details.
+
 ### Using the command-line tools
 
 The _Swift MarkdownKit_ Xcode project also implements a [very simple command-line tool](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKitProcess/MarkdownKitProcess.swift) that outputs Markdown content (parsed with `FullMarkdownParser`) either as HTML, RTF, RTFD, or pretty-printed text, including the option to output ANSI-compliant markup. The tool either outputs a single Markdown text file into an output file or, when applied to a folder, outputs all Markdown files within the folder into output files in a target folder. Existing output files are not touched unless the option `--overwrite` is used.
 
-The tool is provided to serve as a demo and basis for customization to specific use cases. The simplest way to build the binary is to use the Swift Package Manager (SPM):
+The tool is a thin wrapper around `MarkdownUtil`, which provides the conversions. It is provided to serve as a demo and basis for customization to specific use cases. The simplest way to build the binary is to use the Swift Package Manager (SPM):
 
 ```sh
 > git clone https://github.com/objecthub/swift-markdownkit.git
@@ -517,7 +530,7 @@ Diagrams in fenced code blocks with language 'mermaid' are drawn in the format '
 RTF files cannot contain images: the format 'rtf' shows the code of a diagram.
 ```
 
-The format `rtfd` includes [Mermaid](https://mermaid.js.org) diagrams as images (see [Drawing Mermaid diagrams](#drawing-mermaid-diagrams)). RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram instead. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool:
+The format `rtfd` includes [Mermaid](https://mermaid.js.org) diagrams (see [Drawing Mermaid diagrams](#drawing-mermaid-diagrams)) and formulas (see [Drawing mathematical formulas](#drawing-mathematical-formulas)) as images, and the format `html` typesets formulas as MathML, which browsers display without a style sheet or fonts. RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram and the LaTeX of a formula instead, like the formats `text` and `ansi`. The images of an RTFD document are in the files `Image 1.png`, `Formula 1.png` and so on, and a formula within a line is aligned with the text. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool:
 
 ```sh
 > swift run MarkdownKitProcess --format rtfd Examples/Demo.md /tmp/Demo.rtfd

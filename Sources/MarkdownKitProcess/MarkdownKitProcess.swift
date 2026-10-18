@@ -22,8 +22,6 @@
 
 import Foundation
 import AppKit
-import ImageIO
-import UniformTypeIdentifiers
 import MarkdownKit
 import CommandLineKit
 
@@ -31,8 +29,10 @@ import CommandLineKit
 // This is a command-line tool for converting a text file in Markdown format into other
 // formats such as plain text, HTML, RTF, and RTFD. The tool also allows converting a
 // whole folder of Markdown files into an output format. RTFD output includes diagrams, which
-// are written in fenced code blocks with language `mermaid`. Existing output files are only
-// replaced if the option `--overwrite` is used.
+// are written in fenced code blocks with language `mermaid`, and formulas (LaTeX between
+// dollar signs or between `\(` and `\)`, or in fenced code blocks with language `math`), which
+// are also typeset in HTML output. Existing output files are only replaced if the option
+// `--overwrite` is used.
 
 @main
 struct MarkdownKitProcess {
@@ -98,7 +98,7 @@ struct MarkdownKitProcess {
         continue
       }
       do {
-        let output = try await convert(FullMarkdownParser.standard.parse(text),
+        let output = try await convert(MarkdownDialect.fullLaTeX.parser.parse(text),
                                        from: source,
                                        into: format,
                                        width: width)
@@ -153,7 +153,10 @@ struct MarkdownKitProcess {
             '-' prints the output (not possible for 'rtfd'). If there is no target, the converted
             files are written next to the source files.
       Diagrams in fenced code blocks with language 'mermaid' are drawn in the format 'rtfd'.
-      RTF files cannot contain images: the format 'rtf' shows the code of a diagram.
+      Formulas (LaTeX between '$' or '$$', between '\\(' and '\\)' or '\\[' and '\\]', or in fenced
+      code blocks with language 'math') are typeset in the formats 'rtfd' (as images) and 'html'
+      (as MathML). RTF files cannot contain images: the format 'rtf' shows the code of a diagram
+      and the LaTeX of a formula, as do the formats 'text' and 'ansi'.
 
       """
     if let failure = flags.parsingFailure() {
@@ -214,46 +217,31 @@ struct MarkdownKitProcess {
   }
 
   /// Converts the Markdown `document`, which was read from `source`, into the format `format`.
-  /// `width` is the width in columns of the text formats. Diagrams are drawn by a web view, which
-  /// needs the main thread: the function is bound to it.
+  /// `width` is the width in columns of the text formats. The conversion is done by `MarkdownUtil`.
+  /// Diagrams and formulas are drawn by a web view, which needs the main thread: the function is
+  /// bound to it.
   @MainActor
   static func convert(_ document: Block,
                       from source: URL,
                       into format: OutputFormat,
                       width: Int) async throws -> Output {
-    /// The attributes of RTF and RTFD documents
-    let attributes: [NSAttributedString.DocumentAttributeKey: Any] = [
-      .author: "MarkdownKitProcess",
-      .title: source.lastPathComponent,
-      .creationTime: Date()
-    ]
+    let util = MarkdownUtil.standard
+    let title = source.lastPathComponent
+    // The tool does not load any images from the web
+    let options = AttributedStringGenerator.RenderingOptions(remoteImages: .none)
     switch format {
       case .text:
-        return .data(Data(StringGenerator(numColumns: width).generate(doc: document).utf8))
+        return .data(Data(util.text(document, width: width).utf8))
       case .ansi:
-        return .data(Data(TerminalGenerator(numColumns: width).generate(doc: document)
-                            .encodedString.utf8))
+        return .data(Data(util.ansi(document, width: width).utf8))
       case .html:
-        return .data(Data(HtmlGenerator.standard.generate(doc: document).utf8))
+        return .data(Data(util.html(document).utf8))
       case .rtf:
-        guard let string = AttributedStringGenerator.standard.generate(doc: document) else {
-          throw ConversionError(message: "cannot convert \(source.lastPathComponent)")
-        }
-        var rtfAttributes = attributes
-        rtfAttributes[.documentType] = NSAttributedString.DocumentType.rtf
-        return .data(try string.data(from: NSRange(location: 0, length: string.length),
-                                     documentAttributes: rtfAttributes))
+        return .data(try await util.rtf(document, title: title, author: "MarkdownKitProcess",
+                                        renderingOptions: options))
       case .rtfd:
-        let generator = AttributedStringGenerator(mermaid: MermaidConfig(maxWidth: maxDiagramWidth))
-        await generator.prepareDiagrams(in: document)
-        guard let string = generator.generate(doc: document) else {
-          throw ConversionError(message: "cannot convert \(source.lastPathComponent)")
-        }
-        prepareImagesForRtfd(string)
-        var rtfdAttributes = attributes
-        rtfdAttributes[.documentType] = NSAttributedString.DocumentType.rtfd
-        return .document(try string.fileWrapper(from: NSRange(location: 0, length: string.length),
-                                                documentAttributes: rtfdAttributes))
+        return .document(try await util.rtfd(document, title: title, author: "MarkdownKitProcess",
+                                             renderingOptions: options))
     }
   }
 
@@ -331,56 +319,6 @@ struct MarkdownKitProcess {
       }
     }
     return res.sorted { $0.lastPathComponent < $1.lastPathComponent }
-  }
-
-  // Diagrams
-
-  /// The width in points up to which diagrams are shown at their natural size; wider diagrams
-  /// are scaled down. The text on a page of the size US Letter or A4 with margins of one inch is
-  /// about 450 points wide; diagrams are narrower so that they still fit into lists and block
-  /// quotes. The images of an RTFD document do not shrink to fit the width of the text.
-  static let maxDiagramWidth: CGFloat = 400
-
-  /// Returns PNG data of the image in `data` that has a resolution which makes its size in points
-  /// `size`.
-  static func pngData(_ data: Data, displayedAs size: CGSize) -> Data? {
-    guard size.width > 0,
-          let source = CGImageSourceCreateWithData(data as CFData, nil),
-          let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-      return nil
-    }
-    let output = NSMutableData()
-    guard let destination = CGImageDestinationCreateWithData(output,
-                                                             UTType.png.identifier as CFString,
-                                                             1,
-                                                             nil) else {
-      return nil
-    }
-    let resolution = 72.0 * Double(image.width) / Double(size.width)
-    CGImageDestinationAddImage(destination, image,
-                               [kCGImagePropertyDPIWidth: resolution,
-                                kCGImagePropertyDPIHeight: resolution] as CFDictionary)
-    return CGImageDestinationFinalize(destination) ? output as Data : nil
-  }
-
-  /// A viewer shows the images of an RTFD document in the size which results from the resolution
-  /// of their PNG files, not in the size of their attachments. This sets the resolution of the
-  /// image of every attachment that has a size (the diagrams), so that the image has this size,
-  /// and gives the files of the images names that say what they are.
-  static func prepareImagesForRtfd(_ string: NSAttributedString) {
-    var number = 0
-    string.enumerateAttribute(.attachment,
-                              in: NSRange(location: 0, length: string.length)) { value, _, _ in
-      guard let attachment = value as? NSTextAttachment,
-            let data = attachment.fileWrapper?.regularFileContents,
-            let png = pngData(data, displayedAs: attachment.bounds.size) else {
-        return
-      }
-      number += 1
-      let wrapper = FileWrapper(regularFileWithContents: png)
-      wrapper.preferredFilename = "Diagram \(number).png"
-      attachment.fileWrapper = wrapper
-    }
   }
 }
 

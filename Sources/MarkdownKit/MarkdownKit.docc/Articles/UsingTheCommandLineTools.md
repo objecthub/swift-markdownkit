@@ -12,6 +12,8 @@ The MarkdownKit package contains two command-line tools. Both are provided to se
 
 `MarkdownKitProcess` is a [very simple command-line tool](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKitProcess/MarkdownKitProcess.swift) that outputs Markdown content (parsed with ``FullMarkdownParser``) either as HTML, RTF, RTFD, or pretty-printed text, including the option to output ANSI-compliant markup. The tool either outputs a single Markdown text file into an output file or, when applied to a folder, outputs all Markdown files within the folder into output files in a target folder. Existing output files are not touched unless the option `--overwrite` is used.
 
+The tool is a thin wrapper around ``MarkdownUtil``: it reads the files, calls ``MarkdownUtil/text(_:width:)``, ``MarkdownUtil/ansi(_:width:)``, ``MarkdownUtil/html(_:math:safeMode:)``, ``MarkdownUtil/rtf(_:title:author:renderingOptions:)`` or ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:renderingOptions:)`` and writes the result, so you can do the same in your own code, see <doc:ConvertingMarkdownIntoDocuments>.
+
 ```sh
 > git clone https://github.com/objecthub/swift-markdownkit.git
 > cd swift-markdownkit
@@ -40,7 +42,7 @@ RTF files cannot contain images: the format 'rtf' shows the code of a diagram.
 
 ### Include diagrams
 
-The format `rtfd` includes [Mermaid](https://mermaid.js.org) diagrams as images (see <doc:DrawingMermaidDiagrams>). RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram instead. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool:
+The format `rtfd` includes [Mermaid](https://mermaid.js.org) diagrams (see <doc:DrawingMermaidDiagrams>) and formulas (see <doc:MathematicalFormulas>) as images, and the format `html` typesets formulas as MathML, which browsers display without a style sheet or fonts. RTF files cannot contain the images that `NSAttributedString` creates, so the format `rtf` shows the code of a diagram and the LaTeX of a formula instead, like the formats `text` and `ansi`. The images of an RTFD document are in the files `Image 1.png`, `Formula 1.png` and so on, and a formula within a line is aligned with the text. The directory [`Examples`](https://github.com/objecthub/swift-markdownkit/blob/master/Examples/Demo.md) contains a Markdown file with the demo document of the `MarkdownViewer` sample app, including two diagrams, for trying the tool:
 
 ```sh
 > swift run MarkdownKitProcess --format rtfd Examples/Demo.md /tmp/Demo.rtfd

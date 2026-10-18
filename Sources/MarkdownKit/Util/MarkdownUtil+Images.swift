@@ -1,5 +1,5 @@
 //
-//  MarkdownImageUtil.swift
+//  MarkdownUtil+Images.swift
 //  MarkdownKit
 //
 //  Created by Matthias Zenger on 18/10/2026.
@@ -31,50 +31,9 @@ import UIKit
 public typealias HRImage = UIImage
 #endif
 
-///
-/// `MarkdownImageUtil` draws Mermaid diagrams and mathematical formulas into images, without any
-/// Markdown: given the source of a diagram or the LaTeX of a formula, it returns an `NSImage`
-/// (macOS) or a `UIImage` (iOS), which can be shown in any view or saved to a file. It is
-/// the place to start if you need these images outside of a Markdown document; the images are the
-/// same as those in the attributed strings of ``AttributedStringGenerator`` and
-/// ``MathAttributedStringGenerator``.
-///
-/// ```swift
-/// let util = MarkdownImageUtil.standard
-/// let diagram = try await util.mermaidImage("graph LR\n  A --> B")
-/// let formula = try await util.mathImage("\\sum_{i=1}^n i = \\frac{n(n+1)}{2}",
-///                                        display: true, fontSize: 16, color: .systemBlue)
-/// ```
-///
-/// Rendering takes a moment, so the methods are asynchronous: each has a variant for Swift
-/// concurrency, which throws a ``MermaidError`` or a ``MathError`` if the image cannot be drawn,
-/// and a variant with a completion handler. The diagrams and formulas are drawn by a
-/// ``MermaidRenderer`` and a ``MathRenderer``, which cache their results (see there). This
-/// utility is available on macOS and iOS; WebKit draws the images.
-///
-public struct MarkdownImageUtil: Sendable {
+// The methods which draw diagrams and formulas into images (macOS and iOS: WebKit draws them).
 
-  /// The utility which draws diagrams and formulas with the shared renderers
-  /// (``MermaidRenderer/shared`` and ``MathRenderer/shared``).
-  public static let standard = MarkdownImageUtil()
-
-  /// The renderer that draws diagrams. If `nil`, ``MermaidRenderer/shared`` is used.
-  public let mermaidRenderer: MermaidRenderer?
-
-  /// The renderer that draws formulas. If `nil`, ``MathRenderer/shared`` is used.
-  public let mathRenderer: MathRenderer?
-
-  /// Creates a utility that draws diagrams and formulas with the given renderers. A renderer
-  /// of your own lets you choose the limits of its cache and the time after which its web view is
-  /// released.
-  ///
-  /// - Parameters:
-  ///   - mermaidRenderer: The renderer for diagrams, or `nil` to use the shared one.
-  ///   - mathRenderer: The renderer for formulas, or `nil` to use the shared one.
-  public init(mermaidRenderer: MermaidRenderer? = nil, mathRenderer: MathRenderer? = nil) {
-    self.mermaidRenderer = mermaidRenderer
-    self.mathRenderer = mathRenderer
-  }
+extension MarkdownUtil {
 
   // MARK: Mermaid diagrams
 
@@ -235,7 +194,7 @@ public struct MarkdownImageUtil: Sendable {
   ///
   /// ```swift
   /// let image = try await util.mermaidImage("graph LR\n  A --> B")
-  /// let padded = MarkdownImageUtil.image(image, withInsets: .init(horizontal: 8, vertical: 4))
+  /// let padded = MarkdownUtil.image(image, withInsets: .init(horizontal: 8, vertical: 4))
   /// ```
   ///
   /// The content of an image is the area which has pixels that are not transparent: those with an

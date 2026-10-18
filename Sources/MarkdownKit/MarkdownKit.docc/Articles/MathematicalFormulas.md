@@ -113,7 +113,7 @@ The images look like the text around them:
 - A formula that is a block is a centered paragraph with at least ``MathConfig/spacing`` points above and below it. A formula that is wider than its line is scaled down to the width of the line, whenever the text is laid out, and ``MathConfig/maxWidth`` limits the width.
 - A formula that KaTeX does not understand is shown as code, a block with a note that has the message of KaTeX. The same holds for a formula that was not rendered in time (``MathConfig/timeout``).
 
-The attachment of a formula has the attribute ``Foundation/NSAttributedString/Key/mathSource``, which holds the formula as it was written, for example to copy it as text, and an accessibility label with the LaTeX. The data of the attachment is a PNG image, so the formula survives copy and paste. RTFD export keeps the images but loses the baseline offset of formulas within a line, and RTF cannot contain images.
+The attachment of a formula has the attribute ``Foundation/NSAttributedString/Key/mathSource``, which holds the formula as it was written, for example to copy it as text, and an accessibility label with the LaTeX. The data of the attachment is a PNG image, so the formula survives copy and paste. RTF cannot contain images. RTFD export keeps them but loses the baseline offset of formulas within a line and sizes the images by the resolution of their files: ``Foundation/NSAttributedString/preparedForRTFD()`` makes up for this, and ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:renderingOptions:)`` does it for you, see <doc:ConvertingMarkdownIntoDocuments>.
 
 ``MathRenderer`` renders formulas with [KaTeX](https://katex.org) in a headless web view that is created when the first formula is rendered and released a minute after the last use (`idleTime`). The web view cannot load anything from the network or from files: the style sheet and the fonts of KaTeX are part of its page. It draws up to a hundred formulas at a time, so a document with many formulas takes a fraction of a second; for each formula, it determines its size and the distance of its baseline from the lower edge. The images are PNG images at three pixels per point (``MathConfig/scale``), which are black on a transparent background, and about 10 KB each. The renderer caches them: by default 2,000 formulas and 32 MB. A renderer of your own (`MathRenderer(katexFolder:idleTime:maxCachedFormulas:maxCacheBytes:)`) lets you choose the limits; ``MathRenderer/shared`` is used if the generator is not given one. You can also call the renderer yourself if you need the image of a formula, see below.
 
@@ -147,7 +147,7 @@ The web view is created when the first formula is rendered and released after 60
 
 ### Use the renderer on its own
 
-To get a formula as an `NSImage` or a `UIImage`, use ``MarkdownImageUtil``, see <doc:DrawingImagesOfDiagramsAndFormulas>. ``MathRenderer`` draws formulas without a generator and without Markdown: given the LaTeX of a formula, it returns a PNG image, for example to show a formula in a custom view or to put it into a file:
+To get a formula as an `NSImage` or a `UIImage`, use ``MarkdownUtil``, see <doc:DrawingImagesOfDiagramsAndFormulas>. ``MathRenderer`` draws formulas without a generator and without Markdown: given the LaTeX of a formula, it returns a PNG image, for example to show a formula in a custom view or to put it into a file:
 
 ```swift
 if let renderer = MathRenderer.shared {
