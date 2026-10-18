@@ -75,6 +75,13 @@
 - ``insertingDiagrams(into:from:)``
 - ``addingDiagrams(to:from:)``
 
+### Extending the generator
+
+- ``finishAttributedString(_:from:)``
+- ``needsPreparation``
+- ``preparedHtmlGenerator(for:options:)-(Block,_)``
+- ``preparedHtmlGenerator(for:options:)-(Blocks,_)``
+
 ### Creating the HTML
 
 - ``htmlGenerator(options:)``

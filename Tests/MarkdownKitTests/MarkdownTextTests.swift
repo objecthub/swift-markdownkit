@@ -153,6 +153,16 @@ final class MarkdownTextTests: XCTestCase {
     _ = MarkdownText(string: "Some text", waitingMessage: waiting)
     _ = MarkdownText(string: "Some text", renderingOptions: .untrusted)
     _ = MarkdownText(string: "Some text", waitingMessage: waiting, renderingOptions: .untrusted)
+    _ = MarkdownText(doc, math: MathConfig())
+    _ = MarkdownText(doc, waitingMessage: waiting, renderingOptions: .untrusted,
+                     mermaid: .default, math: MathConfig(spacing: 4))
+    _ = MarkdownText(string: "Some $x$", math: MathConfig())
+    _ = MarkdownText(string: "Some text", dialect: .full)
+    _ = MarkdownText(string: "Some $x$", dialect: .fullMath, waitingMessage: waiting, math: MathConfig())
+    _ = MarkdownText(string: "Some text", dialect: .commonMark, generator: nil)
+    _ = MarkdownText(string: "Some text", dialect: .full, waitingMessage: waiting) { _, _ in nil }
+    _ = MarkdownText(doc, generator: nil, prepare: { _, _ in false })
+    _ = MarkdownText(string: "Some text", generator: nil, prepare: { _, _ in false })
     _ = MarkdownText(string: "Some text", generator: nil)
     _ = MarkdownText(string: "Some text", waitingMessage: waiting, generator: optionalGenerator)
     _ = MarkdownText(string: "Some text") { _, _ in nil }
@@ -247,6 +257,106 @@ final class MarkdownTextTests: XCTestCase {
     _ = self.wait(for: host, timeout: 1) { _ in false }
     XCTAssertEqual(count, rendered)
   }
+
+  func testStringIsParsedWithTheStandardParserOfTheDialect() {
+    let source = "Some ~marked~ text"
+    // The default dialect has no underlined text
+    let extended = Host(MarkdownText(string: source))
+    XCTAssertTrue(self.wait(for: extended) { $0.contains("text") }.contains("Some ~marked~ text"))
+    let full = Host(MarkdownText(string: source, dialect: .full))
+    XCTAssertTrue(self.wait(for: full) { $0.contains("text") }.contains("Some marked text"))
+    let common = Host(MarkdownText(string: source, dialect: .commonMark))
+    XCTAssertTrue(self.wait(for: common) { $0.contains("text") }.contains("Some ~marked~ text"))
+  }
+
+  func testMathParsesFormulasUnlessTheDialectSaysOtherwise() {
+    // `math:` selects the math dialect by default
+    let math = Host(MarkdownText(string: "Area $x$ here", math: MathConfig()))
+    let text = self.wait(for: math) { $0.contains("here") }
+    XCTAssertTrue(text.contains("Area"), text)
+    #if canImport(WebKit)
+    _ = self.wait(for: math, timeout: 60) { $0.contains(self.attachmentCharacter) }
+    XCTAssertTrue(self.displayedText(math).contains(self.attachmentCharacter))
+    #endif
+    // A parser without the syntax leaves the formula alone, which is then not rendered
+    let full = Host(MarkdownText(string: "Area $x$ here", dialect: .full, math: MathConfig()))
+    let plain = self.wait(for: full, timeout: 2) { _ in false }
+    XCTAssertTrue(plain.contains("Area $x$ here"), plain)
+  }
+
+  func testPrepareFunctionRunsAfterTheTextHasBeenShown() {
+    nonisolated(unsafe) var prepared = 0
+    nonisolated(unsafe) var generated = 0
+    let doc = ExtendedMarkdownParser.standard.parse("Some text")
+    let host = Host(MarkdownText(doc, generator: { doc, _ in
+                                   generated += 1
+                                   return AttributedStringGenerator.standard.generate(doc: doc)
+                                 },
+                                 prepare: { _, _ in
+                                   prepared += 1
+                                   return true
+                                 }))
+    _ = self.wait(for: host, timeout: 10) { _ in prepared > 0 && generated > 1 }
+    XCTAssertGreaterThan(prepared, 0)
+    // The text is generated again because `prepare` returned `true`
+    XCTAssertGreaterThan(generated, 1)
+    XCTAssertTrue(self.displayedText(host).contains("Some text"))
+  }
+
+  // MARK: Formulas
+
+  func testDefaultGeneratorsShowFormulasOnlyIfAskedFor() async throws {
+    XCTAssertNil(MarkdownText.defaultPreparer(.trusted, mermaid: nil))
+    XCTAssertNil(MarkdownText.defaultPreparer(.untrusted, mermaid: nil, math: nil))
+    XCTAssertNotNil(MarkdownText.defaultPreparer(.trusted, mermaid: nil, math: MathConfig()))
+    let doc = MathMarkdownParser.standard.parse("Some $x^2$ and $y$")
+    for scheme in [ColorScheme.light, ColorScheme.dark] {
+      let plain = try XCTUnwrap(MarkdownText.defaultGenerator(.trusted)(doc, scheme))
+      XCTAssertFalse(plain.string.contains(self.attachmentCharacter), "\(scheme)")
+      XCTAssertTrue(plain.string.contains("$x^2$"), "\(scheme)")
+      let math = try XCTUnwrap(MarkdownText.defaultGenerator(.trusted, math: MathConfig())(doc, scheme))
+      // Nothing has been rendered yet
+      XCTAssertTrue(math.string.contains("$x^2$"), "\(scheme)")
+    }
+  }
+
+  #if canImport(WebKit)
+
+  func testFormulasAreRenderedInTheBackgroundForBothColorSchemes() async throws {
+    let renderer = try XCTUnwrap(MathRenderer.shared)
+    renderer.clearCache()
+    let doc = MathMarkdownParser.standard.parse("Some $x^2$ and\n\n$$\\frac{a}{b}$$\n")
+    let generate = MarkdownText.defaultGenerator(.trusted, math: MathConfig())
+    let prepare = try XCTUnwrap(MarkdownText.defaultPreparer(.trusted, mermaid: nil, math: MathConfig()))
+    func count(_ string: NSAttributedString?) -> Int {
+      var result = 0
+      string?.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string?.length ?? 0)) { value, _, _ in
+        if value is NSTextAttachment {
+          result += 1
+        }
+      }
+      return result
+    }
+    // First the text shows the LaTeX; once the formulas have been rendered, it shows them
+    XCTAssertEqual(count(generate(doc, .light)), 0)
+    let changed = await prepare(doc, .light)
+    XCTAssertTrue(changed)
+    XCTAssertEqual(count(generate(doc, .light)), 2)
+    // The images are the same in dark mode, which only differs in the color they are given
+    XCTAssertEqual(count(generate(doc, .dark)), 2)
+    let unchanged = await prepare(doc, .dark)
+    XCTAssertFalse(unchanged)
+  }
+
+  func testViewShowsFormulas() {
+    let host = Host(MarkdownText(string: "The area is $\\pi r^2$ here", math: MathConfig()))
+    let text = self.wait(for: host, timeout: 60) { $0.contains(self.attachmentCharacter) }
+    XCTAssertTrue(text.contains(self.attachmentCharacter), text)
+    XCTAssertTrue(text.contains("The area is"), text)
+    XCTAssertFalse(text.contains("pi r^2"), text)
+  }
+
+  #endif
 }
 
 #endif

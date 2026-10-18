@@ -96,6 +96,18 @@ class CommonMarkSpecTests: XCTestCase {
     return String(str.unicodeScalars.filter { !CharacterSet.whitespacesAndNewlines.contains($0) })
   }
 
+  /// The math parser handles dollar signs, and nothing else differs from the full parser
+  func testSpecExamplesWithoutDollarSignsAreParsedLikeTheFullParser() throws {
+    var compared = 0
+    for example in try loadExamples() where !example.markdown.contains("$") {
+      compared += 1
+      XCTAssertEqual(HtmlGenerator.standard.generate(doc: MathMarkdownParser.standard.parse(example.markdown)),
+                     HtmlGenerator.standard.generate(doc: FullMarkdownParser.standard.parse(example.markdown)),
+                     "example \(example.example) (\(example.section))")
+    }
+    XCTAssertGreaterThan(compared, 600)
+  }
+
   func testSpecExamples() throws {
     let examples = try loadExamples()
     XCTAssertEqual(examples.count, 652)

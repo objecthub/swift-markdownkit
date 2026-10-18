@@ -23,8 +23,10 @@ import XCTest
 
 /// Tests which pin down which Markdown features each of the standard parsers supports:
 /// `MarkdownParser` implements CommonMark and nothing else, `ExtendedMarkdownParser` adds
-/// tables and definition lists, and `FullMarkdownParser` supports all features of MarkdownKit.
-/// A new feature needs a row in `Feature`, and a decision in which parser it is available.
+/// tables and definition lists, `FullMarkdownParser` adds the other markup, and
+/// `MathMarkdownParser` supports all features of MarkdownKit, including math (`$` is only a
+/// special character for this parser). A new feature needs a row in `Feature`, and a decision in
+/// which parser it is available.
 final class ParserFeatureScopeTests: XCTestCase {
 
   /// The features which are not part of CommonMark
@@ -34,6 +36,7 @@ final class ParserFeatureScopeTests: XCTestCase {
     case underline
     case strikethrough
     case taskList
+    case math
 
     /// Markdown which uses the feature
     var markdown: String {
@@ -48,6 +51,8 @@ final class ParserFeatureScopeTests: XCTestCase {
           return "Some ~~gone~~ text"
         case .taskList:
           return "- [ ] todo\n- [x] done"
+        case .math:
+          return "Some $x^2$ text"
       }
     }
 
@@ -64,6 +69,8 @@ final class ParserFeatureScopeTests: XCTestCase {
           return "~~gone~~"
         case .taskList:
           return "[ ] todo"
+        case .math:
+          return "$x^2$"
       }
     }
 
@@ -79,6 +86,8 @@ final class ParserFeatureScopeTests: XCTestCase {
           return "strikethrough"
         case .taskList:
           return "task list"
+        case .math:
+          return "math"
       }
     }
 
@@ -94,6 +103,8 @@ final class ParserFeatureScopeTests: XCTestCase {
         case .table(let header, _, let rows):
           return self == .table || header.contains { self.isUsed(in: $0) } ||
                  rows.contains { $0.contains { self.isUsed(in: $0) } }
+        case .custom(let custom):
+          return self == .math && custom is MathBlock
         case .definitionList(let definitions):
           return self == .definitionList || definitions.contains { definition in
             self.isUsed(in: definition.item) ||
@@ -113,6 +124,8 @@ final class ParserFeatureScopeTests: XCTestCase {
             return self == .strikethrough || self.isUsed(in: inner)
           case .emph(let inner), .strong(let inner), .link(let inner, _, _), .image(let inner, _, _):
             return self.isUsed(in: inner)
+          case .custom(let custom):
+            return self == .math && custom is MathFragment
           default:
             return false
         }
@@ -131,6 +144,8 @@ final class ParserFeatureScopeTests: XCTestCase {
     ParserScope(name: "ExtendedMarkdownParser", parser: ExtendedMarkdownParser.standard,
                 features: [.table, .definitionList]),
     ParserScope(name: "FullMarkdownParser", parser: FullMarkdownParser.standard,
+                features: Set(Feature.allCases.filter { $0 != .math })),
+    ParserScope(name: "MathMarkdownParser", parser: MathMarkdownParser.standard,
                 features: Set(Feature.allCases))
   ]
 
@@ -186,11 +201,17 @@ final class ParserFeatureScopeTests: XCTestCase {
     // The full parser has the block parsers of the extended parser
     XCTAssertEqual(types(FullMarkdownParser.defaultBlockParsers), types(extended))
     XCTAssertEqual(FullMarkdownParser.standard.documentParser(input: "").blockParsers.count, 10)
+    // The math parser adds the parser for math blocks in front of the table parser
+    let math: [BlockParser.Type] = Array(extended.dropLast()) + [MathBlockParser.self, TableParser.self]
+    XCTAssertEqual(types(MathMarkdownParser.defaultBlockParsers), types(math))
+    XCTAssertEqual(MathMarkdownParser.standard.documentParser(input: "").blockParsers.count, 11)
     // Document parsers
     XCTAssertTrue(type(of: MarkdownParser.standard.documentParser(input: "")) == DocumentParser.self)
     XCTAssertTrue(type(of: ExtendedMarkdownParser.standard.documentParser(input: ""))
                     == ExtendedDocumentParser.self)
     XCTAssertTrue(type(of: FullMarkdownParser.standard.documentParser(input: ""))
+                    == ExtendedDocumentParser.self)
+    XCTAssertTrue(type(of: MathMarkdownParser.standard.documentParser(input: ""))
                     == ExtendedDocumentParser.self)
   }
 
@@ -205,6 +226,13 @@ final class ParserFeatureScopeTests: XCTestCase {
                    types([LineEmphasisDelimiterTransformer.self, CodeLinkHtmlTransformer.self,
                           LinkTransformer.self, LineEmphasisTransformer.self,
                           EscapeTransformer.self]))
+    // The math transformer comes after the transformer for code, HTML and autolinks (so that code
+    // stays code), and before the transformers for links and emphasis (so that they leave the
+    // LaTeX alone)
+    XCTAssertEqual(types(MathMarkdownParser.defaultInlineTransformers),
+                   types([LineEmphasisDelimiterTransformer.self, CodeLinkHtmlTransformer.self,
+                          MathTransformer.self, LinkTransformer.self,
+                          LineEmphasisTransformer.self, EscapeTransformer.self]))
     // The escape transformer is always the last one
     for scope in Self.scopes {
       XCTAssertTrue(type(of: scope.parser).defaultInlineTransformers.last == EscapeTransformer.self,
@@ -219,6 +247,9 @@ final class ParserFeatureScopeTests: XCTestCase {
                     == InlineParser.self)
     XCTAssertTrue(type(of: FullMarkdownParser.standard.inlineParser(input: .document([])))
                     == TaskListInlineParser.self)
+    // The math parser also turns fenced code blocks with the info string math into formulas
+    XCTAssertTrue(type(of: MathMarkdownParser.standard.inlineParser(input: .document([])))
+                    == MathInlineParser.self)
   }
 
   func testAConfigurationReplacesTheListsOfParsersOnly() {

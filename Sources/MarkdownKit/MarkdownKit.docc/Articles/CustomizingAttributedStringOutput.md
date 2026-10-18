@@ -34,6 +34,7 @@ The initializer takes the most frequent settings:
 | `maxImageWidth`, `maxImageHeight` | CSS limits for the size of images |
 | `syntaxHighlighting`, `syntaxHighlighter` | see <doc:SyntaxHighlighting> |
 | `mermaid`, `mermaidRenderer` | see <doc:DrawingMermaidDiagrams> |
+| `math`, `mathRenderer` | only the initializer of ``MathAttributedStringGenerator``, see <doc:MathematicalFormulas> |
 | `options` | ``AttributedStringGenerator/Options``: `.tightLists` shows the paragraphs of loose list items without spacing |
 | `customStyle` | CSS that is added at the end of the style sheet |
 | `imageBaseUrl` | the directory against which relative image paths are resolved |
@@ -72,6 +73,17 @@ These are the properties and what they style:
 | Tables | ``AttributedStringGenerator/tableStyle``, ``AttributedStringGenerator/tableHeaderStyle``, ``AttributedStringGenerator/tableRowStyle``, ``AttributedStringGenerator/tableCellStyle``, and the settings ``AttributedStringGenerator/tableBorders``, ``AttributedStringGenerator/tableBorderSpec``, ``AttributedStringGenerator/tableHeaderPadding``, ``AttributedStringGenerator/tableRowPadding`` and ``AttributedStringGenerator/tableCellPadding`` |
 
 To change the HTML itself, override ``AttributedStringGenerator/htmlGenerator(options:)`` and return a subclass of the HTML generator, as <doc:CustomizingHTMLOutput> shows for ``HtmlGenerator``.
+
+### Extend the generator
+
+A subclass of ``AttributedStringGenerator`` can put content into attributed strings that the system's HTML importer cannot create, such as images that another renderer draws. This is how Mermaid diagrams work, and it is the way to add your own embedded content. The pieces are all `open`:
+
+1. A custom syntax tree node (see <doc:ExtendingTheParser>) creates a placeholder in ``CustomTextFragment/generateHtml(via:and:)``. The `htmlGen` it receives is the HTML generator of your subclass, so the node finds the context of the current generation there.
+2. The subclass overrides ``AttributedStringGenerator/htmlGenerator(options:)`` and returns subclasses of both HTML generators, ``AttributedStringGenerator/InternalHtmlGenerator`` and ``AttributedStringGenerator/OS26HtmlGenerator``, which carry that context.
+3. If the content takes time to create, the subclass overrides ``AttributedStringGenerator/needsPreparation`` (return `true`) and ``AttributedStringGenerator/preparedHtmlGenerator(for:options:)-(Block,_)`` and its variant for ``Blocks``. The asynchronous methods call them before they generate the HTML; call the method of the superclass, create the content, and hand it to the HTML generator you return.
+4. The subclass overrides ``AttributedStringGenerator/finishAttributedString(_:from:)``, which all methods call with the string that the importer created and the HTML generator that created the HTML. Call the method of the superclass (it replaces the Mermaid placeholders), and replace your placeholders.
+
+The placeholders must survive the importer as text. Use characters from the Unicode private use area with a token that cannot occur in a document, as ``MermaidDiagramContext`` does.
 
 ### Show table borders
 

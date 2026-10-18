@@ -165,6 +165,10 @@
 		CCA2A4BD2FB3CAD600A8B92E /* GeneratorContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */; };
 		CCA2A4BF2FB3CB5500A8B92E /* TableDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */; };
 		CCAA1B739CA9AE7FBC0ECF35 /* FullMarkdownParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC90EDCADA563271F64CBE29 /* FullMarkdownParserTests.swift */; };
+		CCAB2919308426110038D445 /* LICENSE (katex fonts) in Resources */ = {isa = PBXBuildFile; fileRef = CCAB2918308426110038D445 /* LICENSE (katex fonts) */; };
+		CCAB291B308426150038D445 /* LICENSE (katex) in Resources */ = {isa = PBXBuildFile; fileRef = CCAB291A308426150038D445 /* LICENSE (katex) */; };
+		CCAB291D3084265B0038D445 /* MathFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAB291C308426570038D445 /* MathFragment.swift */; };
+		CCAB291F308437420038D445 /* MarkdownDialect.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAB291E3084373E0038D445 /* MarkdownDialect.swift */; };
 		CCAF00012FD00000AAAA0002 /* Resources.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0001 /* Resources.swift */; };
 		CCAF00012FD00000AAAA0004 /* MarkdownKit.docc in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */; };
 		CCAF00022FD00000AAAA0002 /* MermaidConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */; };
@@ -187,6 +191,25 @@
 		CCB66A98307A6CBB00BDDF32 /* MarkdownKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; };
 		CCB66A99307A6CBB00BDDF32 /* MarkdownKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC2AF6E8227CD98100BEA420 /* MarkdownKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CCBCFB1BE234166DC5D6E22F /* ParserFeatureScopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEBA3644C0F9718837E6A98 /* ParserFeatureScopeTests.swift */; };
+		CCBF00012FD00000BBBB0002 /* MathBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00012FD00000BBBB0001 /* MathBlock.swift */; };
+		CCBF00022FD00000BBBB0002 /* MathTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00022FD00000BBBB0001 /* MathTransformer.swift */; };
+		CCBF00032FD00000BBBB0002 /* MathBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00032FD00000BBBB0001 /* MathBlockParser.swift */; };
+		CCBF00042FD00000BBBB0002 /* MathMarkdownParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00042FD00000BBBB0001 /* MathMarkdownParser.swift */; };
+		CCBF00052FD00000BBBB0002 /* MathParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00052FD00000BBBB0001 /* MathParserTests.swift */; };
+		CCBF00062FD00000BBBB0002 /* AttributedStringExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00062FD00000BBBB0001 /* AttributedStringExtensionTests.swift */; };
+		CCBF00072FD00000BBBB0002 /* KaTeX in Resources */ = {isa = PBXBuildFile; fileRef = CCBF00072FD00000BBBB0001 /* KaTeX */; };
+		CCBF00092FD00000BBBB0002 /* KaTeXEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00092FD00000BBBB0001 /* KaTeXEngine.swift */; };
+		CCBF000A2FD00000BBBB0002 /* MathHtmlGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000A2FD00000BBBB0001 /* MathHtmlGenerator.swift */; };
+		CCBF000B2FD00000BBBB0002 /* KaTeXEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */; };
+		CCBF000C2FD00000BBBB0002 /* MathHtmlGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */; };
+		CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */; };
+		CCBF00102FD00000BBBB0002 /* MathConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00102FD00000BBBB0001 /* MathConfig.swift */; };
+		CCBF00112FD00000BBBB0002 /* MathWebSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00112FD00000BBBB0001 /* MathWebSession.swift */; };
+		CCBF00122FD00000BBBB0002 /* MathRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00122FD00000BBBB0001 /* MathRenderer.swift */; };
+		CCBF00132FD00000BBBB0002 /* MathContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00132FD00000BBBB0001 /* MathContext.swift */; };
+		CCBF00142FD00000BBBB0002 /* MathAttributedStringGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00142FD00000BBBB0001 /* MathAttributedStringGenerator.swift */; };
+		CCBF00152FD00000BBBB0002 /* MathRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00152FD00000BBBB0001 /* MathRendererTests.swift */; };
+		CCBF00162FD00000BBBB0002 /* MathAttributedStringGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBF00162FD00000BBBB0001 /* MathAttributedStringGeneratorTests.swift */; };
 		CCC48BF525D880FA00D082AD /* String+Entities.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC48BF425D880FA00D082AD /* String+Entities.swift */; };
 		CCC48C0425D98FCB00D082AD /* MarkdownStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */; };
 		CCC48C0A25D9AF7500D082AD /* NamedCharacters.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC48C0925D9AF7500D082AD /* NamedCharacters.swift */; };
@@ -446,6 +469,10 @@
 		CC90EDCADA563271F64CBE29 /* FullMarkdownParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullMarkdownParserTests.swift; sourceTree = "<group>"; };
 		CCA2A4BC2FB3CAD300A8B92E /* GeneratorContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratorContext.swift; sourceTree = "<group>"; };
 		CCA2A4BE2FB3CB5200A8B92E /* TableDescriptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableDescriptor.swift; sourceTree = "<group>"; };
+		CCAB2918308426110038D445 /* LICENSE (katex fonts) */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LICENSE (katex fonts)"; sourceTree = "<group>"; };
+		CCAB291A308426150038D445 /* LICENSE (katex) */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LICENSE (katex)"; sourceTree = "<group>"; };
+		CCAB291C308426570038D445 /* MathFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathFragment.swift; sourceTree = "<group>"; };
+		CCAB291E3084373E0038D445 /* MarkdownDialect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownDialect.swift; sourceTree = "<group>"; };
 		CCAF00012FD00000AAAA0001 /* Resources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resources.swift; sourceTree = "<group>"; };
 		CCAF00012FD00000AAAA0003 /* MarkdownKit.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = MarkdownKit.docc; sourceTree = "<group>"; };
 		CCAF00022FD00000AAAA0001 /* MermaidConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MermaidConfig.swift; sourceTree = "<group>"; };
@@ -467,6 +494,25 @@
 		CCB033CE227CDB2F00E1C4DC /* DocumentParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentParser.swift; sourceTree = "<group>"; };
 		CCB66A8E307A6BDD00BDDF32 /* MarkdownTermViewer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MarkdownTermViewer; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCB66A95307A6C8400BDDF32 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		CCBF00012FD00000BBBB0001 /* MathBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathBlock.swift; sourceTree = "<group>"; };
+		CCBF00022FD00000BBBB0001 /* MathTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathTransformer.swift; sourceTree = "<group>"; };
+		CCBF00032FD00000BBBB0001 /* MathBlockParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathBlockParser.swift; sourceTree = "<group>"; };
+		CCBF00042FD00000BBBB0001 /* MathMarkdownParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathMarkdownParser.swift; sourceTree = "<group>"; };
+		CCBF00052FD00000BBBB0001 /* MathParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathParserTests.swift; sourceTree = "<group>"; };
+		CCBF00062FD00000BBBB0001 /* AttributedStringExtensionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringExtensionTests.swift; sourceTree = "<group>"; };
+		CCBF00072FD00000BBBB0001 /* KaTeX */ = {isa = PBXFileReference; lastKnownFileType = folder; path = KaTeX; sourceTree = "<group>"; };
+		CCBF00092FD00000BBBB0001 /* KaTeXEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaTeXEngine.swift; sourceTree = "<group>"; };
+		CCBF000A2FD00000BBBB0001 /* MathHtmlGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathHtmlGenerator.swift; sourceTree = "<group>"; };
+		CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaTeXEngineTests.swift; sourceTree = "<group>"; };
+		CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathHtmlGeneratorTests.swift; sourceTree = "<group>"; };
+		CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownDialectTests.swift; sourceTree = "<group>"; };
+		CCBF00102FD00000BBBB0001 /* MathConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathConfig.swift; sourceTree = "<group>"; };
+		CCBF00112FD00000BBBB0001 /* MathWebSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathWebSession.swift; sourceTree = "<group>"; };
+		CCBF00122FD00000BBBB0001 /* MathRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathRenderer.swift; sourceTree = "<group>"; };
+		CCBF00132FD00000BBBB0001 /* MathContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathContext.swift; sourceTree = "<group>"; };
+		CCBF00142FD00000BBBB0001 /* MathAttributedStringGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathAttributedStringGenerator.swift; sourceTree = "<group>"; };
+		CCBF00152FD00000BBBB0001 /* MathRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathRendererTests.swift; sourceTree = "<group>"; };
+		CCBF00162FD00000BBBB0001 /* MathAttributedStringGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathAttributedStringGeneratorTests.swift; sourceTree = "<group>"; };
 		CCC48BF425D880FA00D082AD /* String+Entities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Entities.swift"; sourceTree = "<group>"; };
 		CCC48C0325D98FCB00D082AD /* MarkdownStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownStringTests.swift; sourceTree = "<group>"; };
 		CCC48C0925D9AF7500D082AD /* NamedCharacters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamedCharacters.swift; sourceTree = "<group>"; };
@@ -606,6 +652,7 @@
 				CC8CBC1A22862F4F0084683B /* Parser */,
 				CC8307402FC0F49200FDD777 /* Highlighter */,
 				CCAF00FF2FD00000AAAA0001 /* Mermaid */,
+				CCBF00FF2FD00000BBBB0001 /* Math */,
 				CC7CCB952FA745F600C05C77 /* String */,
 				CC088C0C22DD2B960059460E /* HTML */,
 				CC088C0D22DD2BA70059460E /* AttributedString */,
@@ -634,6 +681,13 @@
 				CCE764D130763575008AD5AD /* AttributedStringAsyncTests.swift */,
 				CC83081B2FC27DE000FDD777 /* SyntaxHighlighterTests.swift */,
 				CCAF00092FD00000AAAA0001 /* MermaidTests.swift */,
+				CCBF00052FD00000BBBB0001 /* MathParserTests.swift */,
+				CCBF00062FD00000BBBB0001 /* AttributedStringExtensionTests.swift */,
+				CCBF000B2FD00000BBBB0001 /* KaTeXEngineTests.swift */,
+				CCBF000C2FD00000BBBB0001 /* MathHtmlGeneratorTests.swift */,
+				CCBF00202FD00000BBBB0001 /* MarkdownDialectTests.swift */,
+				CCBF00152FD00000BBBB0001 /* MathRendererTests.swift */,
+				CCBF00162FD00000BBBB0001 /* MathAttributedStringGeneratorTests.swift */,
 				CCE764C7307576E0008AD5AD /* SecurityTests.swift */,
 				CCE7649130E74826008AD5AD /* CommonMarkSpecTests.swift */,
 				CCE7649630D3E0CB008AD5AD /* CrashRegressionTests.swift */,
@@ -821,6 +875,7 @@
 		CC8CBC1A22862F4F0084683B /* Parser */ = {
 			isa = PBXGroup;
 			children = (
+				CCAB291E3084373E0038D445 /* MarkdownDialect.swift */,
 				CCB033C7227CDB2F00E1C4DC /* MarkdownParser.swift */,
 				CC24757624C1ED7E00678C59 /* ExtendedMarkdownParser.swift */,
 				CCE930A8E075A56C6B789D2B /* FullMarkdownParser.swift */,
@@ -874,6 +929,28 @@
 			);
 			name = MarkdownTermViewer;
 			path = Sources/MarkdownTermViewer;
+			sourceTree = "<group>";
+		};
+		CCBF00FF2FD00000BBBB0001 /* Math */ = {
+			isa = PBXGroup;
+			children = (
+				CCBF00012FD00000BBBB0001 /* MathBlock.swift */,
+				CCAB291C308426570038D445 /* MathFragment.swift */,
+				CCBF00022FD00000BBBB0001 /* MathTransformer.swift */,
+				CCBF00032FD00000BBBB0001 /* MathBlockParser.swift */,
+				CCBF00042FD00000BBBB0001 /* MathMarkdownParser.swift */,
+				CCBF00092FD00000BBBB0001 /* KaTeXEngine.swift */,
+				CCBF000A2FD00000BBBB0001 /* MathHtmlGenerator.swift */,
+				CCBF00102FD00000BBBB0001 /* MathConfig.swift */,
+				CCBF00112FD00000BBBB0001 /* MathWebSession.swift */,
+				CCBF00122FD00000BBBB0001 /* MathRenderer.swift */,
+				CCBF00132FD00000BBBB0001 /* MathContext.swift */,
+				CCBF00142FD00000BBBB0001 /* MathAttributedStringGenerator.swift */,
+				CCBF00072FD00000BBBB0001 /* KaTeX */,
+				CCAB2918308426110038D445 /* LICENSE (katex fonts) */,
+				CCAB291A308426150038D445 /* LICENSE (katex) */,
+			);
+			path = Math;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1099,6 +1176,7 @@
 				CC8307DF2FC1D41800FDD777 /* grayscale.css in Resources */,
 				CC8307E02FC1D41800FDD777 /* gruvbox-dark.css in Resources */,
 				CC8307E12FC1D41800FDD777 /* gruvbox-light.css in Resources */,
+				CCAB2919308426110038D445 /* LICENSE (katex fonts) in Resources */,
 				CC8307E22FC1D41800FDD777 /* hopscotch.css in Resources */,
 				CC8307E32FC1D41800FDD777 /* hybrid.css in Resources */,
 				CC8307E42FC1D41800FDD777 /* idea.css in Resources */,
@@ -1143,6 +1221,7 @@
 				CC83080B2FC1D41800FDD777 /* tomorrow-night.css in Resources */,
 				CC83080C2FC1D41800FDD777 /* tomorrow-night-blue.css in Resources */,
 				CC83080D2FC1D41800FDD777 /* tomorrow-night-bright.css in Resources */,
+				CCAB291B308426150038D445 /* LICENSE (katex) in Resources */,
 				CC83080E2FC1D41800FDD777 /* tomorrow-night-eighties.css in Resources */,
 				CC83080F2FC1D41800FDD777 /* vs.css in Resources */,
 				CC8308102FC1D41800FDD777 /* vs2015.css in Resources */,
@@ -1153,6 +1232,7 @@
 				CC8308152FC1D41800FDD777 /* zenburn.css in Resources */,
 				CC8307442FC12ED900FDD777 /* highlight.min.js in Resources */,
 				CCAF00072FD00000AAAA0002 /* mermaid.min.js in Resources */,
+				CCBF00072FD00000BBBB0002 /* KaTeX in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1192,13 +1272,26 @@
 				CCAF00052FD00000AAAA0002 /* MermaidWebSession.swift in Sources */,
 				CCAF00062FD00000AAAA0002 /* MermaidDiagrams.swift in Sources */,
 				CCAF000A2FD00000AAAA0002 /* MermaidDiagramContext.swift in Sources */,
+				CCBF00012FD00000BBBB0002 /* MathBlock.swift in Sources */,
+				CCBF00022FD00000BBBB0002 /* MathTransformer.swift in Sources */,
+				CCBF00032FD00000BBBB0002 /* MathBlockParser.swift in Sources */,
+				CCBF00042FD00000BBBB0002 /* MathMarkdownParser.swift in Sources */,
+				CCBF00092FD00000BBBB0002 /* KaTeXEngine.swift in Sources */,
+				CCBF000A2FD00000BBBB0002 /* MathHtmlGenerator.swift in Sources */,
+				CCBF00102FD00000BBBB0002 /* MathConfig.swift in Sources */,
+				CCBF00112FD00000BBBB0002 /* MathWebSession.swift in Sources */,
+				CCBF00122FD00000BBBB0002 /* MathRenderer.swift in Sources */,
+				CCBF00132FD00000BBBB0002 /* MathContext.swift in Sources */,
+				CCBF00142FD00000BBBB0002 /* MathAttributedStringGenerator.swift in Sources */,
 				CC8308312FC59200AAAA0002 /* ThemeStyleSheet.swift in Sources */,
 				CCC48C0A25D9AF7500D082AD /* NamedCharacters.swift in Sources */,
+				CCAB291D3084265B0038D445 /* MathFragment.swift in Sources */,
 				CC321E002F69C2070094C57A /* AttributedTextView_iOS.swift in Sources */,
 				CC6D239822C03CBA00BB1302 /* LinkTransformer.swift in Sources */,
 				CC24757524C1EC3600678C59 /* TableParser.swift in Sources */,
 				CCB033CF227CDB2F00E1C4DC /* MarkdownParser.swift in Sources */,
 				CCB033D3227CDB2F00E1C4DC /* ThematicBreakParser.swift in Sources */,
+				CCAB291F308437420038D445 /* MarkdownDialect.swift in Sources */,
 				CC24757724C1ED7E00678C59 /* ExtendedMarkdownParser.swift in Sources */,
 				CC4DD03D28BDBF88C37DD602 /* FullMarkdownParser.swift in Sources */,
 				CC0919883289E1CB759BD0DA /* TaskListInlineParser.swift in Sources */,
@@ -1262,6 +1355,13 @@
 				CCE7643E3088A9CC008AD5AD /* MarkdownTextTests.swift in Sources */,
 				CC83081D2FC27E3800FDD777 /* SyntaxHighlighterTests.swift in Sources */,
 				CCAF00092FD00000AAAA0002 /* MermaidTests.swift in Sources */,
+				CCBF00052FD00000BBBB0002 /* MathParserTests.swift in Sources */,
+				CCBF00062FD00000BBBB0002 /* AttributedStringExtensionTests.swift in Sources */,
+				CCBF000B2FD00000BBBB0002 /* KaTeXEngineTests.swift in Sources */,
+				CCBF000C2FD00000BBBB0002 /* MathHtmlGeneratorTests.swift in Sources */,
+				CCBF00202FD00000BBBB0002 /* MarkdownDialectTests.swift in Sources */,
+				CCBF00152FD00000BBBB0002 /* MathRendererTests.swift in Sources */,
+				CCBF00162FD00000BBBB0002 /* MathAttributedStringGeneratorTests.swift in Sources */,
 				CC55DD88264B19D8001AAD10 /* MarkdownExtensionTests.swift in Sources */,
 				CC088C2422E337BD0059460E /* MarkdownHtmlTests.swift in Sources */,
 				CCE764D230763575008AD5AD /* AttributedStringAsyncTests.swift in Sources */,

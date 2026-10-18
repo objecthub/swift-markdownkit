@@ -22,9 +22,21 @@ import Foundation
 
 ///
 /// Gives access to the resources that ship with this package: `highlight.min.js` and the
-/// highlighting themes (see `SyntaxHighlighter`), and `mermaid.min.js` (see `MermaidRenderer`).
+/// highlighting themes (see `SyntaxHighlighter`), `mermaid.min.js` (see `MermaidRenderer`) and
+/// the folder `KaTeX` with `katex.min.js` (see `KaTeXEngine`), `katex.min.css` and the fonts (see
+/// `MathRenderer`).
 ///
 enum Resources {
+
+  /// The folder `KaTeX` of the resources, or `nil` if it cannot be found. (The lookup by the name
+  /// of a folder is not reliable in the resource bundles of SwiftPM, hence the path is built.)
+  static var katexFolder: URL? {
+    guard let folder = Resources.bundle?.resourceURL?.appendingPathComponent("KaTeX", isDirectory: true),
+          FileManager.default.fileExists(atPath: folder.appendingPathComponent("katex.min.js").path) else {
+      return nil
+    }
+    return folder
+  }
 
   /// Only used to find the bundle of this module via `Bundle(for:)`.
   private final class BundleToken {}

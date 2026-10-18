@@ -16,6 +16,7 @@ Here is an overview of the supported Markdown features. The parser classes suppo
 - Underlined text: `~underlined~` (`FullMarkdownParser`)
 - Strikethrough text: `~~struck through~~` (`FullMarkdownParser`)
 - Task lists: `- [ ] to do` and `- [x] done` (`FullMarkdownParser`)
+- LaTeX math: `$a^2$`, `$$` … `$$` and fenced `math` code blocks (`MathMarkdownParser`)
 - Custom syntax defined by [extending the parser](#extending-the-parser)
 
 &nbsp;
@@ -78,6 +79,8 @@ Text is represented using the struct [`Text`](https://github.com/objecthub/swift
 
 ### Markdown extensions
 
+Enum `MarkdownDialect` names the syntaxes that the standard parsers support (`.commonMark`, `.extendedCommonMark`, `.full` and `.fullMath`) and gives access to their parsers, e.g. `MarkdownDialect.full.parser` is `FullMarkdownParser.standard`. The extensions are described in the following paragraphs, starting with the one that `ExtendedMarkdownParser` implements.
+
 Class `ExtendedMarkdownParser` has the same interface like `MarkdownParser` but supports tables and definition lists in addition to the block types defined by the [CommonMark specification](https://commonmark.org). [Tables](https://github.github.com/gfm/#tables-extension-) are based on the [GitHub Flavored Markdown specification](https://github.github.com/gfm/) with one extension: within a table block, it is possible to escape newline characters to enable cell text to be written on multiple lines. Here is an example:
 
 ```
@@ -99,10 +102,43 @@ Orange
 : A large round juicy citrus fruit with a tough bright reddish-yellow rind.
 ```
 
-Class `FullMarkdownParser` supports everything that MarkdownKit implements. It is a subclass of `ExtendedMarkdownParser` (so it supports tables and definition lists) and adds inline markup for underlined text (`~underlined~`, text fragment `underline`) and struck-through text (`~~struck through~~`, text fragment `strikethrough`), as well as task list items (`- [ ] to do` and `- [x] done`, list type `task`). Tildes can also be used within words (`foo~~bar~~baz`), but runs of three or more tildes are plain text, as in GitHub Flavored Markdown. Unlike GFM, a single tilde does not produce strikethrough but underlined text. A task list item is a list item whose text starts with `[ ]`, `[x]` or `[X]` and a space or tab; the type of such an item is `ListType.task`, which wraps the bullet or number of the item. The HTML generator creates a checkbox, the attributed string generator uses the characters ☐ and ☑, and the text generators write `[ ]` and `[x]` instead of the bullet. `MarkdownParser` and `ExtendedMarkdownParser` do not know this markup and leave tildes as they are, so existing code does not change its behavior. New Markdown features will be added to `FullMarkdownParser`.
+Class `FullMarkdownParser` supports everything that MarkdownKit implements. It is a subclass of `ExtendedMarkdownParser` (so it supports tables and definition lists) and adds inline markup for underlined text (`~underlined~`, text fragment `underline`) and struck-through text (`~~struck through~~`, text fragment `strikethrough`), as well as task list items (`- [ ] to do` and `- [x] done`, list type `task`). Tildes can also be used within words (`foo~~bar~~baz`), but runs of three or more tildes are plain text, as in GitHub Flavored Markdown. Unlike GFM, a single tilde does not produce strikethrough but underlined text. A task list item is a list item whose text starts with `[ ]`, `[x]` or `[X]` and a space or tab; the type of such an item is `ListType.task`, which wraps the bullet or number of the item. The HTML generator creates a checkbox, the attributed string generator uses the characters ☐ and ☑, and the text generators write `[ ]` and `[x]` instead of the bullet. `MarkdownParser` and `ExtendedMarkdownParser` do not know this markup and leave tildes as they are, so existing code does not change its behavior. Further markup will be added to `FullMarkdownParser`, except for markup that changes the meaning of characters which are common in text, such as the dollar sign in `MathMarkdownParser`.
 
 ```swift
 let markdown = FullMarkdownParser.standard.parse("Some ~~old~~ and ~important~ text")
+```
+
+Class `MathMarkdownParser` is a subclass of `FullMarkdownParser` which also recognizes LaTeX math. A formula within a line is written between dollar signs (`$a^2 + b^2 = c^2$`); a formula between double dollar signs (`$$a^2$$`) within a line is display math. A formula which is a block of its own is enclosed by two lines with `$$` (or written in a single line, `$$ a^2 $$`), or it is a fenced code block with the info string `math`:
+
+```
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+```
+
+The rules for single dollar signs are those of Pandoc: the opening `$` is followed by a character which is not white space, and the closing `$` is not preceded by white space and not followed by a digit, so `costs $5 and $6` is text. A backslash in front of `$` makes it an ordinary character, and code spans stay code. Markdown within a formula is left alone: `$a_b + c_d$` and `$f^*(x)$` are formulas, not emphasis. Like in GitHub Markdown, a code span between dollar signs (`` $`a_b`$ ``) is a formula as well. A block cannot contain a blank line, and the lines of a formula within a paragraph must not start a list, a quote or another block, so use `$$` blocks for such formulas. In table cells, write `\vert` instead of `|`. The other parsers do not know this syntax and leave dollar signs alone.
+
+Formulas are represented by the custom syntax tree nodes `MathFragment` (in text) and `MathBlock`, so existing code that switches over `Block` and `TextFragment` is not affected. `HtmlGenerator` creates `<span class="math inline">\(…\)</span>` for a formula in a line and `<div class="math display">\[…\]</div>` for a block, with the LaTeX escaped; libraries such as KaTeX or MathJax typeset these elements in a web page. The text generators show the LaTeX with its dollar signs, and `AttributedStringGenerator` shows it as code (`MathAttributedStringGenerator` shows images of the typeset formulas, see below).
+
+`MathHtmlGenerator`, a subclass of `HtmlGenerator`, can also typeset the formulas itself. It runs [KaTeX](https://katex.org), which is part of the framework, in JavaScriptCore (class `KaTeXEngine`; it works on all platforms but watchOS) and puts the markup that KaTeX creates into the HTML. The parameter `math:` selects the output: `.delimiters` (the default), `.html` (HTML for a visual rendering), `.mathml` (MathML only, which browsers display without further resources) or `.htmlAndMathml` (the default of KaTeX); `.katex(KaTeXOptions(...))` takes the options of KaTeX, such as macros. The HTML of KaTeX needs the style sheet and the fonts of KaTeX in the web page (`KaTeXEngine.stylesheetURL`). KaTeX is never allowed to create links or images, so formulas of untrusted Markdown cannot do any harm, and a formula that KaTeX does not understand is shown with its source in an element with the class `katex-error`. A client can typeset formulas in another way by adopting the protocol `MathHtmlRendering` in its own subclass of `HtmlGenerator`.
+
+```swift
+let generator = MathHtmlGenerator(math: .mathml)
+let html = generator.generate(doc: MathMarkdownParser.standard.parse("The area is $\\pi r^2$."))
+```
+
+```swift
+let doc = MathMarkdownParser.standard.parse("The area is $\\pi r^2$.")
+print(HtmlGenerator.standard.generate(doc: doc))
+// <p>The area is <span class="math inline">\(\pi r^2\)</span>.</p>
+```
+
+`MathAttributedStringGenerator`, a subclass of `AttributedStringGenerator`, shows formulas as images in attributed strings (macOS and iOS; elsewhere the LaTeX is shown as code). KaTeX typesets the formulas in a headless web view, which draws many formulas at once (a document with a hundred formulas takes a fraction of a second) and is released a minute after its last use. A formula within a line sits on the baseline of the text, is as large as the text (headings and the text size multiplier scale it) and has the colour of the text around it, including links; a formula that is a block is centered in a paragraph of its own and gets some space above and below. A formula that is wider than its line is scaled down to the width of the line. The images are cached by the `MathRenderer`; `MathConfig` sets macros and limits for KaTeX, the resolution of the images, the spacing around block formulas, the maximal width and a timeout. A formula that KaTeX does not understand is shown as code (a block with a note), and so is a formula that has not been rendered yet in the result of the synchronous method `generate(doc:)`. The asynchronous methods render the formulas first, as they do for Mermaid diagrams, and `prepareMath(in:)` renders them ahead of time. `MarkdownText(string:math:)` shows formulas, which are rendered in the background. The attachment of a formula carries the attribute `.mathSource` with the formula as it was written.
+
+```swift
+let generator = MathAttributedStringGenerator(fontSize: 16)
+let doc = MathMarkdownParser.standard.parse("The area is $\\pi r^2$.")
+let text = try await generator.generateAsync(doc: doc)   // an NSAttributedString with an image of the formula
 ```
 
 ### Configuring the parser
@@ -482,30 +518,36 @@ The output of `--format ansi` is only rendered correctly by a terminal. Xcode's 
 
 SwiftUI comes with support for Markdown-formatted snippets but does not have a full-fledged viewer for Markdown documents. Since version 1.4, _MarkdownKit_ includes a SwiftUI view for displaying Markdown documents. As opposed to many other custom created Markdown views, the one included in _MarkdownKit_ is based on the CommonMark-compliant _MarkdownKit_ parser as well as its attributed string generator. It is thus lightweight yet still quite configurable.
 
-The initializer of [`MarkdownText`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/View/MarkdownText.swift) receives the parsed Markdown content of type `Block`, an optional `waitingMessage:` parameter which defines what is being displayed while the content is being rendered (especially if many images need to be loaded), as well as a `generator:` parameter defining how the parsed Markdown is transformed into an attributed string, which is then being shown in the view. The generator is not just called once, but every time the color scheme has changed to potentially update the colors in use. A variant of this initializer accepts a Markdown document as a string and uses the extended Markdown parser internally to parse it. There are two initializers for each of the two ways of providing the document. Either you pass a `generator:`, or you do not provide one and the view uses the default generators for light and dark mode, which can be configured with `renderingOptions:` (see `AttributedStringGenerator.RenderingOptions`; the default is `.trusted`). The view generates the attributed string synchronously, which is why only the rendering options `baseUrl`, `localImages`, `imageExtensions`, `safeMode` and `textSizeMultiplier` have an effect (remote images are never loaded). Use `MarkdownText(string: text, renderingOptions: .untrusted)` if the Markdown does not come from a trusted source. The following code snippet shows the signatures of the initializers.
+The initializer of [`MarkdownText`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/View/MarkdownText.swift) receives the parsed Markdown content of type `Block`, an optional `waitingMessage:` parameter which defines what is being displayed while the content is being rendered (especially if many images need to be loaded), as well as a `generator:` parameter defining how the parsed Markdown is transformed into an attributed string, which is then being shown in the view. The generator is not just called once, but every time the color scheme has changed to potentially update the colors in use. A variant of this initializer accepts a Markdown document as a string and parses it with the standard parser of a `MarkdownDialect`: the parameter `dialect:` selects it (the default is `.extendedCommonMark`, or `.fullMath` if `math:` is given; pass `dialect: .full` for `FullMarkdownParser`). There are two initializers for each of the two ways of providing the document. Either you pass a `generator:`, or you do not provide one and the view uses the default generators for light and dark mode, which can be configured with `renderingOptions:` (see `AttributedStringGenerator.RenderingOptions`; the default is `.trusted`), `mermaid:` and `math:`. A view with a `generator:` that shows diagrams or formulas passes a `prepare:` function, which renders them in the background (the default generators call `prepareDiagrams(in:)` and `prepareMath(in:)`). The view generates the attributed string synchronously, which is why only the rendering options `baseUrl`, `localImages`, `imageExtensions`, `safeMode` and `textSizeMultiplier` have an effect (remote images are never loaded). Use `MarkdownText(string: text, renderingOptions: .untrusted)` if the Markdown does not come from a trusted source. The following code snippet shows the signatures of the initializers.
 
 ```swift
 struct MarkdownText: View {
   init(_ text: Block,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
        renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
-       mermaid: MermaidConfig? = nil) {
+       mermaid: MermaidConfig? = nil,
+       math: MathConfig? = nil) {
     ...
   }
   init(_ text: Block,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-       generator: ((Block, ColorScheme) -> NSAttributedString?)?) {
+       generator: ((Block, ColorScheme) -> NSAttributedString?)?,
+       prepare: (@Sendable (Block, ColorScheme) async -> Bool)? = nil) {
     ...
   }
   init(string: String,
+       dialect: MarkdownDialect? = nil,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
        renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
-       mermaid: MermaidConfig? = nil) {
+       mermaid: MermaidConfig? = nil,
+       math: MathConfig? = nil) {
     ...
   }
   init(string: String,
+       dialect: MarkdownDialect? = nil,
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
-       generator: ((Block, ColorScheme) -> NSAttributedString?)?) {
+       generator: ((Block, ColorScheme) -> NSAttributedString?)?,
+       prepare: (@Sendable (Block, ColorScheme) async -> Bool)? = nil) {
     ...
   }
   ...
@@ -576,7 +618,7 @@ _Swift Package Manager_ is not needed.
 - [Swift 6](https://developer.apple.com/swift/) toolchain (the package is compiled in Swift 6 language mode; clients can use any language mode)
 - [Swift Package Manager](https://swift.org/package-manager/)
 
-_Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting relies on JavaScriptCore and is not available on watchOS. Mermaid diagrams rely on WebKit and are only available on macOS and iOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tools are only functional on macOS.
+_Swift MarkdownKit_ supports Apple platforms only: macOS 11, iOS 15, tvOS 15 and watchOS 8 or later. Linux and other non-Apple platforms are not supported. Syntax highlighting and typesetting formulas with KaTeX rely on JavaScriptCore and are not available on watchOS. Mermaid diagrams and images of formulas (`MathAttributedStringGenerator`) rely on WebKit and are only available on macOS and iOS. The SwiftUI view `MarkdownText` is available on macOS 14 and iOS 17 or later. The command-line tools are only functional on macOS.
 
 ## License
 
@@ -587,6 +629,8 @@ _MarkdownKit_ contains some code snippets from [HighlighterSwift](https://github
 The _MarkdownKit_ framework comes with a copy of [Highlight.js](https://github.com/highlightjs/highlight.js/). _Highlight.js_ is released under a [BSD License](https://github.com/highlightjs/highlight.js/blob/main/LICENSE).
 
 The _MarkdownKit_ framework also comes with a copy of [Mermaid](https://github.com/mermaid-js/mermaid). _Mermaid_ is released under an [MIT License](https://github.com/mermaid-js/mermaid/blob/develop/LICENSE).
+
+The _MarkdownKit_ framework also comes with a copy of [KaTeX](https://github.com/KaTeX/KaTeX) (version 0.16.22: the script, the style sheet and the fonts). _KaTeX_ is released under an [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE). Its fonts are derived from the Computer Modern and AMS fonts, which are available under the [SIL Open Font License 1.1](https://openfontlicense.org); the license texts are in the folder `Sources/MarkdownKit/Math`.
 
 ## Copyright
 

@@ -16,6 +16,7 @@ These are the supported Markdown features. The parser classes supporting a featu
 - Underlined text: `~underlined~` (``FullMarkdownParser``)
 - Strikethrough text: `~~struck through~~` (``FullMarkdownParser``)
 - Task lists: `- [ ] to do` and `- [x] done` (``FullMarkdownParser``)
+- LaTeX math: `$a^2$`, `$$` … `$$` and fenced `math` code blocks (``MathMarkdownParser``)
 - Custom syntax defined by extending the parser
 
 MarkdownKit supports macOS 11, iOS 15, tvOS 15 and watchOS 8 or later.
@@ -37,6 +38,32 @@ MarkdownKit supports macOS 11, iOS 15, tvOS 15 and watchOS 8 or later.
 - ``MarkdownParser``
 - ``ExtendedMarkdownParser``
 - ``FullMarkdownParser``
+- ``MarkdownDialect``
+
+### Mathematical formulas
+
+- <doc:MathematicalFormulas>
+- ``MathMarkdownParser``
+- ``MathFragment``
+- ``MathBlock``
+- ``MathTransformer``
+- ``MathBlockParser``
+- ``MathInlineParser``
+- ``MathHtmlGenerator``
+- ``MathHtmlRendering``
+- ``KaTeXEngine``
+- ``KaTeXOptions``
+- ``KaTeXError``
+
+### Drawing formulas
+
+- ``MathAttributedStringGenerator``
+- ``MathRenderer``
+- ``MathConfig``
+- ``MathFormula``
+- ``MathImage``
+- ``MathError``
+- ``MathContext``
 
 ### Representing Markdown documents
 

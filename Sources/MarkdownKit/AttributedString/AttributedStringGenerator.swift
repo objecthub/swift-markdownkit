@@ -1092,29 +1092,101 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// Generates an attributed string from the given Markdown document.
   ///
   /// Mermaid diagrams (if enabled with the parameter `mermaid:`) are only included if they
-  /// have been rendered before, see `prepareDiagrams(in:)`.
+  /// have been rendered before, see `prepareDiagrams(in:)`. The result is completed by
+  /// `finishAttributedString(_:from:)`.
   open func generate(doc: Block) -> NSAttributedString? {
     let generator = self.htmlGenerator()
-    return self.insertingDiagrams(into: self.generateAttributedString(generator.generate(doc: doc)),
-                                  from: generator)
+    return self.generateAttributedString(generator.generate(doc: doc)).map {
+      self.finishAttributedString($0, from: generator)
+    }
   }
 
   /// Generates an attributed string from the given Markdown block
   open func generate(block: Block) -> NSAttributedString? {
     let generator = self.htmlGenerator()
-    return self.insertingDiagrams(
-             into: self.generateAttributedString(generator.generate(block: block, parent: .none)),
-             from: generator)
+    return self.generateAttributedString(generator.generate(block: block, parent: .none)).map {
+      self.finishAttributedString($0, from: generator)
+    }
   }
 
   /// Generates an attributed string from the given Markdown blocks
   open func generate(blocks: Blocks) -> NSAttributedString? {
     let generator = self.htmlGenerator()
-    return self.insertingDiagrams(
-             into: self.generateAttributedString(generator.generate(blocks: blocks, parent: .none)),
-             from: generator)
+    return self.generateAttributedString(generator.generate(blocks: blocks, parent: .none)).map {
+      self.finishAttributedString($0, from: generator)
+    }
   }
-  
+
+  // MARK: Extension points
+
+  /// Completes the attributed string which the system created from the HTML of `generator`.
+  /// All methods that generate attributed strings (`generate(doc:)` etc. and `generateAsync`)
+  /// call this method once, with the generator that created the HTML. The default
+  /// implementation replaces the placeholders of Mermaid diagrams with their images.
+  ///
+  /// A subclass that puts placeholders for other content into the HTML (see
+  /// `htmlGenerator(options:)`) overrides this method, replaces the placeholders, and calls the
+  /// method of its superclass for the rest. `string` is the result of the system's HTML
+  /// importer; the method is free to modify a copy or to return a different string.
+  open func finishAttributedString(_ string: NSAttributedString,
+                                   from generator: InternalHtmlGenerator) -> NSAttributedString {
+    return self.insertingDiagrams(into: string, from: generator) ?? string
+  }
+
+  /// True if the asynchronous methods (`generateAsync`) have to prepare the generation of an
+  /// attributed string before they generate its HTML, for example by rendering content such
+  /// as Mermaid diagrams. The default is `true` if the generator was created with the
+  /// parameter `mermaid:`. A subclass that overrides `preparedHtmlGenerator(for:options:)`
+  /// overrides this property as well.
+  ///
+  /// If it is `false`, `htmlGenerator(options:)` creates the HTML generator, and the methods
+  /// with a completion handler generate the HTML on the calling thread.
+  open var needsPreparation: Bool {
+    return self.mermaidConfig != nil
+  }
+
+  /// Prepares the generation of an attributed string from `block` and returns the HTML
+  /// generator to use. The asynchronous methods (`generateAsync`) call this method, if
+  /// `needsPreparation` is `true`, instead of `htmlGenerator(options:)`. Preparing can take
+  /// time, for example rendering diagrams, which is why the method is asynchronous.
+  ///
+  /// The default implementation renders the Mermaid diagrams of `block` and returns an HTML
+  /// generator which shows all of them, whatever the size of the cache of the renderer. A
+  /// subclass overrides this method to prepare the content which it puts into the HTML, calls the
+  /// method of the superclass, and hands the results to the HTML generator that it returns,
+  /// so that they do not depend on a cache.
+  open func preparedHtmlGenerator(for block: Block,
+                                  options: RenderingOptions?) async -> InternalHtmlGenerator {
+    let diagrams = await self.diagramResults(in: block)
+    return self.htmlGenerator(options: options, pinning: diagrams)
+  }
+
+  /// Prepares the generation of an attributed string from `blocks` and returns the HTML
+  /// generator to use. See `preparedHtmlGenerator(for:options:)`.
+  open func preparedHtmlGenerator(for blocks: Blocks,
+                                  options: RenderingOptions?) async -> InternalHtmlGenerator {
+    let diagrams = await self.diagramResults(in: blocks)
+    return self.htmlGenerator(options: options, pinning: diagrams)
+  }
+
+  /// The HTML generator for the asynchronous methods.
+  private func asyncHtmlGenerator(for block: Block,
+                                  options: RenderingOptions?) async -> InternalHtmlGenerator {
+    if self.needsPreparation {
+      return await self.preparedHtmlGenerator(for: block, options: options)
+    }
+    return self.htmlGenerator(options: options)
+  }
+
+  /// The HTML generator for the asynchronous methods.
+  private func asyncHtmlGenerator(for blocks: Blocks,
+                                  options: RenderingOptions?) async -> InternalHtmlGenerator {
+    if self.needsPreparation {
+      return await self.preparedHtmlGenerator(for: blocks, options: options)
+    }
+    return self.htmlGenerator(options: options)
+  }
+
   private func generateAttributedString(_ htmlBody: String) -> NSAttributedString? {
     let document = self.generateHtmlForImport(htmlBody)
     if let httpData = document.html.data(using: .utf8) {
@@ -1787,20 +1859,16 @@ extension AttributedStringGenerator {
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil) async throws
                          -> sending NSAttributedString {
-    // First generate Mermaid diagram images (if they are in the cache, they are copied
-    // over into `diagrams`)
-    let diagrams = await self.diagramResults(in: doc)
-    // Inject the generated images into a new HTML generator; the HTML generator will then
-    // create placeholders for all generated images in `diagrams` with this
-    // AttributedStringGenerator
-    let generator = self.htmlGenerator(options: options, pinning: diagrams)
+    // First prepare the content (this renders Mermaid diagrams, for example) and get an HTML
+    // generator which creates placeholders for the results
+    let generator = await self.asyncHtmlGenerator(for: doc, options: options)
     // Generate HTML for this document
     let document = self.generateHtmlForImport(generator.generate(doc: doc))
-    // Replace image placeholders with image attachments
-    return self.addingDiagrams(
-             to: try await self.renderHTML(document.html,
-                                           options: options ?? self.renderingOptions,
-                                           probed: document.probed),
+    // Replace placeholders, e.g. with the images of diagrams
+    return self.finishAttributedString(
+             try await self.renderHTML(document.html,
+                                       options: options ?? self.renderingOptions,
+                                       probed: document.probed),
              from: generator)
   }
 
@@ -1809,13 +1877,12 @@ extension AttributedStringGenerator {
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil) async throws
                          -> sending NSAttributedString {
-    let diagrams = await self.diagramResults(in: block)
-    let generator = self.htmlGenerator(options: options, pinning: diagrams)
+    let generator = await self.asyncHtmlGenerator(for: block, options: options)
     let document = self.generateHtmlForImport(generator.generate(block: block, parent: .none))
-    return self.addingDiagrams(
-             to: try await self.renderHTML(document.html,
-                                           options: options ?? self.renderingOptions,
-                                           probed: document.probed),
+    return self.finishAttributedString(
+             try await self.renderHTML(document.html,
+                                       options: options ?? self.renderingOptions,
+                                       probed: document.probed),
              from: generator)
   }
 
@@ -1824,13 +1891,12 @@ extension AttributedStringGenerator {
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil) async throws
                          -> sending NSAttributedString {
-    let diagrams = await self.diagramResults(in: blocks)
-    let generator = self.htmlGenerator(options: options, pinning: diagrams)
+    let generator = await self.asyncHtmlGenerator(for: blocks, options: options)
     let document = self.generateHtmlForImport(generator.generate(blocks: blocks, parent: .none))
-    return self.addingDiagrams(
-             to: try await self.renderHTML(document.html,
-                                           options: options ?? self.renderingOptions,
-                                           probed: document.probed),
+    return self.finishAttributedString(
+             try await self.renderHTML(document.html,
+                                       options: options ?? self.renderingOptions,
+                                       probed: document.probed),
              from: generator)
   }
 
@@ -1855,7 +1921,7 @@ extension AttributedStringGenerator {
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
-                     prepare: { await $0.diagramResults(in: doc) },
+                     prepare: { await $0.asyncHtmlGenerator(for: doc, options: $1) },
                      html: { $0.generate(doc: doc) },
                      completion: completionHandler)
   }
@@ -1868,7 +1934,7 @@ extension AttributedStringGenerator {
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
-                     prepare: { await $0.diagramResults(in: block) },
+                     prepare: { await $0.asyncHtmlGenerator(for: block, options: $1) },
                      html: { $0.generate(block: block, parent: .none) },
                      completion: completionHandler)
   }
@@ -1881,7 +1947,7 @@ extension AttributedStringGenerator {
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
-                     prepare: { await $0.diagramResults(in: blocks) },
+                     prepare: { await $0.asyncHtmlGenerator(for: blocks, options: $1) },
                      html: { $0.generate(blocks: blocks, parent: .none) },
                      completion: completionHandler)
   }
@@ -1889,38 +1955,47 @@ extension AttributedStringGenerator {
   // MARK: Rendering
 
   /// Renders the HTML for a document, block or blocks, which `html` creates with the HTML
-  /// generator that is passed to it, and reports the result via `completionHandler`. If Mermaid
-  /// diagrams are enabled, `prepare` is called first (it renders the diagrams, which takes
-  /// time) and the placeholders of the diagrams are replaced in the result.
+  /// generator that is passed to it, and reports the result via `completionHandler`. If the
+  /// generator needs to prepare the generation (`needsPreparation`, e.g. to render Mermaid
+  /// diagrams), `prepare` is called first, which takes time. The result is completed by
+  /// `finishAttributedString(_:from:)`.
   private func renderAsync(
       options: RenderingOptions?,
-      prepare: @escaping @Sendable (AttributedStringGenerator) async -> MermaidDiagramResults,
+      prepare: @escaping @Sendable (AttributedStringGenerator, RenderingOptions?) async
+                 -> InternalHtmlGenerator,
       html: @escaping @Sendable (HtmlGenerator) -> String,
       completion: @escaping (sending Result<NSAttributedString, RenderingError>) -> Void) {
-    let renderingOptions = options ?? self.renderingOptions
-    if self.mermaidConfig == nil {
-      let document = self.generateHtmlForImport(html(self.htmlGenerator(options: options)))
-      self.renderHTML(document.html,
-                      options: renderingOptions,
-                      probed: document.probed,
-                      completion: completion)
-    } else {
-      let deliver = CompletionHandler(completion)
+    let deliver = CompletionHandler(completion)
+    if self.needsPreparation {
       Task {
-        let diagrams = await prepare(self)
-        let generator = self.htmlGenerator(options: options, pinning: diagrams)
-        let document = self.generateHtmlForImport(html(generator))
-        self.renderHTML(document.html, options: renderingOptions, probed: document.probed) { result in
-          switch result {
-            case .success(let string):
-              // The attributed string is created by the system's HTML loader and not used by
-              // anybody else
-              nonisolated(unsafe) let string = string
-              deliver(.success(self.insertingDiagrams(into: string, from: generator) ?? string))
-            case .failure(let error):
-              deliver(.failure(error))
-          }
-        }
+        let generator = await prepare(self, options)
+        self.render(html: html, with: generator, options: options, deliver: deliver)
+      }
+    } else {
+      // Nothing to prepare: generate the HTML on the calling thread
+      self.render(html: html, with: self.htmlGenerator(options: options), options: options,
+                  deliver: deliver)
+    }
+  }
+
+  /// Generates the HTML with `html`, renders it and delivers the result completed by
+  /// `finishAttributedString(_:from:)`.
+  private func render(html: (HtmlGenerator) -> String,
+                      with generator: InternalHtmlGenerator,
+                      options: RenderingOptions?,
+                      deliver: CompletionHandler) {
+    let document = self.generateHtmlForImport(html(generator))
+    self.renderHTML(document.html,
+                    options: options ?? self.renderingOptions,
+                    probed: document.probed) { result in
+      switch result {
+        case .success(let string):
+          // The attributed string is created by the system's HTML loader and not used by
+          // anybody else
+          nonisolated(unsafe) let string = string
+          deliver(.success(self.finishAttributedString(string, from: generator)))
+        case .failure(let error):
+          deliver(.failure(error))
       }
     }
   }

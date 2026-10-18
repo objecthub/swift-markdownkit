@@ -62,6 +62,13 @@ class FuzzTests: XCTestCase {
     ">\t", "-\t", "\t-\t", "1.\t", "\t\t", " \t", "*\t", "  \n", "\\ \n", "`a\\\n"
   ]
 
+  /// Fragments of math syntax, for parsers that support math
+  private static let mathTokens: [String] = [
+    "$", "$", "$$", "\\$", "$`", "`$", "$$\n", "\n$$", "$$ ", " $$", "```math\n", "~~~math\n",
+    "x^2", "a_b", "f^*(x)", "\\\\", "{", "}", "\\frac{a}{b}", "[a](b)", "*", "_", "~", "`", "\n\n",
+    " ", "5", "\u{0}", "\u{1B}", "<b>", "<", ">", "- ", "> ", "| ", "# "
+  ]
+
   /// Fragments for generating code blocks (indented or fenced) which get syntax highlighted
   private static let codeTokens: [String] = [
     "```swift\n", "```c\n", "```html\n", "```js\n", "```\n", "\n```\n", "    ", "\t",
@@ -156,6 +163,44 @@ class FuzzTests: XCTestCase {
                      input.debugDescription)
     }
     XCTAssertGreaterThan(compared, self.iterations / 5)
+  }
+
+  func testRandomMathDoesNotCrashParserAndGenerators() {
+    var rng = Xorshift(seed: 11)
+    for i in 0..<self.iterations {
+      let input = self.randomInput(Self.tokens + Self.mathTokens, &rng)
+      if self.verbose {
+        self.log("FUZZ math #\(i): \(input.debugDescription)")
+      }
+      let doc = MathMarkdownParser.standard.parse(input)
+      _ = doc.description
+      _ = doc.debugDescription
+      _ = doc.string
+      _ = HtmlGenerator.standard.generate(doc: doc)
+      XCTAssertFalse(HtmlGenerator(safeMode: true).generate(doc: doc).lowercased().contains("<script"),
+                     "script tag in safe mode output for \(input.debugDescription)")
+      let width = Self.widths.randomElement(using: &rng)!
+      let text = StringGenerator(numColumns: width).generate(doc: doc)
+      XCTAssertFalse(self.hasControlCharacters(text),
+                     "control character in text output for \(input.debugDescription)")
+      let terminal = TerminalGenerator(numColumns: width, syntaxHighlighting: nil).generate(doc: doc)
+      XCTAssertFalse(self.hasControlCharacters(terminal.plainText),
+                     "control character in terminal output for \(input.debugDescription)")
+      #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+      _ = AttributedStringGenerator().htmlGenerator().generate(doc: doc)
+      #endif
+    }
+  }
+
+  /// Without `$` and math fences, the math parser behaves like the full parser
+  func testMathMarkdownParserAgreesWithTheFullParserWithoutMath() {
+    var rng = Xorshift(seed: 13)
+    for _ in 0..<self.iterations {
+      let input = self.randomInput(Self.tokens, &rng)
+      XCTAssertEqual(HtmlGenerator.standard.generate(doc: MathMarkdownParser.standard.parse(input)),
+                     HtmlGenerator.standard.generate(doc: FullMarkdownParser.standard.parse(input)),
+                     input.debugDescription)
+    }
   }
 
   func testRandomCodeBlocksDoNotCrashSyntaxHighlighting() throws {

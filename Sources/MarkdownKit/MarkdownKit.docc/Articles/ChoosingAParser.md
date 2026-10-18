@@ -6,15 +6,22 @@ Pick the parser class that supports the Markdown syntax your documents use.
 
 ## Overview
 
-MarkdownKit has three parser classes. They share the same interface and differ in the syntax they recognize. Each one extends the previous one:
+MarkdownKit has four parser classes. They share the same interface and differ in the syntax they recognize. Each one extends the previous one:
 
 | Parser | Syntax |
 |---|---|
 | ``MarkdownParser`` | [CommonMark](https://commonmark.org) 0.31.2: headings, paragraphs, block quotes, lists, code blocks, thematic breaks, HTML, links, images, emphasis, code spans and line breaks |
 | ``ExtendedMarkdownParser`` | everything in ``MarkdownParser`` plus tables and definition lists |
 | ``FullMarkdownParser`` | everything in ``ExtendedMarkdownParser`` plus underlined text, struck-through text and task lists |
+| ``MathMarkdownParser`` | everything in ``FullMarkdownParser`` plus LaTeX math, see <doc:MathematicalFormulas> |
 
-Each class has a shared instance, e.g. `FullMarkdownParser.standard`. Parsers do not have mutable state, so one instance can parse many documents. New Markdown features will be added to ``FullMarkdownParser``.
+``MarkdownDialect`` names the four syntaxes (`.commonMark`, `.extendedCommonMark`, `.full` and `.fullMath`) and gives access to their standard parsers, so that code which chooses a syntax at run time, such as the initializers of ``MarkdownText``, does not have to know the classes:
+
+```swift
+let doc = MarkdownDialect.fullMath.parser.parse("The area is $\\pi r^2$.")
+```
+
+Each class has a shared instance, e.g. `FullMarkdownParser.standard`. Parsers do not have mutable state, so one instance can parse many documents. Further markup will be added to ``FullMarkdownParser``, except for markup that changes the meaning of characters which are common in text, such as the dollar sign in ``MathMarkdownParser``.
 
 ### Tables and definition lists
 
@@ -58,7 +65,12 @@ let markdown = FullMarkdownParser.standard.parse("Some ~~old~~ and ~important~ t
 
 Documents parsed by ``FullMarkdownParser`` contain the cases `underline` and `strikethrough` of ``TextFragment`` and the list type ``ListType/task(_:checked:)``. A `switch` over these enumerations has to handle them. Use ``ListType/marker`` to get the bullet or number of a list item, whether or not it is a task item.
 
+### Mathematical formulas
+
+``MathMarkdownParser`` is a subclass of ``FullMarkdownParser`` which also recognizes LaTeX math: `$a^2$` within a line, and `$$` on its own lines or a fenced code block with the info string `math` for a formula that is a block. Dollar signs are common in text (`costs $5 and $6`), so the other parsers leave them alone. The formulas are custom syntax tree nodes (``MathFragment`` and ``MathBlock``), so a `switch` over ``Block`` or ``TextFragment`` is not affected: they are handled by the `custom` cases. See <doc:MathematicalFormulas>.
+
 ## See Also
 
+- <doc:MathematicalFormulas>
 - <doc:ConfiguringTheParser>
 - <doc:ExtendingTheParser>
