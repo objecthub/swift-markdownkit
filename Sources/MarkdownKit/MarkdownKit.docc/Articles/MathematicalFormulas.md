@@ -129,6 +129,30 @@ Formulas in untrusted Markdown are as safe in the web view as in HTML: the optio
 
 The SwiftUI view ``MarkdownText`` shows formulas if it is given a ``MathConfig`` (`MarkdownText(string: text, math: MathConfig())`), see <doc:DisplayingMarkdownWithSwiftUI>.
 
+### Render formulas before generating the text
+
+Drawing formulas takes time, so it is asynchronous, as it is for diagrams:
+
+- `generateAsync` renders all formulas of the document before it generates the attributed string.
+- `generate(doc:)` cannot wait for a web view; it shows the formulas that have been rendered before, and code for the others. Call `await generator.prepareMath(in: doc)` first to render them (it returns `true` if it rendered anything, i.e. if `generate(doc:)` now gives a different result). Code that does not use Swift concurrency calls `generator.prepareMath(in: doc) { rendered in … }` instead; the handler is called exactly once, asynchronously, on the main thread. There is no blocking variant: the web view that draws the formulas needs the main thread, so waiting for it there would mean running the run loop inside the call.
+- ``MarkdownText`` `(_:math:)` and `(string:math:)` show the code first and replace it with the formulas once they are available. A string is parsed with ``MathMarkdownParser`` then, unless `dialect:` selects another parser.
+
+### Understand the cache and configure the formulas
+
+Rendered formulas, and the errors of formulas which KaTeX rejected, are kept in memory by the ``MathRenderer`` (``MathRenderer/shared`` by default; pass `mathRenderer:` to the generator for another one). They are keyed by the formula (its LaTeX and whether it is display math), the font size of the generator and the KaTeX options and scale. The color is not part of the key: the images are black, so generators for light and dark mode share them. The cache holds at most 2,000 results and 32 MiB of images by default and drops the ones that were used least recently; `MathRenderer(katexFolder:idleTime:maxCachedFormulas:maxCacheBytes:)` sets other limits.
+
+`generateAsync` keeps the formulas of the document it generates itself, so it shows all of them whatever the size of the cache. `generate(doc:)`, and ``MarkdownText``, which uses it, only show the formulas that are in the cache: `maxCachedFormulas` should be at least the number of formulas in the largest document that you display in this way. `MathRenderer.render(_:fontSize:config:)` has a variant `render(_:fontSize:config:completionHandler:)` for code that does not use Swift concurrency.
+
+A ``MathConfig`` sets:
+
+- the KaTeX options `katex:` (``KaTeXOptions``: `macros`, a limit for macro expansions, the maximal size, and the maximal length of a formula, which is 10,000 bytes by default),
+- the `scale` of the images (pixels per point, default 3),
+- the `spacing` between a block formula and the text above and below it (at least 8 points),
+- a `maxWidth` for a formula, and
+- the `timeout` for rendering a batch of formulas (15 seconds).
+
+The web view is created when the first formula is rendered and released after 60 seconds without requests; create the ``MathRenderer`` with `idleTime:` to change that (`0` releases it as soon as no request is waiting, `.infinity` never releases it). To use another version of KaTeX, replace the folder `Sources/MarkdownKit/Math/KaTeX` (it contains `katex.min.js`, `katex.min.css` and the folder `fonts`) and update ``KaTeXEngine/bundledVersion``.
+
 ### Combine the parser with your own markup
 
 ``MathMarkdownParser`` is a ``FullMarkdownParser`` with two additions (``LaTeXMarkdownParser`` replaces them with ``LaTeXMathTransformer``, a ``MathTransformer`` that also recognizes `\(` and `\[`, and adds ``LaTeXMathBlockParser`` right after ``MathBlockParser``). ``MathTransformer`` has to come after `CodeLinkHtmlTransformer` and before `LinkTransformer` in the list of inline transformers: code, HTML and autolinks are complete at this point, while emphasis, links and escapes have not yet changed the characters of the formula. ``MathBlockParser`` has to come before `TableParser`. ``MathInlineParser`` turns fenced code blocks into formulas. To use the syntax in another configuration, build the parser from the same pieces, as in ``MathMarkdownParser/defaultInlineTransformers``.
