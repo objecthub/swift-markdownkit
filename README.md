@@ -10,16 +10,16 @@ The API reference and a number of articles are also available as [online documen
 
 Here is an overview of the supported Markdown features. The parser classes supporting a feature are given in parentheses (see also [Markdown extensions](#markdown-extensions)):
 
-- [CommonMark](https://commonmark.org) 0.31.2: headings, paragraphs, block quotes, lists, code blocks, thematic breaks, HTML, links, images, emphasis, code spans and line breaks (`MarkdownParser`, `ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
-- [Tables](https://github.github.com/gfm/#tables-extension-) with column alignment, in the style of GitHub Flavored Markdown (`ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
-- [Definition lists](https://www.markdownguide.org/extended-syntax/#definition-lists) (`ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
-- Underlined text: `~underlined~` (`FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
-- Strikethrough text: `~~struck through~~` (`FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
-- Task lists: `- [ ] to do` and `- [x] done` (`FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
-- [Mermaid](https://mermaid.js.org) diagrams: fenced code blocks with the language `mermaid`; `AttributedStringGenerator` draws them, see [Drawing Mermaid diagrams](#drawing-mermaid-diagrams) (`MarkdownParser`, `ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
-- LaTeX math with dollar signs: `$a^2$` within a line, `$$` … `$$` and fenced `math` code blocks for formulas that are blocks; `MathAttributedStringGenerator` draws the formulas, see [Drawing mathematical formulas](#drawing-mathematical-formulas) (`MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *[CommonMark](https://commonmark.org) 0.31.2*: headings, paragraphs, block quotes, lists, code blocks, thematic breaks, HTML, links, images, emphasis, code spans and line breaks (`MarkdownParser`, `ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *[Tables](https://github.github.com/gfm/#tables-extension-)* with column alignment, in the style of GitHub Flavored Markdown (`ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *[Definition lists](https://www.markdownguide.org/extended-syntax/#definition-lists)* (`ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *Underlined* text: `~underlined~` (`FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *Strikethrough* text: `~~struck through~~` (`FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *Task lists*: `- [ ] to do` and `- [x] done` (`FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *[Mermaid](https://mermaid.js.org) diagrams*: fenced code blocks with the language `mermaid`; `AttributedStringGenerator` draws them, see [Drawing Mermaid diagrams](#drawing-mermaid-diagrams) (`MarkdownParser`, `ExtendedMarkdownParser`, `FullMarkdownParser`, `MathMarkdownParser`, `LaTeXMarkdownParser`)
+- *LaTeX math* with dollar signs: `$a^2$` within a line, `$$` … `$$` and fenced `math` code blocks for formulas that are blocks; `MathAttributedStringGenerator` draws the formulas, see [Drawing mathematical formulas](#drawing-mathematical-formulas) (`MathMarkdownParser`, `LaTeXMarkdownParser`)
 - LaTeX math with the delimiters of LaTeX: `\(a^2\)` within a line, `\[` … `\]` for formulas that are blocks (`LaTeXMarkdownParser`)
-- Custom syntax defined by [extending the parser](#extending-the-parser)
+- *Custom syntax* defined by [extending the parser](#extending-the-parser)
 
 &nbsp;
 
@@ -621,6 +621,14 @@ struct ContentView: View {
   }
 }
 ```
+
+The Xcode project also contains a sample app, [`MarkdownViewer`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownViewer/ContentView.swift), which uses `MarkdownText` to display a demo document: formatted text, lists, task lists, syntax-highlighted code, tables, [Mermaid](https://mermaid.js.org) diagrams and mathematical formulas. Here are three screenshots of the app running on iOS:
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/Examples/Screenshots/MarkdownViewer-1-Plain.png" alt="MarkdownViewer showing headings, paragraphs, lists and code spans" width="30%">
+<img src="https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/Examples/Screenshots/MarkdownViewer-2-TasksSyntax.png" alt="MarkdownViewer showing task lists, a block quote and highlighted code" width="30%">
+<img src="https://raw.githubusercontent.com/objecthub/swift-markdownkit/master/Examples/Screenshots/MarkdownViewer-3-Advanced.png" alt="MarkdownViewer showing a table, a Mermaid diagram and mathematical formulas" width="30%">
+</p>
 
 ## Known issues
 
