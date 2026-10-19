@@ -141,7 +141,7 @@ public enum KaTeXError: Error, Equatable, LocalizedError, Sendable {
 public final class KaTeXEngine: @unchecked Sendable {
 
   /// The version of KaTeX that comes with MarkdownKit.
-  public static let bundledVersion = "0.16.22"
+  public static let bundledVersion = "0.19.0"
 
   /// The address of the style sheet that belongs to the bundled version of KaTeX. HTML which
   /// KaTeX creates is displayed correctly in a web page that links this style sheet, which
@@ -262,7 +262,7 @@ public final class KaTeXEngine: @unchecked Sendable {
 public final class KaTeXEngine: @unchecked Sendable {
 
   /// The version of KaTeX that comes with MarkdownKit.
-  public static let bundledVersion = "0.16.22"
+  public static let bundledVersion = "0.19.0"
 
   /// The address of the style sheet that belongs to the bundled version of KaTeX.
   public static let stylesheetURL = URL(

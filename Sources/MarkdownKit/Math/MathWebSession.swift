@@ -214,7 +214,7 @@ private final class MathWebPage: NSObject, WKNavigationDelegate {
         errors.push(null);
         row.appendChild(holder);
         stack.appendChild(row);
-        var bases = holder.querySelectorAll('.base');
+        var bases = holder.querySelectorAll('.katex-base');
         var probe = document.createElement('span');
         probe.className = 'probe';
         (bases.length ? bases[bases.length - 1] : holder).appendChild(probe);
@@ -224,14 +224,16 @@ private final class MathWebPage: NSObject, WKNavigationDelegate {
     }
     function measure() {
       // The extent of a formula is where KaTeX says it is: the struts have the height and depth
-      // of the formula, and the bases (and what is moved out of them) its width. The box of the element `.katex` is not suited:
-      // it is the area of the font, and in display mode as wide as the page.
+      // of the formula, and the bases (and what is moved out of them) its width. The box of the
+      // element `.katex` is not suited: it is the area of the font, and in display mode as wide as
+      // the page. (The classes of KaTeX 0.19 have the prefix `katex-`: `katex-base`, `katex-strut`
+      // and `katex-tag`; earlier versions called them `base`, `strut` and `tag`.)
       var out = [];
       for (var i = 0; i < __boxes.length; i++) {
         var item = __boxes[i];
         if (!item) { out.push(null); continue; }
         var left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
-        var bases = item.holder.querySelectorAll('.base');
+        var bases = item.holder.querySelectorAll('.katex-base');
         for (var j = 0; j < bases.length; j++) {
           var b = bases[j].getBoundingClientRect();
           left = Math.min(left, b.left);
@@ -242,14 +244,14 @@ private final class MathWebPage: NSObject, WKNavigationDelegate {
         var parts = item.holder.querySelectorAll('.katex-html *');
         for (var m = 0; m < parts.length; m++) {
           // The drawings of roots and braces are much larger than their (clipped) container
-          if (parts[m].closest('.tag') || parts[m].closest('svg')) { continue; }
+          if (parts[m].closest('.katex-tag') || parts[m].closest('svg')) { continue; }
           var q = parts[m].getBoundingClientRect();
           if (q.width > 0 && q.height > 0) {
             left = Math.min(left, q.left);
             right = Math.max(right, q.right);
           }
         }
-        var struts = item.holder.querySelectorAll('.strut');
+        var struts = item.holder.querySelectorAll('.katex-strut');
         for (var k = 0; k < struts.length; k++) {
           var s = struts[k].getBoundingClientRect();
           top = Math.min(top, s.top);

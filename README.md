@@ -707,7 +707,7 @@ The _MarkdownKit_ framework comes with a copy of [Highlight.js](https://github.c
 
 The _MarkdownKit_ framework also comes with a copy of [Mermaid](https://github.com/mermaid-js/mermaid). _Mermaid_ is released under an [MIT License](https://github.com/mermaid-js/mermaid/blob/develop/LICENSE).
 
-The _MarkdownKit_ framework also comes with a copy of [KaTeX](https://github.com/KaTeX/KaTeX) (version 0.16.22: the script, the style sheet and the fonts). _KaTeX_ is released under an [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE). Its fonts are derived from the Computer Modern and AMS fonts, which are available under the [SIL Open Font License 1.1](https://openfontlicense.org); the license texts are in the folder `Sources/MarkdownKit/Math`.
+The _MarkdownKit_ framework also comes with a copy of [KaTeX](https://github.com/KaTeX/KaTeX) (version 0.19.0: the script, the style sheet and the fonts). _KaTeX_ is released under an [MIT License](https://github.com/KaTeX/KaTeX/blob/main/LICENSE). Its fonts are derived from the Computer Modern and AMS fonts, which are available under the [SIL Open Font License 1.1](https://openfontlicense.org); the license texts are in the folder `Sources/MarkdownKit/Math`.
 
 ## Copyright
 

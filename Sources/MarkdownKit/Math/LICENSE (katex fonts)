@@ -2,8 +2,9 @@ The fonts in the folder KaTeX/fonts come with KaTeX (https://katex.org). KaTeX i
 under the MIT License (see "LICENSE (katex)"), but the KaTeX package does not include a license
 text for its fonts. They are derived from the Computer Modern and AMS fonts, which are available
 under the SIL Open Font License, Version 1.1; the copyright file that Debian maintains for the
-package node-katex lists the font sources under this license (OFL-1.1). The files are used
-unmodified, they are not sold, and the license text follows.
+package node-katex lists the font sources under this license (OFL-1.1), and the font sources in
+the KaTeX package (src/fonts/xbbold.mf, src/fonts/lib/Space.ttx) carry OFL-1.1 notices. The
+files are used unmodified, they are not sold, and the license text follows.
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
