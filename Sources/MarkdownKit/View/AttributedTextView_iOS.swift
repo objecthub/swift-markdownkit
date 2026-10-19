@@ -85,6 +85,16 @@ struct AttributedTextView: UIViewRepresentable {
     var pairs: [ListMarkers.Pair] = []
     private var isAligning = false
 
+    // The initializers are declared here because the implicit ones are available on earlier
+    // versions of Mac Catalyst than this view, which the compiler warns about.
+    override init(frame: CGRect, textContainer: NSTextContainer?) {
+      super.init(frame: frame, textContainer: textContainer)
+    }
+
+    required init?(coder: NSCoder) {
+      super.init(coder: coder)
+    }
+
     override func layoutSubviews() {
       super.layoutSubviews()
       guard !pairs.isEmpty, !isAligning else {

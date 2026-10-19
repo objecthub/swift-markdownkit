@@ -133,6 +133,8 @@ The HTML importer of macOS and iOS supports only a part of CSS, and the results 
 - Scripts never run. The `width` and `height` attributes of images and CSS sizes are ignored. On macOS, the size of an image comes from the resolution stored in the image file; iOS ignores the resolution.
 - Images in `file:` URLs only load if the `baseUrl` of the rendering options matches. Images in `data:` URLs always load.
 - `<input>` elements are ignored, which is why task list items use the characters ☐ and ☑.
+- The importer does not scale a font below 9 points: with a `textSizeMultiplier` that would make text smaller, it stays at 9 points. This is why the text of PDF documents, which is scaled down, is never smaller than that.
+- On iOS, `generateAsync` loads the HTML in WebKit, whose text autosizing enlarged the paragraphs and lists of larger documents (14 points became 21 or 23, tables and headings stayed). The generator adds a style that fixes the size at the `textSizeMultiplier` of the rendering options (1 by default), so the sizes are those of the style sheet. This concerns `MarkdownUtil.rtf` and `rtfd` on iOS as well.
 
 If a style has no effect, check the attributed string, e.g. its paragraph styles and fonts, before you investigate the CSS.
 

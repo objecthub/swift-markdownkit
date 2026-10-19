@@ -68,7 +68,7 @@ How a formula is shown depends on the generator:
 
 ### Typeset formulas in HTML
 
-``MathHtmlGenerator`` is an ``HtmlGenerator`` that runs [KaTeX](https://katex.org) and puts the markup of the typeset formulas into the HTML. KaTeX is part of MarkdownKit and runs in JavaScriptCore (see ``KaTeXEngine``), so it works without a web view, on every platform but watchOS. The parameter `math:` is a ``MathHtmlGenerator/Output``:
+``MathHtmlGenerator`` is an ``HtmlGenerator`` that runs [KaTeX](https://katex.org) and puts the markup of the typeset formulas into the HTML. KaTeX is part of MarkdownKit and runs in JavaScriptCore (see ``KaTeXEngine``), so it works without a web view, on every platform but watchOS, and typesets a formula in about 0.1 milliseconds. KaTeX comes with the framework: version ``KaTeXEngine/bundledVersion`` (MIT license) adds about 0.56 MB to the resources, in the folder `KaTeX` (the script `katex.min.js`, the style sheet `katex.min.css` and 20 fonts). The fonts are derived from the Computer Modern and AMS fonts, which are available under the SIL Open Font License; the folder `Sources/MarkdownKit/Math` has a copy of both licenses. The parameter `math:` is a ``MathHtmlGenerator/Output``:
 
 | Output | Result |
 |---|---|
@@ -108,7 +108,7 @@ The system's HTML importer cannot typeset formulas, and it ignores the size of a
 The images look like the text around them:
 
 - A formula within a line of text sits on the baseline of the text, so that the fraction bar is between the lines of the text, and a subscript hangs below it.
-- A formula has the colour of the text around it. This includes the colour of a link, and the colour of the light and dark variant of a generator. The renderer draws the formulas in black; the generator applies the colour of the text when it creates the attachment (macOS does not tint images by itself). The LaTeX command `\color` is not reflected.
+- A formula has the colour of the text around it. This includes the colour of a link, and the colour of the light and dark variant of a generator. The renderer draws the formulas in black; the generator applies the colour of the text when it creates the attachment (macOS does not tint images by itself). The LaTeX commands `\color` (the formula keeps the colour of its text) and `\tag` (it is not shown) are not reflected.
 - A formula is as large as the text, scaled with the font size of the text around it: formulas in headings are larger, and the rendering option `textSizeMultiplier` applies to them as well. Formulas are drawn for the font size of the generator, and the cache of the renderer depends on it.
 - A formula that is a block is a centered paragraph with at least ``MathConfig/spacing`` points above and below it. A formula that is wider than its line is scaled down to the width of the line, whenever the text is laid out, and ``MathConfig/maxWidth`` limits the width.
 - A formula that KaTeX does not understand is shown as code, a block with a note that has the message of KaTeX. The same holds for a formula that was not rendered in time (``MathConfig/timeout``).
@@ -143,7 +143,7 @@ A ``MathConfig`` sets:
 - a `maxWidth` for a formula, and
 - the `timeout` for rendering a batch of formulas (15 seconds).
 
-The web view is created when the first formula is rendered and released after 60 seconds without requests; create the ``MathRenderer`` with `idleTime:` to change that (`0` releases it as soon as no request is waiting, `.infinity` never releases it). To use another version of KaTeX, replace the folder `Sources/MarkdownKit/Math/KaTeX` (it contains `katex.min.js`, `katex.min.css` and the folder `fonts`) and update ``KaTeXEngine/bundledVersion``.
+The web view is created when the first formula is rendered and released after 60 seconds without requests; create the ``MathRenderer`` with `idleTime:` to change that (`0` releases it as soon as no request is waiting, `.infinity` never releases it). To use another version of KaTeX, replace the folder `Sources/MarkdownKit/Math/KaTeX` (it contains `katex.min.js`, `katex.min.css` and the folder `fonts`) and update ``KaTeXEngine/bundledVersion``. The script that measures the formulas in the web view (`MathWebSession`) relies on the class names of the HTML of KaTeX: `katex-base`, `katex-strut` and `katex-tag` in version 0.19 (older versions had no prefix, `base`, `strut` and `tag`). If a version changes them, display formulas are measured as wide as the page; `MathRendererTests` notices this.
 
 ### Use the renderer on its own
 
@@ -176,7 +176,7 @@ The images are cached, as described above, so asking for a formula a second time
 
 ### Combine the parser with your own markup
 
-``MathMarkdownParser`` is a ``FullMarkdownParser`` with two additions (``LaTeXMarkdownParser`` replaces them with ``LaTeXMathTransformer``, a ``MathTransformer`` that also recognizes `\(` and `\[`, and adds ``LaTeXMathBlockParser`` right after ``MathBlockParser``). ``MathTransformer`` has to come after `CodeLinkHtmlTransformer` and before `LinkTransformer` in the list of inline transformers: code, HTML and autolinks are complete at this point, while emphasis, links and escapes have not yet changed the characters of the formula. ``MathBlockParser`` has to come before `TableParser`. ``MathInlineParser`` turns fenced code blocks into formulas. To use the syntax in another configuration, build the parser from the same pieces, as in ``MathMarkdownParser/defaultInlineTransformers``.
+``MathMarkdownParser`` is a ``FullMarkdownParser`` with two additions (``LaTeXMarkdownParser`` replaces them with ``LaTeXMathTransformer``, a ``MathTransformer`` that also recognizes `\(` and `\[`, and adds ``LaTeXMathBlockParser`` right after ``MathBlockParser``). ``MathTransformer/recognizesLaTeXDelimiters`` is the switch of the transformer for the delimiters of LaTeX. ``MathTransformer`` has to come after `CodeLinkHtmlTransformer` and before `LinkTransformer` in the list of inline transformers: code, HTML and autolinks are complete at this point, while emphasis, links and escapes have not yet changed the characters of the formula. ``MathBlockParser`` has to come before `TableParser`. ``MathInlineParser`` turns fenced code blocks into formulas. To use the syntax in another configuration, build the parser from the same pieces, as in ``MathMarkdownParser/defaultInlineTransformers``.
 
 ## See Also
 

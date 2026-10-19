@@ -60,6 +60,10 @@ Pass `mermaid: .default` to draw diagrams. The view first shows the code of a di
 
 Pass `math: MathConfig()` to show LaTeX formulas as images. A string is parsed with ``MathMarkdownParser`` (``MarkdownDialect/fullMath``) then, unless you pass another `dialect:`. Like diagrams, the formulas are rendered in the background: the view first shows the LaTeX as code. In dark mode, the formulas are white (the colour of the text). See <doc:MathematicalFormulas>.
 
+### Align the markers of lists
+
+The system's HTML importer turns lists into tables whose cells are laid out at their top, so the number or bullet of a list item is above the text if an image, such as a formula, makes the first line of the item taller than the text. `MarkdownText(…, alignListMarkers: true)` puts the markers on the baseline of the first line of their items: after every layout, also when the window is resized or the device is rotated, it measures the layout of its text view and lowers the markers with the character attribute `baselineOffset`. On iOS it needs the text system of TextKit 1 (which lists need anyway), and it costs time for long texts, so it is off by default. ``AttributedStringGenerator/alignListMarkers`` does it when a generator creates the string, without knowing the width of the text, and ``Foundation/NSAttributedString/preparedForRTFD()`` always does it, since RTFD viewers lay out lowered images differently than a text view does.
+
 ### Customize the generators for light and dark mode
 
 To change the fonts, colors or spacing of the default generators, pass a style for each mode. A style does not need a generator of your own:

@@ -39,17 +39,17 @@ extension NSAttributedString {
   /// (`fileWrapper(from:documentAttributes:)` with the document type `rtfd`). This is what
   /// ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:renderingOptions:)`` does.
   ///
-  /// The RTFD format has no room for some of what an attachment says, and a viewer shows an image
-  /// in a different way than a text view does. For every attachment that has PNG data (or any other
-  /// image data that the system can read) and a size, the copy makes up for this:
+  /// The RTFD format has no room for some of what an attachment says, and a viewer shows an
+  /// image in a different way than a text view does. For every attachment that has PNG data
+  /// (or any other image data that the system can read) and a size, the copy makes up for this:
   ///
-  /// - The size of an image in an RTFD document results from the resolution of its file, not from
-  ///   the `bounds` of its attachment. The image of the copy has a resolution which makes it as large
-  ///   in points as the bounds say.
+  /// - The size of an image in an RTFD document results from the resolution of its file, not
+  ///   from the `bounds` of its attachment. The image of the copy has a resolution which makes
+  ///   it as large in points as the bounds say.
   /// - A viewer places an image on the baseline of the text, since the format does not keep the
   ///   vertical position of the bounds of an attachment (`bounds.origin.y`). The copy has the
-  ///   position in the attribute `baselineOffset`, which the format keeps, so that a formula within
-  ///   a line stays aligned with the text.
+  ///   position in the attribute `baselineOffset`, which the format keeps, so that a formula
+  ///   within a line stays aligned with the text.
   /// - The files of the images have names that say what they are: `Formula 1.png` for a formula
   ///   of ``MathAttributedStringGenerator`` (see ``Foundation/NSAttributedString/Key/mathSource``)
   ///   and `Image 1.png` for any other image.
@@ -59,9 +59,9 @@ extension NSAttributedString {
   ///   lowers the markers again, for a text of 30 times the font size (see
   ///   ``AttributedStringGenerator/alignListMarkers``).
   ///
-  /// The attachments of the copy are new objects: neither the attributed string nor its attachments
-  /// are changed. Attachments without data or without a size are left as they are, and so is the rest
-  /// of the string, except for the markers of lists.
+  /// The attachments of the copy are new objects: neither the attributed string nor its
+  /// attachments are changed. Attachments without data or without a size are left as they
+  /// are, and so is the rest of the string, except for the markers of lists.
   ///
   /// ```swift
   /// let document = try string.preparedForRTFD()

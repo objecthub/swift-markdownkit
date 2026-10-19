@@ -8,6 +8,11 @@ Find out what to change in your code when you update MarkdownKit.
 
 This article lists the changes that can break the source code of a client when it updates to a newer version, and how to adapt. For all changes, including new features and fixes, see the [CHANGELOG](https://github.com/objecthub/swift-markdownkit/blob/master/CHANGELOG.md).
 
+### Moving to 2.2
+
+- The parameter `full: Bool` of ``MarkdownText`` is gone: the new parameter `dialect:` (a ``MarkdownDialect``) replaces it. Replace `full: true` with `dialect: .full`; `full: false` is the default (`nil`, which is ``MarkdownDialect/extendedCommonMark``).
+- Initializers have new parameters with default values: ``MarkdownText`` takes `prepare`, `math`, `alignListMarkers`, `style` and `darkStyle`, and ``AttributedStringGenerator`` and ``MathAttributedStringGenerator`` take `alignListMarkers`, `headerFont` and `h1FontSize` to `h4FontSize`. Calls compile as before. Code that refers to an initializer by its full signature, such as `MarkdownText.init(_:waitingMessage:generator:)` used as a function, has to use the new one. ``AttributedStringGenerator`` also has the initializer ``AttributedStringGenerator/init(version:options:style:syntaxHighlighter:mermaid:mermaidRenderer:imageBaseUrl:alignListMarkers:renderingOptions:)``, which a subclass without initializers of its own inherits.
+
 ### Moving to 2.1
 
 - ``AttributedStringGenerator/htmlGenerator(options:)`` is a method instead of a property, so `generator.htmlGenerator` becomes `generator.htmlGenerator()`. The `options` replace ``AttributedStringGenerator/renderingOptions`` for the new generator and are `nil` by default.
