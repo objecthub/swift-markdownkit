@@ -149,6 +149,19 @@ final class MarkdownUtilPDFTests: XCTestCase {
     XCTAssertEqual(try self.fontSize(of: "Heading", in: bigger), 20, accuracy: 0.3)
   }
 
+  func testTheStyleOfTheUtilityDeterminesTheTextSize() async throws {
+    let doc = self.parse("# Heading\n\nParagraph text.\n\nCode: `inline`\n")
+    var style = AttributedStringGenerator.Style.light
+    style.fontSize = 20
+    style.codeFontSize = 16
+    let data = try await MarkdownUtil(style: style).pdf(doc, renderingOptions: self.options)
+    let scale = CGFloat(MarkdownUtil.pdfTextScale)
+    XCTAssertEqual(try self.fontSize(of: "Paragraph", in: data), 20 * scale, accuracy: 0.3)
+    XCTAssertEqual(try self.fontSize(of: "inline", in: data), 16 * scale, accuracy: 0.3)
+    // Headings are larger than the text by the same steps as before
+    XCTAssertEqual(try self.fontSize(of: "Heading", in: data), 26 * scale, accuracy: 0.3)
+  }
+
 
   func testDiagramsAreScaledWithTheText() throws {
     let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
@@ -451,15 +464,18 @@ final class MarkdownUtilPDFTests: XCTestCase {
 
   // MARK: Colors
 
-  func testDocumentsAreBlackOnWhiteWhateverTheAppearance() {
+  func testDocumentsHaveTheExplicitColorsOfTheLightStyleWhateverTheAppearance() {
     let generator = MarkdownUtil.standard.documentGenerator(maxImageWidth: 400, diagramMaxWidth: 400,
-                                                                       renderingOptions: self.options)
+                                                            renderingOptions: self.options)
+    let light = AttributedStringGenerator.Style.light
     XCTAssertEqual(generator.fontColor, "#000000")
-    XCTAssertEqual(generator.codeFontColor, "#000000")
-    XCTAssertEqual(generator.codeBlockFontColor, "#000000")
-    XCTAssertEqual(generator.codeBlockBackground, "#FFFFFF")
+    XCTAssertEqual(generator.fontColor, light.fontColor)
+    XCTAssertEqual(generator.codeFontColor, light.codeFontColor)
+    XCTAssertEqual(generator.codeBlockFontColor, light.codeBlockFontColor)
+    XCTAssertEqual(generator.codeBlockBackground, light.codeBlockBackground)
     XCTAssertEqual([generator.h1Color, generator.h2Color, generator.h3Color, generator.h4Color],
-                   Array(repeating: "#000000", count: 4))
+                   [light.h1Color, light.h2Color, light.h3Color, light.h4Color])
+    XCTAssertEqual(generator.docStyle, AttributedStringGenerator(style: light).docStyle)
   }
 
   // MARK: Images

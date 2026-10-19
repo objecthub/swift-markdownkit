@@ -33,13 +33,14 @@ Fenced code blocks with the language `mermaid` are [Mermaid](https://mermaid.js.
 
 ### Generate attributed strings
 
-MarkdownKit also comes with a generator for attributed strings. ``AttributedStringGenerator`` uses a customized HTML generator internally to define the translation from Markdown into `NSAttributedString`. The initializer of ``AttributedStringGenerator`` provides a number of parameters for customizing the style of the generated attributed string:
+MarkdownKit also comes with a generator for attributed strings. ``AttributedStringGenerator`` uses a customized HTML generator internally to define the translation from Markdown into `NSAttributedString`. An ``AttributedStringGenerator/Style`` customizes the look of the generated attributed string: fonts, colors, spacing and CSS. Start with one of its presets and change what you need:
 
 ```swift
-let generator = AttributedStringGenerator(fontSize: 12,
-                                          fontFamily: "Helvetica, sans-serif",
-                                          fontColor: "#33C",
-                                          h1Color: "#000")
+var style = AttributedStringGenerator.Style.light
+style.fontSize = 12
+style.fontFamily = "Helvetica, sans-serif"
+style.fontColor = "#33C"
+let generator = AttributedStringGenerator(style: style)
 let attributedStr = generator.generate(doc: markdown)
 ```
 

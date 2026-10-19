@@ -184,6 +184,40 @@ extension MarkdownUtil {
     public init(horizontal: CGFloat, vertical: CGFloat) {
       self.init(top: vertical, left: horizontal, bottom: vertical, right: horizontal)
     }
+    
+    /// Creates insets from a list of widths, separated by commas or white space, in points or
+    /// in the unit that follows a number (`pt`, `in`, `mm` or `cm`), as the margins of a page
+    /// are written in CSS: one width is the width of all edges, two are the widths of the
+    /// upper and the lower edge, and of the left and the right edge, and four are the widths
+    /// of the upper, the right, the lower and the left edge. The result is `nil` if the list
+    /// has another length or a width is not a number which is at least 0.
+    ///
+    /// ```swift
+    /// Insets("72")           // one inch on all edges
+    /// Insets("20mm, 15mm")   // 20 mm above and below, 15 mm at the sides
+    /// Insets("1in 0.5in 1in 0.5in")
+    /// ```
+    public init?(_ description: String) {
+      let tokens = description.split(whereSeparator: { $0 == "," || $0 == " " || $0 == "\t" })
+                              .map(String.init)
+      let widths = tokens.compactMap { MarkdownUtil.length($0)?.value }
+      guard widths.count == tokens.count else {
+        return nil
+      }
+      switch widths.count {
+        case 1:
+          self.init(CGFloat(widths[0]))
+        case 2:
+          self.init(horizontal: CGFloat(widths[1]), vertical: CGFloat(widths[0]))
+        case 4:
+          self.init(top: CGFloat(widths[0]),
+                    left: CGFloat(widths[3]),
+                    bottom: CGFloat(widths[2]),
+                    right: CGFloat(widths[1]))
+        default:
+          return nil
+      }
+    }
   }
 
   /// Returns a copy of an image whose content has transparent space of exactly the given widths

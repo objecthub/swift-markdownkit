@@ -78,7 +78,7 @@ class MarkdownASTests: XCTestCase {
     XCTAssertFalse(nested.contains("<td />") || nested.contains("<tr style"), nested)
     let generator = AttributedStringGenerator(blockquoteColor: "#123456")
     XCTAssertTrue(generator.docStyle.contains("td.quote"), generator.docStyle)
-    XCTAssertTrue(generator.quoteStyle.contains("border-left: 0.2em solid #123456"),
+    XCTAssertTrue(generator.quoteStyle.contains("border-left: 0.35em solid #123456"),
                   generator.quoteStyle)
   }
 
@@ -117,12 +117,12 @@ class MarkdownASTests: XCTestCase {
 
   func testStyleOfTheSpacersAboveHeadings() {
     let generator = AttributedStringGenerator()
-    XCTAssertEqual(generator.h1GapStyle, "font-size: 8px; margin: 0em; padding: 0em;")
-    XCTAssertEqual(generator.h2GapStyle, "font-size: 4px; margin: 0em; padding: 0em;")
+    XCTAssertEqual(generator.h1GapStyle, "font-size: 10px; margin: 0em; padding: 0em;")
+    XCTAssertEqual(generator.h2GapStyle, "font-size: 6px; margin: 0em; padding: 0em;")
     XCTAssertTrue(generator.docStyle.contains(
-                    "p.h1gap          { font-size: 8px; margin: 0em; padding: 0em; }"))
+                    "p.h1gap          { font-size: 10px; margin: 0em; padding: 0em; }"))
     XCTAssertTrue(generator.docStyle.contains(
-                    "p.h2gap          { font-size: 4px; margin: 0em; padding: 0em; }"))
+                    "p.h2gap          { font-size: 6px; margin: 0em; padding: 0em; }"))
   }
 
   #if os(macOS) || os(iOS)
@@ -171,12 +171,12 @@ class MarkdownASTests: XCTestCase {
     // Above a level 3 heading there is only the space below the paragraph (0.7em)
     let h3 = try self.distance(to: "Heading", in: "Some text.\n\n### Heading\n", using: generator)
     XCTAssertEqual(h3, 9.8, accuracy: 0.3)
-    // Above a level 1 heading, there is the spacer paragraph in addition: about 10 points more
+    // Above a level 1 heading, there is the spacer paragraph in addition (10 px): about 12 points more
     let h1 = try self.distance(to: "Heading", in: "Some text.\n\n# Heading\n", using: generator)
-    XCTAssertEqual(h1 - h3, 10, accuracy: 1.5)
-    // The spacer of a level 2 heading is half as high: about 5 points
+    XCTAssertEqual(h1 - h3, 12, accuracy: 1.5)
+    // The spacer of a level 2 heading is lower (6 px): about 7 points
     let h2 = try self.distance(to: "Heading", in: "Some text.\n\n## Heading\n", using: generator)
-    XCTAssertEqual(h2 - h3, 5, accuracy: 1.5)
+    XCTAssertEqual(h2 - h3, 7, accuracy: 1.5)
     // Larger spacers make more space
     let large1 = try self.distance(to: "Heading", in: "Some text.\n\n# Heading\n",
                                    using: LargeGapGenerator())

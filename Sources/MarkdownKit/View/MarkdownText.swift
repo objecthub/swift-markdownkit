@@ -155,16 +155,25 @@ public struct MarkdownText: View {
   ///                       and needs the text system of TextKit 1 for lists on iOS, which
   ///                       costs time for long texts; this is why it is optional. It is
   ///                       available on macOS and iOS.
+  ///   - style: The appearance of the text in light mode: fonts, colors, spacing and CSS. If `nil`
+  ///            (the default), it is ``AttributedStringGenerator/Style/default``, which uses the
+  ///            colors of the system.
+  ///   - darkStyle: The appearance of the text in dark mode. If `nil` (the default), it is
+  ///                ``AttributedStringGenerator/Style/dark``: light text on a dark background.
   public init(_ text: Block,
               waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
               renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
               mermaid: MermaidConfig? = nil,
               math: MathConfig? = nil,
-              alignListMarkers: Bool = false) {
+              alignListMarkers: Bool = false,
+              style: AttributedStringGenerator.Style? = nil,
+              darkStyle: AttributedStringGenerator.Style? = nil) {
     self.init(text,
               waitingMessage: waitingMessage,
-              generator: Self.defaultGenerator(renderingOptions, mermaid: mermaid, math: math),
-              prepare: Self.defaultPreparer(renderingOptions, mermaid: mermaid, math: math),
+              generator: Self.defaultGenerator(renderingOptions, mermaid: mermaid, math: math,
+                                               style: style, darkStyle: darkStyle),
+              prepare: Self.defaultPreparer(renderingOptions, mermaid: mermaid, math: math,
+                                            style: style, darkStyle: darkStyle),
               alignListMarkers: alignListMarkers)
   }
   
@@ -200,14 +209,18 @@ public struct MarkdownText: View {
               renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
               mermaid: MermaidConfig? = nil,
               math: MathConfig? = nil,
-              alignListMarkers: Bool = false) {
+              alignListMarkers: Bool = false,
+              style: AttributedStringGenerator.Style? = nil,
+              darkStyle: AttributedStringGenerator.Style? = nil) {
     self.init((math == nil ? (dialect ?? .extendedCommonMark) : (dialect ?? .fullMath))
                 .parser.parse(string),
               waitingMessage: waitingMessage,
               renderingOptions: renderingOptions,
               mermaid: mermaid,
               math: math,
-              alignListMarkers: alignListMarkers)
+              alignListMarkers: alignListMarkers,
+              style: style,
+              darkStyle: darkStyle)
   }
   
   public var body: some View {
@@ -247,67 +260,49 @@ public struct MarkdownText: View {
     }
   }
   
-  /// Creates the attributed string generator for dark mode with the given rendering options. If
-  /// `math` is not `nil`, it is a `MathAttributedStringGenerator`.
-  private static func makeDarkGenerator(
+  /// Creates the attributed string generator for a style with the given rendering options,
+  /// Mermaid configuration and math configuration. If `math` is not `nil`, it is a
+  /// `MathAttributedStringGenerator`.
+  private static func makeGenerator(
+                        _ style: AttributedStringGenerator.Style,
                         _ renderingOptions: AttributedStringGenerator.RenderingOptions,
-                        mermaid: MermaidConfig? = nil,
-                        math: MathConfig? = nil)
+                        mermaid: MermaidConfig?,
+                        math: MathConfig?)
                       -> AttributedStringGenerator {
     if let math {
-      return MathAttributedStringGenerator(
-        fontColor: "#FFF",
-        codeFontColor: "#FFF",
-        codeBlockFontColor: "#FF6",
-        codeBlockBackground: "#333",
-        syntaxHighlighting: .defaultDark,
-        mermaid: mermaid?.darkVariant,
-        math: math,
-        borderColor: "#BBB",
-        h1Color: "#FFF",
-        h2Color: "#FFF",
-        h3Color: "#FFF",
-        h4Color: "#FFF",
-        renderingOptions: renderingOptions)
+      return MathAttributedStringGenerator(style: style,
+                                           mermaid: mermaid,
+                                           math: math,
+                                           renderingOptions: renderingOptions)
     } else {
-      return AttributedStringGenerator(
-        fontColor: "#FFF",
-        codeFontColor: "#FFF",
-        codeBlockFontColor: "#FF6",
-        codeBlockBackground: "#333",
-        syntaxHighlighting: .defaultDark,
-        mermaid: mermaid?.darkVariant,
-        borderColor: "#BBB",
-        h1Color: "#FFF",
-        h2Color: "#FFF",
-        h3Color: "#FFF",
-        h4Color: "#FFF",
-        renderingOptions: renderingOptions)
+      return AttributedStringGenerator(style: style,
+                                       mermaid: mermaid,
+                                       renderingOptions: renderingOptions)
     }
   }
   
   /// Default `AttributedStringGenerator` implementation for dark mode
-  private static let darkGenerator = MarkdownText.makeDarkGenerator(.trusted)
+  private static let darkGenerator = MarkdownText.makeGenerator(.dark, .trusted, mermaid: nil, math: nil)
   
   /// Returns the default generators for light and dark mode for the given rendering options,
-  /// Mermaid configuration and math configuration.
+  /// Mermaid configuration, math configuration and styles. The styles are `.default` for light
+  /// mode and `.dark` for dark mode, unless the parameters `style` and `darkStyle` say otherwise.
   private static func makeGenerators(
                         _ renderingOptions: AttributedStringGenerator.RenderingOptions,
                         mermaid: MermaidConfig?,
-                        math: MathConfig? = nil)
+                        math: MathConfig? = nil,
+                        style: AttributedStringGenerator.Style? = nil,
+                        darkStyle: AttributedStringGenerator.Style? = nil)
                       -> (light: AttributedStringGenerator, dark: AttributedStringGenerator) {
-    if let math {
-      return (MathAttributedStringGenerator(mermaid: mermaid,
-                                            math: math,
-                                            renderingOptions: renderingOptions),
-              MarkdownText.makeDarkGenerator(renderingOptions, mermaid: mermaid, math: math))
-    } else if mermaid == nil && renderingOptions == .trusted {
-      return (AttributedStringGenerator.standard,
-              MarkdownText.darkGenerator)
-    } else {
-      return (AttributedStringGenerator(mermaid: mermaid, renderingOptions: renderingOptions),
-              MarkdownText.makeDarkGenerator(renderingOptions, mermaid: mermaid))
-    }
+    let plain = mermaid == nil && math == nil && renderingOptions == .trusted
+    return (plain && style == nil
+              ? AttributedStringGenerator.standard
+              : MarkdownText.makeGenerator(style ?? .light, renderingOptions,
+                                           mermaid: mermaid, math: math),
+            plain && darkStyle == nil
+              ? MarkdownText.darkGenerator
+              : MarkdownText.makeGenerator(darkStyle ?? .dark, renderingOptions,
+                                           mermaid: mermaid?.darkVariant, math: math))
   }
   
   /// Returns the function which generates attributed strings with the default generators for
@@ -315,9 +310,12 @@ public struct MarkdownText: View {
   static func defaultGenerator(
                         _ renderingOptions: AttributedStringGenerator.RenderingOptions,
                         mermaid: MermaidConfig? = nil,
-                        math: MathConfig? = nil)
+                        math: MathConfig? = nil,
+                        style: AttributedStringGenerator.Style? = nil,
+                        darkStyle: AttributedStringGenerator.Style? = nil)
                       -> (Block, ColorScheme) -> NSAttributedString? {
-    let generators = MarkdownText.makeGenerators(renderingOptions, mermaid: mermaid, math: math)
+    let generators = MarkdownText.makeGenerators(renderingOptions, mermaid: mermaid, math: math,
+                                                 style: style, darkStyle: darkStyle)
     return { doc, colorScheme in
       switch colorScheme {
         case .dark:
@@ -335,12 +333,15 @@ public struct MarkdownText: View {
   static func defaultPreparer(
                         _ renderingOptions: AttributedStringGenerator.RenderingOptions,
                         mermaid: MermaidConfig?,
-                        math: MathConfig? = nil)
+                        math: MathConfig? = nil,
+                        style: AttributedStringGenerator.Style? = nil,
+                        darkStyle: AttributedStringGenerator.Style? = nil)
                       -> (@Sendable (Block, ColorScheme) async -> Bool)? {
     guard mermaid != nil || math != nil else {
       return nil
     }
-    let generators = MarkdownText.makeGenerators(renderingOptions, mermaid: mermaid, math: math)
+    let generators = MarkdownText.makeGenerators(renderingOptions, mermaid: mermaid, math: math,
+                                                 style: style, darkStyle: darkStyle)
     return { doc, colorScheme in
       let generator = colorScheme == .dark ? generators.dark : generators.light
       let diagrams = await generator.prepareDiagrams(in: doc)

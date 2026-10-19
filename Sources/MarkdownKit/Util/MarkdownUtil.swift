@@ -27,9 +27,10 @@ import Foundation
 /// - **Converting Markdown into documents.** ``text(_:width:)``, ``ansi(_:width:)`` and
 ///   ``html(_:math:safeMode:)`` turn a parsed document into text, text with ANSI escape codes and
 ///   HTML on every platform. ``rtf(_:title:author:renderingOptions:)`` and
-///   ``rtfd(_:title:author:maxImageWidth:renderingOptions:)`` create RTF and RTFD documents on macOS
-///   and iOS; RTFD documents contain the diagrams and formulas as images. See
-///   <doc:ConvertingMarkdownIntoDocuments>.
+///   ``rtfd(_:title:author:maxImageWidth:renderingOptions:)`` create RTF and RTFD documents, and
+///   ``pdf(_:title:author:pageSize:margins:renderingOptions:)`` a PDF document, on macOS and iOS;
+///   RTFD and PDF documents contain the diagrams and formulas as images. The ``style`` of the
+///   utility determines how these documents look. See <doc:ConvertingMarkdownIntoDocuments>.
 /// - **Drawing diagrams and formulas as images.** ``mermaidImage(_:config:)`` and
 ///   ``mathImage(_:display:fontSize:color:config:)`` turn the source of a Mermaid diagram or the
 ///   LaTeX of a formula into an `NSImage` (macOS) or a `UIImage` (iOS), without any Markdown, and
@@ -59,16 +60,34 @@ public struct MarkdownUtil: Sendable {
   /// The renderer that draws formulas. If `nil`, ``MathRenderer/shared`` is used.
   public let mathRenderer: MathRenderer?
 
-  /// Creates a utility that draws diagrams and formulas with the given renderers. A renderer
-  /// of your own lets you choose the limits of its cache and the time after which its web view is
-  /// released.
+  /// The appearance of the documents that ``rtf(_:title:author:renderingOptions:)``,
+  /// ``rtfd(_:title:author:maxImageWidth:renderingOptions:)`` and
+  /// ``pdf(_:title:author:pageSize:margins:renderingOptions:)`` create: fonts, colors, spacing and
+  /// CSS. The default is ``AttributedStringGenerator/Style/light``: the colors for a white page,
+  /// whatever the appearance of the system is.
+  public let style: AttributedStringGenerator.Style
+
+  /// Creates a utility that draws diagrams and formulas with the given renderers, and creates
+  /// documents in the given style. A renderer of your own lets you choose the limits of its cache
+  /// and the time after which its web view is released.
+  ///
+  /// ```swift
+  /// var style = AttributedStringGenerator.Style.light
+  /// style.fontSize = 15
+  /// style.fontFamily = "Georgia, serif"
+  /// let pdf = try await MarkdownUtil(style: style).pdf(doc)
+  /// ```
   ///
   /// - Parameters:
   ///   - mermaidRenderer: The renderer for diagrams, or `nil` to use the shared one.
   ///   - mathRenderer: The renderer for formulas, or `nil` to use the shared one.
-  public init(mermaidRenderer: MermaidRenderer? = nil, mathRenderer: MathRenderer? = nil) {
+  ///   - style: The appearance of RTF, RTFD and PDF documents.
+  public init(mermaidRenderer: MermaidRenderer? = nil,
+              mathRenderer: MathRenderer? = nil,
+              style: AttributedStringGenerator.Style = .light) {
     self.mermaidRenderer = mermaidRenderer
     self.mathRenderer = mathRenderer
+    self.style = style
   }
 
   // MARK: Text and HTML

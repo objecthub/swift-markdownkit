@@ -10,7 +10,7 @@ Style the attributed strings that ``AttributedStringGenerator`` creates, and und
 2. ``AttributedStringGenerator/generateHtml(_:)`` wraps the HTML into a document with a style sheet, ``AttributedStringGenerator/docStyle``, which assigns a style property of the generator to each element and class.
 3. The system's HTML importer converts the document into an attributed string. ``AttributedStringGenerator/generate(doc:)`` calls it synchronously; `generateAsync` uses `NSAttributedString.loadFromHTML`.
 
-Everything you can customize is therefore HTML and CSS: the generator's parameters, its style properties and its CSS. The importer understands only part of CSS, see "Know what the importer ignores" below.
+Everything you can customize is therefore HTML and CSS: the generator's style, its style properties and its CSS. The importer understands only part of CSS, see "Know what the importer ignores" below.
 
 ### Choose the generator version
 
@@ -20,34 +20,55 @@ Everything you can customize is therefore HTML and CSS: the generator's paramete
 let generator = AttributedStringGenerator(version: .preOS26)
 ```
 
-### Use the initializer parameters
+### Use a style
 
-The initializer takes the most frequent settings:
+The appearance of the attributed strings is a value, an ``AttributedStringGenerator/Style``. Start with a preset, change what you need, and pass it to the generator:
+
+```swift
+var style = AttributedStringGenerator.Style.light
+style.fontSize = 15
+style.fontFamily = "Avenir Next, sans-serif"
+style.h1Color = "#036"
+style.customStyle = "td.quote { font-style: italic; }"
+let generator = AttributedStringGenerator(style: style)
+```
+
+These are the properties of a style:
+
+| Properties | Effect |
+|---|---|
+| `fontSize`, `fontFamily`, `fontColor`, `lineSpacing` | the body text; the font family is a CSS list, e.g. `"Helvetica, sans-serif"`, or `nil` for the default of the generator's version; the line spacing is a multiple of the line height of the font (default 1.1) |
+| `codeFontSize`, `codeFontFamily`, `codeFontColor` | inline code |
+| `codeBlockFontSize`, `codeBlockFontColor`, `codeBlockLineSpacing`, `codeBlockBackground` | code blocks; the line spacing of code is 1 by default |
+| `syntaxHighlighting` | the theme of the syntax highlighting, or `nil` for none, see <doc:SyntaxHighlighting> |
+| `borderColor`, `blockquoteColor` | the border of code blocks and thematic breaks, the bar of block quotes |
+| `headerFont` | the font family of all headings, a CSS list; if it is `nil`, no font is set and headings have the base font |
+| `h1Color` to `h4Color` | the color of headings |
+| `h1FontSize` to `h4FontSize` | the size of the font of headings; if it is `nil`, a heading is larger than `fontSize` by 6 (`h1`), 4, 2 and 1 (`h4`) |
+| `maxImageWidth`, `maxImageHeight` | CSS limits for the size of images |
+| `customStyle` | CSS that is added at the end of the style sheet |
+
+Three presets cover the usual cases. ``AttributedStringGenerator/Style/default`` has the colors of the system, ``AttributedStringGenerator/Style/light`` has the colors for a white background (black text) and ``AttributedStringGenerator/Style/dark`` the colors for a dark one (white text), whatever the appearance of the system is. The colors of the default style are ``mdDefaultColor`` and ``mdDefaultBackgroundColor``, the hex values of the system's text and background color. They are determined once, for the appearance that is active when they are first used, so use a preset or explicit colors for a specific appearance, as in <doc:DisplayingMarkdownWithSwiftUI>.
+
+The same value styles the documents that ``MarkdownUtil`` creates (see <doc:ConvertingMarkdownIntoDocuments>) and the text of a ``MarkdownText`` view.
+
+### Use the other parameters
+
+A style only describes how the text looks. What the generator does is the parameter of its initializer:
 
 | Parameters | Effect |
 |---|---|
-| `fontSize`, `fontFamily`, `fontColor`, `lineSpacing` | the body text; the font family is a CSS list, e.g. `"Helvetica, sans-serif"`; the line spacing is a multiple of the line height of the font (default 1.1) |
-| `codeFontSize`, `codeFontFamily`, `codeFontColor` | inline code |
-| `codeBlockFontSize`, `codeBlockFontColor`, `codeBlockLineSpacing`, `codeBlockBackground` | code blocks; the line spacing of code is 1 by default |
-| `borderColor`, `blockquoteColor` | the border of code blocks and thematic breaks, the bar of block quotes |
-| `h1Color` to `h4Color` | headings |
-| `maxImageWidth`, `maxImageHeight` | CSS limits for the size of images |
-| `syntaxHighlighting`, `syntaxHighlighter` | see <doc:SyntaxHighlighting> |
+| `style` | the ``AttributedStringGenerator/Style`` described above |
+| `version` | the generator version, see above |
+| `options` | ``AttributedStringGenerator/Options``: `.tightLists` shows the paragraphs of loose list items without spacing |
+| `syntaxHighlighter` | the highlighter that colors code blocks with the theme of the style, see <doc:SyntaxHighlighting> |
 | `mermaid`, `mermaidRenderer` | see <doc:DrawingMermaidDiagrams> |
 | `math`, `mathRenderer` | only the initializer of ``MathAttributedStringGenerator``, see <doc:MathematicalFormulas> |
-| `options` | ``AttributedStringGenerator/Options``: `.tightLists` shows the paragraphs of loose list items without spacing |
-| `customStyle` | CSS that is added at the end of the style sheet |
 | `imageBaseUrl` | the directory against which relative image paths are resolved |
+| `alignListMarkers` | aligns the numbers and bullets of lists with the baseline of the first line of their items |
 | `renderingOptions` | how the HTML is rendered and what it may load, see below |
 
-Colors are CSS colors. The defaults are ``mdDefaultColor`` and ``mdDefaultBackgroundColor``, the hex values of the system's text and background color. They are determined once, for the appearance that is active when they are first used, so use a generator with explicit colors for dark mode, as in <doc:DisplayingMarkdownWithSwiftUI>.
-
-```swift
-let generator = AttributedStringGenerator(fontSize: 15,
-                                          fontFamily: "Avenir Next, sans-serif",
-                                          h1Color: "#036",
-                                          customStyle: "td.quote { font-style: italic; }")
-```
+An initializer which takes the properties of the style one by one, from `fontSize` to `customStyle`, still exists; it creates the same generator as one with the equivalent style. The generator keeps the style it was created with in ``AttributedStringGenerator/style`` and its properties, such as ``AttributedStringGenerator/fontSize``, read from it.
 
 ### Override style properties
 

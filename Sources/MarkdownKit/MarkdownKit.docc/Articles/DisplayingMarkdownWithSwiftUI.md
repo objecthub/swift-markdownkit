@@ -10,7 +10,7 @@ SwiftUI comes with support for Markdown-formatted snippets but does not have a f
 
 The initializer of ``MarkdownText`` receives the parsed Markdown content of type ``Block``, an optional `waitingMessage:` parameter which defines what is being displayed while the content is being rendered (especially if many images need to be loaded), as well as a `generator:` parameter defining how the parsed Markdown is transformed into an attributed string, which is then being shown in the view. The generator is not just called once, but every time the color scheme has changed to potentially update the colors in use.
 
-A variant of this initializer accepts a Markdown document as a string and parses it with the standard parser of a ``MarkdownDialect``: the `dialect:` parameter selects it, and the default is ``MarkdownDialect/extendedCommonMark`` (``MarkdownDialect/fullMath`` if you pass `math:`, see below). Pass `dialect: .full` for the syntax of ``FullMarkdownParser``, or `dialect: .fullLaTeX` for formulas with the delimiters `\(…\)` and `\[…\]` (``LaTeXMarkdownParser``). There are two initializers for each of the two ways of providing the document. Either you pass a `generator:`, or you do not provide one and the view uses the default generators for light and dark mode, which can be configured with `renderingOptions:` (see ``AttributedStringGenerator/RenderingOptions``; the default is `.trusted`), `mermaid:` and `math:`.
+A variant of this initializer accepts a Markdown document as a string and parses it with the standard parser of a ``MarkdownDialect``: the `dialect:` parameter selects it, and the default is ``MarkdownDialect/extendedCommonMark`` (``MarkdownDialect/fullMath`` if you pass `math:`, see below). Pass `dialect: .full` for the syntax of ``FullMarkdownParser``, or `dialect: .fullLaTeX` for formulas with the delimiters `\(…\)` and `\[…\]` (``LaTeXMarkdownParser``). There are two initializers for each of the two ways of providing the document. Either you pass a `generator:`, or you do not provide one and the view uses the default generators for light and dark mode, which can be configured with `renderingOptions:` (see ``AttributedStringGenerator/RenderingOptions``; the default is `.trusted`), `mermaid:`, `math:`, and `style:` and `darkStyle:`, an ``AttributedStringGenerator/Style`` for light and dark mode (the defaults are ``AttributedStringGenerator/Style/default`` and ``AttributedStringGenerator/Style/dark``).
 
 The following code snippet shows the signatures of the initializers.
 
@@ -62,7 +62,17 @@ Pass `math: MathConfig()` to show LaTeX formulas as images. A string is parsed w
 
 ### Customize the generators for light and dark mode
 
-Here is an example how view ``MarkdownText`` could be used in a simple Markdown viewer. It defines an attributed string generator that uses two color schemes depending on whether dark mode is active or not.
+To change the fonts, colors or spacing of the default generators, pass a style for each mode. A style does not need a generator of your own:
+
+```swift
+var style = AttributedStringGenerator.Style.default
+style.fontFamily = "Georgia, serif"
+var darkStyle = AttributedStringGenerator.Style.dark
+darkStyle.fontFamily = "Georgia, serif"
+MarkdownText(string: text, style: style, darkStyle: darkStyle)
+```
+
+Pass a `generator:` if you need more, such as a subclass of the generator. Here is an example how view ``MarkdownText`` could be used in a simple Markdown viewer. It defines an attributed string generator that uses two color schemes depending on whether dark mode is active or not.
 
 ```swift
 struct ContentView: View {

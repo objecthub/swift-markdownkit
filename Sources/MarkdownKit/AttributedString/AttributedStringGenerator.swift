@@ -174,7 +174,8 @@ open class AttributedStringGenerator: @unchecked Sendable {
     public let safeMode: Bool
 
     /// A scale factor for font sizes (1 is the default size). If `nil`, the system default is
-    /// used. Works for the synchronous and the asynchronous methods.
+    /// used. Works for the synchronous and the asynchronous methods. The HTML importer does not
+    /// scale a font below 9 points: a size that would be smaller becomes 9 points.
     public let textSizeMultiplier: Double?
 
     /// Creates rendering options. The defaults are those of `trusted`: nothing is restricted,
@@ -195,6 +196,19 @@ open class AttributedStringGenerator: @unchecked Sendable {
       self.imageExtensions = imageExtensions
       self.safeMode = safeMode
       self.textSizeMultiplier = textSizeMultiplier
+    }
+    
+    /// Returns these options with a text size multiplier which is `factor` times the multiplier of
+    /// these options (or 1, if there is none).
+    func scalingText(by factor: Double) -> AttributedStringGenerator.RenderingOptions {
+      return RenderingOptions(
+               baseUrl: self.baseUrl,
+               timeout: self.timeout,
+               localImages: self.localImages,
+               remoteImages: self.remoteImages,
+               imageExtensions: self.imageExtensions,
+               safeMode: self.safeMode,
+               textSizeMultiplier: (self.textSizeMultiplier ?? 1) * factor)
     }
     
     /// True if images are restricted in any way.
@@ -549,6 +563,209 @@ open class AttributedStringGenerator: @unchecked Sendable {
       highlightIndentedCodeBlocks: true)  // infer the language for indented code blocks
   }
   
+  ///
+  /// The appearance of the attributed strings that a generator creates: fonts, colors, spacing,
+  /// borders, the size of images, the syntax highlighting theme, and CSS of your own.
+  ///
+  /// A style is a value: start with a preset and change what you need.
+  ///
+  /// ```swift
+  /// var style = AttributedStringGenerator.Style.light
+  /// style.fontSize = 12
+  /// style.fontFamily = "Georgia, serif"
+  /// style.h1Color = "#1a4a8a"
+  /// let generator = AttributedStringGenerator(style: style)
+  /// let document = try await MarkdownUtil(style: style).pdf(doc)
+  /// ```
+  ///
+  /// Colors are CSS colors (`"#000000"`, `"#f00"`, `"rgb(0, 0, 0)"`), sizes are CSS pixels, which are
+  /// points in the attributed string. A style does not contain what the generator does (the version,
+  /// the options, diagrams and formulas, the highlighter, the base URL of images, the rendering
+  /// options): those are parameters of the generator.
+  ///
+  public struct Style: Sendable {
+
+    /// The base font size, which headings are larger than unless they have a size of their own
+    /// (``h1FontSize`` to ``h4FontSize``). The default is 14.
+    public var fontSize: Float
+
+    /// The base font family: a CSS list such as `"Helvetica, sans-serif"`. If `nil`, the default of
+    /// the generator's ``AttributedStringGenerator/Version`` is used: system fonts, and a serif font
+    /// for ``AttributedStringGenerator/Version/preOS26``.
+    public var fontFamily: String?
+
+    /// The base font color. The default is the color of text in the appearance of the system.
+    public var fontColor: String
+
+    /// The line height of text as a multiple of the natural line height of its font. The default
+    /// is 1.1; 1, or 0 and less, keeps the line height of the font. See
+    /// ``AttributedStringGenerator/lineSpacing``.
+    public var lineSpacing: Float
+
+    /// The size of the font of code within a line. The default is 13.
+    public var codeFontSize: Float
+
+    /// The font family of code, in a line and in code blocks: a CSS list. If `nil`, the default of
+    /// the generator's version is used: a monospaced system font.
+    public var codeFontFamily: String?
+
+    /// The color of the font of code within a line.
+    public var codeFontColor: String
+
+    /// The size of the font of code blocks. The default is 12.
+    public var codeBlockFontSize: Float
+
+    /// The color of the font of code blocks, which syntax highlighting overrides.
+    public var codeBlockFontColor: String
+
+    /// The line height of the lines of code blocks as a multiple of the natural line height of the
+    /// code font. The default is 1. See ``lineSpacing``.
+    public var codeBlockLineSpacing: Float
+
+    /// The background color of code blocks.
+    public var codeBlockBackground: String
+
+    /// The syntax highlighting of code blocks, which also chooses the theme (colors). `nil` turns
+    /// highlighting off. The default is ``SyntaxHighlightingConfig/default``, a theme for light
+    /// backgrounds; use ``SyntaxHighlightingConfig/defaultDark`` for dark ones.
+    public var syntaxHighlighting: SyntaxHighlightingConfig?
+
+    /// The color of the borders of code blocks and tables, and of thematic breaks.
+    public var borderColor: String
+
+    /// The color of the bar next to a block quote.
+    public var blockquoteColor: String
+
+    /// The font family of headings (levels 1 to 4): a CSS list such as `"Georgia, serif"`. If `nil`
+    /// (the default), the style sheet does not set a font for headings, so they have the base font
+    /// (``fontFamily``).
+    public var headerFont: String?
+
+    /// The color of level 1 headings.
+    public var h1Color: String
+
+    /// The font size of level 1 headings. If `nil`, it is 6 larger than ``fontSize``.
+    public var h1FontSize: Float?
+
+    /// The color of level 2 headings.
+    public var h2Color: String
+
+    /// The font size of level 2 headings. If `nil`, it is 4 larger than ``fontSize``.
+    public var h2FontSize: Float?
+
+    /// The color of level 3 headings.
+    public var h3Color: String
+
+    /// The font size of level 3 headings. If `nil`, it is 2 larger than ``fontSize``.
+    public var h3FontSize: Float?
+
+    /// The color of level 4 headings.
+    public var h4Color: String
+
+    /// The font size of level 4 headings. If `nil`, it is 1 larger than ``fontSize``.
+    public var h4FontSize: Float?
+
+    /// The maximal width of an image: a CSS length such as `"400px"`. If `nil`, there is none.
+    public var maxImageWidth: String?
+
+    /// The maximal height of an image: a CSS length such as `"400px"`. If `nil`, there is none.
+    public var maxImageHeight: String?
+
+    /// CSS that is added at the end of the style sheet, to change what the other properties do not
+    /// reach. See <doc:CustomizingAttributedStringOutput>.
+    public var customStyle: String
+
+    /// Creates a style. The defaults are those of the parameters of the initializer of
+    /// ``AttributedStringGenerator``, which are the properties of ``default``.
+    public init(fontSize: Float = 14.0,
+                fontFamily: String? = nil,
+                fontColor: String = mdDefaultColor,
+                lineSpacing: Float = 1.1,
+                codeFontSize: Float = 13.0,
+                codeFontFamily: String? = nil,
+                codeFontColor: String = mdDefaultColor,
+                codeBlockFontSize: Float = 12.0,
+                codeBlockFontColor: String = mdDefaultColor,
+                codeBlockLineSpacing: Float = 1.0,
+                codeBlockBackground: String = mdDefaultBackgroundColor,
+                syntaxHighlighting: SyntaxHighlightingConfig? = .default,
+                borderColor: String = "#cccccc",
+                blockquoteColor: String = "#abe",
+                headerFont: String? = nil,
+                h1Color: String = mdDefaultColor,
+                h1FontSize: Float? = nil,
+                h2Color: String = mdDefaultColor,
+                h2FontSize: Float? = nil,
+                h3Color: String = mdDefaultColor,
+                h3FontSize: Float? = nil,
+                h4Color: String = mdDefaultColor,
+                h4FontSize: Float? = nil,
+                maxImageWidth: String? = nil,
+                maxImageHeight: String? = nil,
+                customStyle: String = "") {
+      self.fontSize = fontSize
+      self.fontFamily = fontFamily
+      self.fontColor = fontColor
+      self.lineSpacing = lineSpacing
+      self.codeFontSize = codeFontSize
+      self.codeFontFamily = codeFontFamily
+      self.codeFontColor = codeFontColor
+      self.codeBlockFontSize = codeBlockFontSize
+      self.codeBlockFontColor = codeBlockFontColor
+      self.codeBlockLineSpacing = codeBlockLineSpacing
+      self.codeBlockBackground = codeBlockBackground
+      self.syntaxHighlighting = syntaxHighlighting
+      self.borderColor = borderColor
+      self.blockquoteColor = blockquoteColor
+      self.headerFont = headerFont
+      self.h1Color = h1Color
+      self.h1FontSize = h1FontSize
+      self.h2Color = h2Color
+      self.h2FontSize = h2FontSize
+      self.h3Color = h3Color
+      self.h3FontSize = h3FontSize
+      self.h4Color = h4Color
+      self.h4FontSize = h4FontSize
+      self.maxImageWidth = maxImageWidth
+      self.maxImageHeight = maxImageHeight
+      self.customStyle = customStyle
+    }
+
+    /// The style of a generator that is created without one: the colors of the system, for the
+    /// appearance (light or dark) at the time when they are first used.
+    public static let `default` = Style()
+
+    /// Colors for a white background, whatever the appearance of the system is: black text, blue
+    /// code on light gray code blocks, red and blue headings, and the syntax highlighting theme for
+    /// light backgrounds. Documents that are exported (RTF, RTFD, PDF) use it by default.
+    public static let light = Style(fontColor: "#000000",
+                                    codeFontColor: "#0000AA",
+                                    codeBlockFontColor: "#000099",
+                                    codeBlockBackground: "#EEE",
+                                    syntaxHighlighting: .default,
+                                    borderColor: "#DDD",
+                                    blockquoteColor: "#BBE",
+                                    h1Color: "#aa1111",
+                                    h2Color: "#003399",
+                                    h3Color: "#0055CC",
+                                    h4Color: "#007AFF")
+    
+    /// Colors for a dark background, whatever the appearance of the system is: white text, light
+    /// blue code on dark gray code blocks, red and blue headings, and the syntax highlighting theme
+    /// for dark backgrounds. ``MarkdownText`` uses it in dark mode.
+    public static let dark = Style(fontColor: "#FFF",
+                                   codeFontColor: "#CDF",
+                                   codeBlockFontColor: "#ADF",
+                                   codeBlockBackground: "#333",
+                                   syntaxHighlighting: .defaultDark,
+                                   borderColor: "#333",
+                                   blockquoteColor: "#669",
+                                   h1Color: "#C55",
+                                   h2Color: "#4AF",
+                                   h3Color: "#39F",
+                                   h4Color: "#007AFF")
+  }
+  
   /// Customized html generator to work around limitations of the current HTML to
   /// `NSAttributedString` conversion logic provided by the operating system. This
   /// should be used prior to macOS 26 and iOS 26
@@ -891,14 +1108,22 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// The generator options.
   public let options: Options
   
+  /// The appearance of the attributed strings: fonts, colors, spacing, borders and CSS. The
+  /// properties `fontSize`, `fontColor`, `lineSpacing`, `codeFontSize`, `codeFontColor`,
+  /// `codeBlockFontSize`, `codeBlockFontColor`, `codeBlockLineSpacing`, `codeBlockBackground`,
+  /// `borderColor`, `blockquoteColor`, `headerFont`, `h1Color` to `h4Color`, `h1FontSize` to
+  /// `h4FontSize`, `maxImageWidth`, `maxImageHeight` and `customStyle` are those of the style. `fontFamily` and `codeFontFamily` are too, but
+  /// have the default of the version if the style has none.
+  public let style: Style
+  
   /// The base font size.
-  public let fontSize: Float
+  public var fontSize: Float { return self.style.fontSize }
 
   /// The base font family.
   public let fontFamily: String
 
   /// The base font color.
-  public let fontColor: String
+  public var fontColor: String { return self.style.fontColor }
 
   /// The line height of text (everything but code blocks, see `codeBlockLineSpacing`) as a
   /// multiple of the natural line height of its font: 1 keeps the line height of the font, 1.1
@@ -909,7 +1134,7 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// sets the `lineHeightMultiple` of the paragraph styles of the attributed string after the
   /// import. Paragraphs which contain images (including diagrams) and the empty paragraphs which
   /// the generator inserts for vertical space keep their line height.
-  public let lineSpacing: Float
+  public var lineSpacing: Float { return self.style.lineSpacing }
 
   /// If true, the numbers and bullets of list items sit on the baseline of the first line of
   /// their items, also if an image (such as a formula) makes that line taller than the text
@@ -927,27 +1152,27 @@ open class AttributedStringGenerator: @unchecked Sendable {
   public let alignListMarkers: Bool
 
   /// The code font size.
-  public let codeFontSize: Float
+  public var codeFontSize: Float { return self.style.codeFontSize }
 
   /// The code font family.
   public let codeFontFamily: String
 
   /// The code font color.
-  public let codeFontColor: String
+  public var codeFontColor: String { return self.style.codeFontColor }
 
   /// The code block font size.
-  public let codeBlockFontSize: Float
+  public var codeBlockFontSize: Float { return self.style.codeBlockFontSize }
 
   /// The code block font color.
-  public let codeBlockFontColor: String
+  public var codeBlockFontColor: String { return self.style.codeBlockFontColor }
 
   /// The line height of the lines of code blocks as a multiple of the natural line height of the
   /// code font. The default is 1, which keeps the line height of the font. See `lineSpacing`
   /// for how the value is applied.
-  public let codeBlockLineSpacing: Float
+  public var codeBlockLineSpacing: Float { return self.style.codeBlockLineSpacing }
 
   /// The code block background color.
-  public let codeBlockBackground: String
+  public var codeBlockBackground: String { return self.style.codeBlockBackground }
   
   #if !os(watchOS)
   /// The theme used for syntax highlighting code blocks
@@ -978,31 +1203,46 @@ open class AttributedStringGenerator: @unchecked Sendable {
   public let mermaidRenderer: MermaidRenderer?
 
   /// The border color (used for code blocks and for thematic breaks).
-  public let borderColor: String
+  public var borderColor: String { return self.style.borderColor }
 
   /// The blockquote color.
-  public let blockquoteColor: String
+  public var blockquoteColor: String { return self.style.blockquoteColor }
+
+  /// The font family of H1 to H4 headers: a CSS list. If `nil`, no font is set for headers.
+  public var headerFont: String? { return self.style.headerFont }
 
   /// The color of H1 headers.
-  public let h1Color: String
+  public var h1Color: String { return self.style.h1Color }
+
+  /// The font size of H1 headers. If `nil`, it is 6 larger than `fontSize`.
+  public var h1FontSize: Float? { return self.style.h1FontSize }
 
   /// The color of H2 headers.
-  public let h2Color: String
+  public var h2Color: String { return self.style.h2Color }
+
+  /// The font size of H2 headers. If `nil`, it is 4 larger than `fontSize`.
+  public var h2FontSize: Float? { return self.style.h2FontSize }
 
   /// The color of H3 headers.
-  public let h3Color: String
+  public var h3Color: String { return self.style.h3Color }
+
+  /// The font size of H3 headers. If `nil`, it is 2 larger than `fontSize`.
+  public var h3FontSize: Float? { return self.style.h3FontSize }
 
   /// The color of H4 headers.
-  public let h4Color: String
+  public var h4Color: String { return self.style.h4Color }
+
+  /// The font size of H4 headers. If `nil`, it is 1 larger than `fontSize`.
+  public var h4FontSize: Float? { return self.style.h4FontSize }
 
   /// The maximum width of an image
-  public let maxImageWidth: String?
+  public var maxImageWidth: String? { return self.style.maxImageWidth }
   
   /// The maximum height of an image
-  public let maxImageHeight: String?
+  public var maxImageHeight: String? { return self.style.maxImageHeight }
   
   /// Custom CSS style
-  public let customStyle: String
+  public var customStyle: String { return self.style.customStyle }
   
   /// If provided, this URL is used as a base URL for relative image links
   public let imageBaseUrl: URL?
@@ -1011,7 +1251,107 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// `RenderingOptions`.
   public let renderingOptions: RenderingOptions
   
+  /// What the initializers derive from a style and the version: the font families, which have
+  /// defaults that depend on the version, and the configuration of the syntax highlighting.
+  private struct Resolved {
+    let fontFamily: String
+    let codeFontFamily: String
+    #if !os(watchOS)
+    let codeBlockHighlightingConfig: HighlightingConfig?
+    let ignoreSyntacticIssues: Bool
+    let ignoredLanguages: Set<String>
+    let highlightIndentedCodeBlocks: Bool
+    #endif
+  }
+
+  private static func resolve(_ style: Style,
+                              version: Version,
+                              syntaxHighlighter: SyntaxHighlighter?) -> Resolved {
+    let fontFamily: String
+    if let family = style.fontFamily, !family.isEmpty {
+      fontFamily = family
+    } else {
+      switch version {
+        case .preOS26:
+          fontFamily = "\"Times New Roman\",Times,serif"
+        case .OS26:
+          fontFamily = "system-ui, -apple-system, 'Helvetica Neue', Helvetica, sans-serif"
+      }
+    }
+    let codeFontFamily: String
+    if let family = style.codeFontFamily, !family.isEmpty {
+      codeFontFamily = family
+    } else {
+      switch version {
+        case .preOS26:
+          codeFontFamily = "Consolas, 'Andale Mono', 'Courier New', Courier, monospace"
+        case .OS26:
+          codeFontFamily = "'SF Mono', SFMono-Regular, ui-monospace, Menlo, Consolas, monospace"
+      }
+    }
+    #if !os(watchOS)
+    if let syntaxHighlighting = style.syntaxHighlighting {
+      let highlighter = syntaxHighlighter ?? SyntaxHighlighter.proxy
+      return Resolved(fontFamily: fontFamily,
+                      codeFontFamily: codeFontFamily,
+                      codeBlockHighlightingConfig: highlighter?.getConfig(
+                                                     forTheme: syntaxHighlighting.theme,
+                                                     withFont: codeFontFamily,
+                                                     ofSize: style.codeBlockFontSize),
+                      ignoreSyntacticIssues: syntaxHighlighting.ignoreSyntacticIssues,
+                      ignoredLanguages: syntaxHighlighting.ignoredLanguages,
+                      highlightIndentedCodeBlocks: syntaxHighlighting.highlightIndentedCodeBlocks)
+    } else {
+      return Resolved(fontFamily: fontFamily,
+                      codeFontFamily: codeFontFamily,
+                      codeBlockHighlightingConfig: nil,
+                      ignoreSyntacticIssues: false,
+                      ignoredLanguages: [],
+                      highlightIndentedCodeBlocks: false)
+    }
+    #else
+    return Resolved(fontFamily: fontFamily, codeFontFamily: codeFontFamily)
+    #endif
+  }
+
+  /// Creates a generator whose attributed strings have the appearance of `style`. The other
+  /// parameters are those of the initializer which takes the elements of a style one by one
+  /// (see ``Style`` for these). The parameter `syntaxHighlighter` is the highlighter itself: the
+  /// theme is part of the style.
+  public init(version: Version = .OS26,
+              options: Options = [],
+              style: Style,
+              syntaxHighlighter: SyntaxHighlighter? = nil,
+              mermaid: MermaidConfig? = nil,
+              mermaidRenderer: MermaidRenderer? = nil,
+              imageBaseUrl: URL? = nil,
+              alignListMarkers: Bool = false,
+              renderingOptions: RenderingOptions = RenderingOptions()) {
+    let resolved = AttributedStringGenerator.resolve(style, version: version,
+                                                     syntaxHighlighter: syntaxHighlighter)
+    self.version = version
+    self.options = options
+    self.style = style
+    self.fontFamily = resolved.fontFamily
+    self.codeFontFamily = resolved.codeFontFamily
+    self.alignListMarkers = alignListMarkers
+    #if !os(watchOS)
+    self.syntaxHighlighter = syntaxHighlighter
+    self.codeBlockHighlightingConfig = resolved.codeBlockHighlightingConfig
+    self.ignoreSyntacticIssues = resolved.ignoreSyntacticIssues
+    self.ignoredLanguages = resolved.ignoredLanguages
+    self.highlightIndentedCodeBlocks = resolved.highlightIndentedCodeBlocks
+    #endif
+    self.mermaidConfig = mermaid
+    self.mermaidRenderer = mermaidRenderer
+    self.imageBaseUrl = imageBaseUrl
+    self.renderingOptions = renderingOptions
+  }
+
   /// Constructor providing customization options for the generated `NSAttributedString` markup.
+  /// The parameters for the appearance (from `fontSize` to `customStyle`, and `syntaxHighlighting`)
+  /// are the properties of a ``Style``, which `init(version:options:style:syntaxHighlighter:mermaid:mermaidRenderer:imageBaseUrl:alignListMarkers:renderingOptions:)`
+  /// takes as a whole.
   public init(version: Version = .OS26,
               options: Options = [],
               fontSize: Float = 14.0,
@@ -1031,77 +1371,64 @@ open class AttributedStringGenerator: @unchecked Sendable {
               mermaidRenderer: MermaidRenderer? = nil,
               borderColor: String = "#cccccc",
               blockquoteColor: String = "#abe",
+              headerFont: String? = nil,
               h1Color: String = mdDefaultColor,
+              h1FontSize: Float? = nil,
               h2Color: String = mdDefaultColor,
+              h2FontSize: Float? = nil,
               h3Color: String = mdDefaultColor,
+              h3FontSize: Float? = nil,
               h4Color: String = mdDefaultColor,
+              h4FontSize: Float? = nil,
               maxImageWidth: String? = nil,
               maxImageHeight: String? = nil,
               customStyle: String = "",
               imageBaseUrl: URL? = nil,
               alignListMarkers: Bool = false,
               renderingOptions: RenderingOptions = RenderingOptions()) {
+    let style = Style(fontSize: fontSize,
+                      fontFamily: fontFamily.isEmpty ? nil : fontFamily,
+                      fontColor: fontColor,
+                      lineSpacing: lineSpacing,
+                      codeFontSize: codeFontSize,
+                      codeFontFamily: codeFontFamily.isEmpty ? nil : codeFontFamily,
+                      codeFontColor: codeFontColor,
+                      codeBlockFontSize: codeBlockFontSize,
+                      codeBlockFontColor: codeBlockFontColor,
+                      codeBlockLineSpacing: codeBlockLineSpacing,
+                      codeBlockBackground: codeBlockBackground,
+                      syntaxHighlighting: syntaxHighlighting,
+                      borderColor: borderColor,
+                      blockquoteColor: blockquoteColor,
+                      headerFont: headerFont,
+                      h1Color: h1Color,
+                      h1FontSize: h1FontSize,
+                      h2Color: h2Color,
+                      h2FontSize: h2FontSize,
+                      h3Color: h3Color,
+                      h3FontSize: h3FontSize,
+                      h4Color: h4Color,
+                      h4FontSize: h4FontSize,
+                      maxImageWidth: maxImageWidth,
+                      maxImageHeight: maxImageHeight,
+                      customStyle: customStyle)
+    let resolved = AttributedStringGenerator.resolve(style, version: version,
+                                                     syntaxHighlighter: syntaxHighlighter)
     self.version = version
     self.options = options
-    self.fontSize = fontSize
-    if fontFamily.isEmpty {
-      switch version {
-        case .preOS26:
-          self.fontFamily = "\"Times New Roman\",Times,serif"
-        case .OS26:
-          self.fontFamily = "system-ui, -apple-system, 'Helvetica Neue', Helvetica, sans-serif"
-      }
-    } else {
-      self.fontFamily = fontFamily
-    }
-    self.fontColor = fontColor
-    self.lineSpacing = lineSpacing
+    self.style = style
+    self.fontFamily = resolved.fontFamily
+    self.codeFontFamily = resolved.codeFontFamily
     self.alignListMarkers = alignListMarkers
-    self.codeFontSize = codeFontSize
-    if codeFontFamily.isEmpty {
-      switch version {
-        case .preOS26:
-          self.codeFontFamily = "Consolas, 'Andale Mono', 'Courier New', Courier, monospace"
-        case .OS26:
-          self.codeFontFamily = "'SF Mono', SFMono-Regular, ui-monospace, Menlo, Consolas, monospace"
-      }
-    } else {
-      self.codeFontFamily = codeFontFamily
-    }
-    self.codeFontColor = codeFontColor
-    self.codeBlockFontSize = codeBlockFontSize
-    self.codeBlockFontColor = codeBlockFontColor
-    self.codeBlockLineSpacing = codeBlockLineSpacing
-    self.codeBlockBackground = codeBlockBackground
     #if !os(watchOS)
     self.syntaxHighlighter = syntaxHighlighter
-    if let syntaxHighlighting {
-      let highlighter = syntaxHighlighter ?? SyntaxHighlighter.proxy
-      self.codeBlockHighlightingConfig = highlighter?.getConfig(
-                                           forTheme: syntaxHighlighting.theme,
-                                           withFont: self.codeFontFamily,
-                                           ofSize: self.codeBlockFontSize)
-      self.ignoreSyntacticIssues = syntaxHighlighting.ignoreSyntacticIssues
-      self.ignoredLanguages = syntaxHighlighting.ignoredLanguages
-      self.highlightIndentedCodeBlocks = syntaxHighlighting.highlightIndentedCodeBlocks
-    } else {
-      self.codeBlockHighlightingConfig = nil
-      self.ignoreSyntacticIssues = false
-      self.ignoredLanguages = []
-      self.highlightIndentedCodeBlocks = false
-    }
+    self.codeBlockHighlightingConfig = resolved.codeBlockHighlightingConfig
+    self.ignoreSyntacticIssues = resolved.ignoreSyntacticIssues
+    self.ignoredLanguages = resolved.ignoredLanguages
+    self.highlightIndentedCodeBlocks = resolved.highlightIndentedCodeBlocks
     #endif
     self.mermaidConfig = mermaid
     self.mermaidRenderer = mermaidRenderer
-    self.borderColor = borderColor
-    self.blockquoteColor = blockquoteColor
-    self.h1Color = h1Color
-    self.h2Color = h2Color
-    self.h3Color = h3Color
-    self.h4Color = h4Color
-    self.maxImageWidth = maxImageWidth
-    self.maxImageHeight = maxImageHeight
-    self.customStyle = customStyle
     self.imageBaseUrl = imageBaseUrl
     self.renderingOptions = renderingOptions
   }
@@ -1484,34 +1811,51 @@ open class AttributedStringGenerator: @unchecked Sendable {
            "color: \(self.fontColor);"
   }
 
-  /// The style of level 1 headings (`h1`): the font size is 6 px larger than `fontSize`, the color
-  /// is `h1Color`, and there are margins above and below the heading.
+  /// The declaration of the font family of headings, if the style has `headerFont`: it is part of
+  /// the styles of all headings from `h1Style` to `h4Style`. Empty if there is no such font.
+  private var headerFontStyle: String {
+    if let font = self.headerFont, !font.isEmpty {
+      return "font-family: \(font);"
+    }
+    return ""
+  }
+
+  /// The style of level 1 headings (`h1`): the font size is `h1FontSize`, or 6 px larger than
+  /// `fontSize` if that is `nil`; the font family is `headerFont`, if there is one; the color is
+  /// `h1Color`; and there are margins above and below the heading.
   open var h1Style: String {
-    return "font-size: \(self.fontSize + 6)px;" +
+    return "font-size: \(self.h1FontSize ?? (self.fontSize + 6))px;" +
+           self.headerFontStyle +
            "color: \(self.h1Color);" +
            "margin: 0.7em 0 0.5em 0;"
   }
 
-  /// The style of level 2 headings (`h2`): the font size is 4 px larger than `fontSize`, the color
-  /// is `h2Color`, and there are margins above and below the heading.
+  /// The style of level 2 headings (`h2`): the font size is `h2FontSize`, or 4 px larger than
+  /// `fontSize` if that is `nil`; the font family is `headerFont`, if there is one; the color is
+  /// `h2Color`; and there are margins above and below the heading.
   open var h2Style: String {
-    return "font-size: \(self.fontSize + 4)px;" +
+    return "font-size: \(self.h2FontSize ?? (self.fontSize + 4))px;" +
+           self.headerFontStyle +
            "color: \(self.h2Color);" +
            "margin: 0.6em 0 0.4em 0;"
   }
 
-  /// The style of level 3 headings (`h3`): the font size is 2 px larger than `fontSize`, the color
-  /// is `h3Color`, and there are margins above and below the heading.
+  /// The style of level 3 headings (`h3`): the font size is `h3FontSize`, or 2 px larger than
+  /// `fontSize` if that is `nil`; the font family is `headerFont`, if there is one; the color is
+  /// `h3Color`; and there are margins above and below the heading.
   open var h3Style: String {
-    return "font-size: \(self.fontSize + 2)px;" +
+    return "font-size: \(self.h3FontSize ?? (self.fontSize + 2))px;" +
+           self.headerFontStyle +
            "color: \(self.h3Color);" +
            "margin: 0.5em 0 0.3em 0;"
   }
 
-  /// The style of level 4 headings (`h4`): the font size is 1 px larger than `fontSize`, the color
-  /// is `h4Color`, and there are margins above and below the heading.
+  /// The style of level 4 headings (`h4`): the font size is `h4FontSize`, or 1 px larger than
+  /// `fontSize` if that is `nil`; the font family is `headerFont`, if there is one; the color is
+  /// `h4Color`; and there are margins above and below the heading.
   open var h4Style: String {
-    return "font-size: \(self.fontSize + 1)px;" +
+    return "font-size: \(self.h4FontSize ?? (self.fontSize + 1))px;" +
+           self.headerFontStyle +
            "color: \(self.h4Color);" +
            "margin: 0.5em 0 0.3em 0;"
   }
@@ -1522,13 +1866,13 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// that the space above it would only be the bottom margin of the previous paragraph. The
   /// height of the space is about 1.2 times the font size.
   open var h1GapStyle: String {
-    return "font-size: 8px; margin: 0em; padding: 0em;"
+    return "font-size: 10px; margin: 0em; padding: 0em;"
   }
 
   /// The style of the empty paragraph that is inserted in front of a level 2 heading, which is
   /// not the first block of the document (or of a block quote, or list item). See `h1GapStyle`.
   open var h2GapStyle: String {
-    return "font-size: 4px; margin: 0em; padding: 0em;"
+    return "font-size: 6px; margin: 0em; padding: 0em;"
   }
 
   /// The style of paragraphs (`p`): a vertical margin of 0.7 em.
@@ -1709,14 +2053,14 @@ open class AttributedStringGenerator: @unchecked Sendable {
   /// and a vertical margin. See `quoteStyle` for the style of the quoted text.
   open var blockquoteStyle: String {
     return "width: 100%;" +
-           "margin: 0.3em 0;" +
+           "margin: 0.8em 0;" +
            "font-size: \(self.fontSize)px;"
   }
   
   /// The style of the cell of a block quote: a left border in `blockquoteColor` and some space
   /// between the border and the quoted text.
   open var quoteStyle: String {
-    return "border-left: 0.2em solid \(self.blockquoteColor);" +
+    return "border-left: 0.35em solid \(self.blockquoteColor);" +
            "padding-left: 0.5em;"
   }
   

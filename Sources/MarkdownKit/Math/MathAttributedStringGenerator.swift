@@ -119,10 +119,15 @@ open class MathAttributedStringGenerator: AttributedStringGenerator, @unchecked 
               mathRenderer: MathRenderer? = nil,
               borderColor: String = "#cccccc",
               blockquoteColor: String = "#abe",
+              headerFont: String? = nil,
               h1Color: String = mdDefaultColor,
+              h1FontSize: Float? = nil,
               h2Color: String = mdDefaultColor,
+              h2FontSize: Float? = nil,
               h3Color: String = mdDefaultColor,
+              h3FontSize: Float? = nil,
               h4Color: String = mdDefaultColor,
+              h4FontSize: Float? = nil,
               maxImageWidth: String? = nil,
               maxImageHeight: String? = nil,
               customStyle: String = "",
@@ -150,13 +155,45 @@ open class MathAttributedStringGenerator: AttributedStringGenerator, @unchecked 
                mermaidRenderer: mermaidRenderer,
                borderColor: borderColor,
                blockquoteColor: blockquoteColor,
+               headerFont: headerFont,
                h1Color: h1Color,
+               h1FontSize: h1FontSize,
                h2Color: h2Color,
+               h2FontSize: h2FontSize,
                h3Color: h3Color,
+               h3FontSize: h3FontSize,
                h4Color: h4Color,
+               h4FontSize: h4FontSize,
                maxImageWidth: maxImageWidth,
                maxImageHeight: maxImageHeight,
                customStyle: customStyle,
+               imageBaseUrl: imageBaseUrl,
+               alignListMarkers: alignListMarkers,
+               renderingOptions: renderingOptions)
+  }
+
+  /// Creates a generator whose attributed strings have the appearance of `style`. The other
+  /// parameters are those of ``AttributedStringGenerator/init(version:options:style:syntaxHighlighter:mermaid:mermaidRenderer:imageBaseUrl:alignListMarkers:renderingOptions:)``
+  /// plus `math` and `mathRenderer`, which follow `mermaidRenderer`.
+  public init(version: Version = .OS26,
+              options: Options = [],
+              style: Style,
+              syntaxHighlighter: SyntaxHighlighter? = nil,
+              mermaid: MermaidConfig? = nil,
+              mermaidRenderer: MermaidRenderer? = nil,
+              math: MathConfig = MathConfig(),
+              mathRenderer: MathRenderer? = nil,
+              imageBaseUrl: URL? = nil,
+              alignListMarkers: Bool = false,
+              renderingOptions: RenderingOptions = RenderingOptions()) {
+    self.mathConfig = math
+    self.mathRenderer = mathRenderer
+    super.init(version: version,
+               options: options,
+               style: style,
+               syntaxHighlighter: syntaxHighlighter,
+               mermaid: mermaid,
+               mermaidRenderer: mermaidRenderer,
                imageBaseUrl: imageBaseUrl,
                alignListMarkers: alignListMarkers,
                renderingOptions: renderingOptions)

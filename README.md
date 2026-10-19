@@ -371,15 +371,18 @@ open class CustomizedHtmlGenerator: HtmlGenerator, @unchecked Sendable {
 ```
 
 _Swift MarkdownKit_ also comes with a generator for **attributed strings**.
-[`AttributedStringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift) uses a customized HTML generator internally to define the translation from Markdown into `NSAttributedString`. The initializer of `AttributedStringGenerator` provides a number of parameters for customizing the style of the generated attributed string. Alternatively, it is also possible to subclass the internal HTML generator and customize the output this way. For the implementation of syntax highlighting in code blocks, `AttributedStringGenerator` uses [Highlight.js](https://github.com/highlightjs/highlight.js/). Syntax highlighting is configured with a [`SyntaxHighlightingConfig`](https://github.com/objecthub/swift-markdownkit/blob/f6bd3102cbd1413b5205fc72564a48d4e3a78822/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift#L81) value which gets passed to the initializer of `AttributedStringGenerator` via parameter `syntaxHighlighting:`. Setting this parameter to `nil` will disable syntax highlighting.
+[`AttributedStringGenerator`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift) uses a customized HTML generator internally to define the translation from Markdown into `NSAttributedString`. An `AttributedStringGenerator.Style` value customizes the style of the generated attributed string (fonts, colors, spacing, CSS): start with one of the presets `.default`, `.light` or `.dark` and change what you need. Alternatively, it is also possible to subclass the internal HTML generator and customize the output this way. For the implementation of syntax highlighting in code blocks, `AttributedStringGenerator` uses [Highlight.js](https://github.com/highlightjs/highlight.js/). Syntax highlighting is configured with a [`SyntaxHighlightingConfig`](https://github.com/objecthub/swift-markdownkit/blob/f6bd3102cbd1413b5205fc72564a48d4e3a78822/Sources/MarkdownKit/AttributedString/AttributedStringGenerator.swift#L81) value, which is the property `syntaxHighlighting` of the style. Setting it to `nil` will disable syntax highlighting.
 
 ```swift
-let generator = AttributedStringGenerator(fontSize: 12,
-                                          fontFamily: "Helvetica, sans-serif",
-                                          fontColor: "#33C",
-                                          h1Color: "#000")
+var style = AttributedStringGenerator.Style.light
+style.fontSize = 12
+style.fontFamily = "Helvetica, sans-serif"
+style.fontColor = "#33C"
+let generator = AttributedStringGenerator(style: style)
 let attributedStr = generator.generate(doc: markdown)
 ```
+
+The initializer which takes the properties of the style one by one (`AttributedStringGenerator(fontSize: 12, fontFamily: "Helvetica, sans-serif", ...)`) still exists.
 
 The generated HTML is rendered into an `NSAttributedString` by the system. Use `RenderingOptions` to configure it. `baseUrl` is the base for resolving relative URLs (e.g. relative image paths) in the generated HTML. `AttributedStringGenerator.generate(doc:)` renders synchronously on the calling thread; `generateAsync(doc:)` is an alternative based on `NSAttributedString.loadFromHTML` which does not block the calling thread. It throws an `AttributedStringGenerator.RenderingError` (e.g. `.timedOut` if the render takes longer than `timeout` seconds, or `.cancelled`). It is available on macOS and iOS; on other platforms it throws `.unsupportedPlatform`.
 
@@ -570,7 +573,7 @@ The output of `--format ansi` is only rendered correctly by a terminal. Xcode's 
 
 SwiftUI comes with support for Markdown-formatted snippets but does not have a full-fledged viewer for Markdown documents. Since version 1.4, _MarkdownKit_ includes a SwiftUI view for displaying Markdown documents. As opposed to many other custom created Markdown views, the one included in _MarkdownKit_ is based on the CommonMark-compliant _MarkdownKit_ parser as well as its attributed string generator. It is thus lightweight yet still quite configurable.
 
-The initializer of [`MarkdownText`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/View/MarkdownText.swift) receives the parsed Markdown content of type `Block`, an optional `waitingMessage:` parameter which defines what is being displayed while the content is being rendered (especially if many images need to be loaded), as well as a `generator:` parameter defining how the parsed Markdown is transformed into an attributed string, which is then being shown in the view. The generator is not just called once, but every time the color scheme has changed to potentially update the colors in use. A variant of this initializer accepts a Markdown document as a string and parses it with the standard parser of a `MarkdownDialect`: the parameter `dialect:` selects it (the default is `.extendedCommonMark`, or `.fullMath` if `math:` is given; pass `dialect: .full` for `FullMarkdownParser` or `dialect: .fullLaTeX` for formulas with `\(…\)` and `\[…\]`). There are two initializers for each of the two ways of providing the document. Either you pass a `generator:`, or you do not provide one and the view uses the default generators for light and dark mode, which can be configured with `renderingOptions:` (see `AttributedStringGenerator.RenderingOptions`; the default is `.trusted`), `mermaid:` and `math:`. A view with a `generator:` that shows diagrams or formulas passes a `prepare:` function, which renders them in the background (the default generators call `prepareDiagrams(in:)` and `prepareMath(in:)`). The view generates the attributed string synchronously, which is why only the rendering options `baseUrl`, `localImages`, `imageExtensions`, `safeMode` and `textSizeMultiplier` have an effect (remote images are never loaded). Use `MarkdownText(string: text, renderingOptions: .untrusted)` if the Markdown does not come from a trusted source. The following code snippet shows the signatures of the initializers.
+The initializer of [`MarkdownText`](https://github.com/objecthub/swift-markdownkit/blob/master/Sources/MarkdownKit/View/MarkdownText.swift) receives the parsed Markdown content of type `Block`, an optional `waitingMessage:` parameter which defines what is being displayed while the content is being rendered (especially if many images need to be loaded), as well as a `generator:` parameter defining how the parsed Markdown is transformed into an attributed string, which is then being shown in the view. The generator is not just called once, but every time the color scheme has changed to potentially update the colors in use. A variant of this initializer accepts a Markdown document as a string and parses it with the standard parser of a `MarkdownDialect`: the parameter `dialect:` selects it (the default is `.extendedCommonMark`, or `.fullMath` if `math:` is given; pass `dialect: .full` for `FullMarkdownParser` or `dialect: .fullLaTeX` for formulas with `\(…\)` and `\[…\]`). There are two initializers for each of the two ways of providing the document. Either you pass a `generator:`, or you do not provide one and the view uses the default generators for light and dark mode, which can be configured with `renderingOptions:` (see `AttributedStringGenerator.RenderingOptions`; the default is `.trusted`), `mermaid:`, `math:`, `style:` and `darkStyle:` (an `AttributedStringGenerator.Style` for each mode: the defaults are `.default` for light mode and `.dark` for dark mode). A view with a `generator:` that shows diagrams or formulas passes a `prepare:` function, which renders them in the background (the default generators call `prepareDiagrams(in:)` and `prepareMath(in:)`). The view generates the attributed string synchronously, which is why only the rendering options `baseUrl`, `localImages`, `imageExtensions`, `safeMode` and `textSizeMultiplier` have an effect (remote images are never loaded). Use `MarkdownText(string: text, renderingOptions: .untrusted)` if the Markdown does not come from a trusted source. The following code snippet shows the signatures of the initializers.
 
 ```swift
 struct MarkdownText: View {
@@ -578,7 +581,9 @@ struct MarkdownText: View {
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
        renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
        mermaid: MermaidConfig? = nil,
-       math: MathConfig? = nil) {
+       math: MathConfig? = nil,
+       style: AttributedStringGenerator.Style? = nil,
+       darkStyle: AttributedStringGenerator.Style? = nil) {
     ...
   }
   init(_ text: Block,
@@ -592,7 +597,9 @@ struct MarkdownText: View {
        waitingMessage: NSAttributedString = NSAttributedString(string: "⏳"),
        renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted,
        mermaid: MermaidConfig? = nil,
-       math: MathConfig? = nil) {
+       math: MathConfig? = nil,
+       style: AttributedStringGenerator.Style? = nil,
+       darkStyle: AttributedStringGenerator.Style? = nil) {
     ...
   }
   init(string: String,
@@ -606,7 +613,17 @@ struct MarkdownText: View {
 }
 ```
 
-Here is an example how view `MarkdownText` could be used in a simple Markdown viewer. It defines an attributed string generator that uses two color schemes depending on whether dark mode is active or not.
+To change the fonts, colors or spacing of the default generators, pass a style for each mode. A style does not need a generator of your own:
+
+```swift
+var style = AttributedStringGenerator.Style.default
+style.fontFamily = "Georgia, serif"
+var darkStyle = AttributedStringGenerator.Style.dark
+darkStyle.fontFamily = "Georgia, serif"
+MarkdownText(string: text, style: style, darkStyle: darkStyle)
+```
+
+Pass a `generator:` if you need more, such as a subclass of the generator. Here is an example how view `MarkdownText` could be used in a simple Markdown viewer. It defines an attributed string generator that uses two color schemes depending on whether dark mode is active or not.
 
 ```swift
 struct ContentView: View {

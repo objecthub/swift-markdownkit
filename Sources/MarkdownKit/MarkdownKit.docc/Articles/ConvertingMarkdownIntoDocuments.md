@@ -64,9 +64,24 @@ let pdf = try await util.pdf(doc, title: "Notes", pageSize: MarkdownUtil.a4,
 try pdf.write(to: URL(fileURLWithPath: "Notes.pdf"))
 ```
 
-The pages are ``MarkdownUtil/usLetter`` (the default) or ``MarkdownUtil/a4``, or any size in points, with margins of one inch; `margins` sets the width of each edge in points (see ``MarkdownUtil/Insets``). Page sizes and margins that come from a setting or the command line can be read from text, with units: ``MarkdownUtil/pageSize(_:)`` understands `a4`, `letter`, `595x842` and `210x297mm`, and the initializer of ``MarkdownUtil/Insets`` that takes a string understands `72`, `20mm`, `10mm 30mm` (the upper and lower edge, and the left and right edge) and `1in 0.5in 1in 2in` (the upper, right, lower and left edge, as in CSS). A page is broken between lines of text, not through them. A list item, a code block or a row of a table moves to the next page as a whole if it fits on a page, and a heading is not the last line of a page. Only a block that is taller than a page is broken. The text is about 70% as large as in the other formats (14 points become about 10 points), and so are formulas, because the text of a page is smaller than the text of a view; the rendering option `textSizeMultiplier` scales it further. All diagrams are scaled by the same factor, which makes a diagram of the width that Mermaid draws for (800 points) as wide as the text of a page (0.56 for A4): a diagram that is wider than another one on the page has the same size of text, and the text of diagrams is a little smaller than the text of the document.
+The pages are ``MarkdownUtil/usLetter`` (the default) or ``MarkdownUtil/a4``, or any size in points, with margins of one inch; `margins` sets the width of each edge in points (see ``MarkdownUtil/Insets``). Page sizes and margins that come from a setting or the command line can be read from text, with units: ``MarkdownUtil/pageSize(_:)`` understands `a4`, `letter`, `595x842` and `210x297mm`, and the initializer of ``MarkdownUtil/Insets`` that takes a string understands `72`, `20mm`, `10mm 30mm` (the upper and lower edge, and the left and right edge) and `1in 0.5in 1in 2in` (the upper, right, lower and left edge, as in CSS). A page is broken between lines of text, not through them. A list item, a code block or a row of a table moves to the next page as a whole if it fits on a page, and a heading is not the last line of a page. Only a block that is taller than a page is broken. The text is about 70% as large as in the other formats (14 points become about 10 points), and so are formulas, because the text of a page is smaller than the text of a view; the rendering option `textSizeMultiplier` scales it further. All diagrams are scaled by the same factor, which makes a diagram of the width that Mermaid draws for (800 points) as wide as the text of a page (0.56 for A4): a diagram that is wider than another one on the page has the same size of text, and the text of diagrams is a little smaller than the text of the document. The importer which creates the text does not make fonts smaller than 9 points, so the text of a page is never smaller, whatever the style says.
 
-The text is black on white, whatever the appearance of the system is. The numbers and bullets of lists sit on the baseline of the first line of their items. Links are clickable: each line of a link is an area that opens its URL (links to a place in the same document, `#name`, are not). ``MarkdownUtil/PDFError`` says why a PDF document cannot be created, for example because the margins leave no room for text.
+The text is black by default, whatever the appearance of the system is (see the style below). The numbers and bullets of lists sit on the baseline of the first line of their items. Links are clickable: each line of a link is an area that opens its URL (links to a place in the same document, `#name`, are not). ``MarkdownUtil/PDFError`` says why a PDF document cannot be created, for example because the margins leave no room for text.
+
+### Choose the style
+
+The documents of RTF, RTFD and PDF look as the ``MarkdownUtil/style`` of the utility says: fonts, colors, line spacing, the theme of syntax highlighting, and CSS of your own. The default is ``AttributedStringGenerator/Style/light``: the colors for a white page (black text), whatever the appearance of the system is. Create a utility with another style to change that; the utility is a value that shares the renderers (and their caches) with the other ones, so it is cheap to create one for each document:
+
+```swift
+var style = AttributedStringGenerator.Style.light
+style.fontFamily = "Georgia, serif"
+style.fontSize = 15
+style.h1Color = "#1a4a8a"
+style.h2Color = "#1a4a8a"
+let pdf = try await MarkdownUtil(style: style).pdf(doc, title: "Notes")
+```
+
+See <doc:CustomizingAttributedStringOutput> for the properties of a style. A page of a PDF document and the background of an RTF or RTFD document are white, so use a style with dark text; the preset ``AttributedStringGenerator/Style/dark``, whose text is white, is for text views. The utility does not take the style of `text`, `ansi` and `html`, as they do not have one. The scale of PDF documents (see above) applies on top of the style, and formulas and diagrams are drawn for the sizes of the style.
 
 ### Prepare your own attributed string
 

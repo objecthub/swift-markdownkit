@@ -62,7 +62,8 @@ extension MarkdownUtil {
 
   /// Returns the number of points of `text`: a number, with a unit (`pt`, `in`, `mm` or `cm`)
   /// or without one (points). `nil` if it is no length, or less than 0.
-  fileprivate static func length(_ text: String, defaultPoints: Double = 1) -> (value: Double, unit: Double?)? {
+  internal static func length(_ text: String,
+                              defaultPoints: Double = 1) -> (value: Double, unit: Double?)? {
     let text = text.trimmingCharacters(in: .whitespaces).lowercased()
     var number = text
     var unit: Double?
@@ -71,7 +72,9 @@ extension MarkdownUtil {
       unit = candidate.points
       break
     }
-    guard let value = Double(number.trimmingCharacters(in: .whitespaces)), value.isFinite, value >= 0 else {
+    guard let value = Double(number.trimmingCharacters(in: .whitespaces)),
+          value.isFinite,
+          value >= 0 else {
       return nil
     }
     return (value * (unit ?? defaultPoints), unit)
@@ -110,32 +113,34 @@ extension MarkdownUtil {
   /// that is printed is smaller than the text of a text view (14 points become about 10 points).
   static let pdfTextScale = 0.7071
 
-  /// Returns the document as a PDF document: the content of a `.pdf` file. The text, lists, tables,
-  /// quotes and code blocks are laid out as they are in a text view, in the width of the pages, and
-  /// are broken into pages. Diagrams (see <doc:DrawingMermaidDiagrams>) and formulas (see
-  /// <doc:MathematicalFormulas>) are drawn as images. All diagrams are scaled alike, so that a
-  /// diagram of the width of a page for which Mermaid draws (800 points) fills the text of a page;
-  /// formulas are scaled down if they are wider than the text. The numbers and bullets of lists sit on the baseline of the first line of their items.
+  /// Returns the document as a PDF document: the content of a `.pdf` file. The text, lists,
+  /// tables, quotes and code blocks are laid out as they are in a text view, in the width of
+  /// the pages, and are broken into pages. Diagrams (see <doc:DrawingMermaidDiagrams>) and
+  /// formulas (see <doc:MathematicalFormulas>) are drawn as images. All diagrams are scaled
+  /// alike, so that a diagram of the width of a page for which Mermaid draws (800 points)
+  /// fills the text of a page; formulas are scaled down if they are wider than the text.
+  /// The numbers and bullets of lists sit on the baseline of the first line of their items.
   /// Links are clickable (except those to a place in the same document, `#name`).
   ///
-  /// This method is available on macOS and iOS. It draws diagrams and formulas with the renderers
-  /// of the utility, which take a moment for the first image.
+  /// This method is available on macOS and iOS. It draws diagrams and formulas with the
+  /// renderers of the utility, which take a moment for the first image.
   ///
   /// - Parameters:
   ///   - doc: The Markdown document, or a part of it.
   ///   - title: The title of the document, which becomes one of its properties.
   ///   - author: The author of the document, which becomes one of its properties.
-  ///   - pageSize: The size of a page in points: ``usLetter`` (the default) or ``a4``, for example;
-  ///               ``pageSize(_:)`` reads a size from text, such as `210x297mm`.
+  ///   - pageSize: The size of a page in points: ``usLetter`` (the default) or ``a4``,
+  ///               for example; ``pageSize(_:)`` reads a size from text, such as `210x297mm`.
   ///   - margins: The space in points between the text and the edges of a page. The default is
   ///              one inch on each edge. `Insets("20mm")` reads margins from text.
-  ///   - renderingOptions: The options for rendering the document, which restrict what it can load
-  ///                       (see <doc:RenderingUntrustedMarkdown>). The text of a PDF document is about
-  ///                       70% as large as in the other formats (the text of a page is smaller than the
-  ///                       text of a view: 14 points become about 10 points), and so are the formulas;
-  ///                       its `textSizeMultiplier` scales it further.
-  /// - Throws: A ``PDFError`` if the pages have no room for text or the system cannot create the
-  ///           document, or a ``AttributedStringGenerator/RenderingError`` if the document
+  ///   - renderingOptions: The options for rendering the document, which restrict what it can
+  ///                       load (see <doc:RenderingUntrustedMarkdown>). The text of a PDF
+  ///                       document is about 70% as large as in the other formats (the text of
+  ///                       a page is smaller than the text of a view: 14 points become about
+  ///                       10 points), and so are the formulas; its `textSizeMultiplier` scales
+  ///                       it further.
+  /// - Throws: A ``PDFError`` if the pages have no room for text or the system cannot create
+  ///           the document, or a ``AttributedStringGenerator/RenderingError`` if the document
   ///           cannot be rendered.
   public func pdf(_ doc: Block,
                   title: String? = nil,
@@ -159,43 +164,47 @@ extension MarkdownUtil {
                             textSize: textSize)
   }
 
-  /// Returns the attributed string for the pages of a PDF document: the text is about 70% as large as
-  /// in the other formats, the diagrams have one scale, and formulas are not wider than the text.
+  /// Returns the attributed string for the pages of a PDF document: the text is about 70%
+  /// as large as in the other formats, the diagrams have one scale, and formulas are not
+  /// wider than the text.
   ///
-  /// Mermaid draws a diagram for a page of `MermaidConfig.width` points (800 by default), where it
-  /// has the size which the diagram needs. All diagrams get the same scale, which is the one that
-  /// makes a diagram that fills such a page fill the text of a page: they are shown at one size
-  /// relative to each other (a diagram which is wider than another one has smaller text only if it
-  /// is also wider on the page), and the text of a diagram is a little smaller than the text of the
-  /// document. A diagram is never made larger than it is, and it is scaled down further if it is
-  /// wider than the room which the text has for it (in a list or a quote).
+  /// Mermaid draws a diagram for a page of `MermaidConfig.width` points (800 by default),
+  /// where it has the size which the diagram needs. All diagrams get the same scale, which
+  /// is the one that makes a diagram that fills such a page fill the text of a page: they
+  /// are shown at one size relative to each other (a diagram which is wider than another
+  /// one has smaller text only if it is also wider on the page), and the text of a diagram
+  /// is a little smaller than the text of the document. A diagram is never made larger
+  /// than it is, and it is scaled down further if it is wider than the room which the text
+  /// has for it (in a list or a quote).
   func pdfAttributedString(_ doc: Block,
                            textWidth: CGFloat,
                            renderingOptions: AttributedStringGenerator.RenderingOptions)
                          async throws -> NSAttributedString {
-    let generator = self.documentGenerator(maxImageWidth: textWidth,
-                                           diagramMaxWidth: nil,
-                                           renderingOptions: renderingOptions.scalingText(by: Self.pdfTextScale))
+    let generator = self.documentGenerator(
+      maxImageWidth: textWidth,
+      diagramMaxWidth: nil,
+      renderingOptions: renderingOptions.scalingText(by: Self.pdfTextScale))
     let string = try await generator.generateAsync(doc: doc)
     Self.scalingDiagrams(in: string, by: min(1, textWidth / MermaidConfig.default.width))
     return string
   }
 
-  /// Scales the diagrams (not the other images) in `string` by `factor`. They are the attachments
-  /// of a string that the generator has just created, which nobody else uses.
+  /// Scales the diagrams (not the other images) in `string` by `factor`. They are the
+  /// attachments of a string that the generator has just created, which nobody else uses.
   static func scalingDiagrams(in string: NSAttributedString, by factor: CGFloat) {
-    string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) { value, _, _ in
-      guard let diagram = value as? MermaidDiagramContext.MermaidTextAttachment,
-            diagram.diagramSize.width > 0 else {
-        return
-      }
-      let size = CGSize(width: diagram.diagramSize.width * factor,
-                        height: diagram.diagramSize.height * factor)
-      diagram.diagramSize = size
-      diagram.bounds = CGRect(origin: .zero, size: size)
-      #if os(macOS)
-      diagram.image?.size = size
-      #endif
+    string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) {
+      value, _, _ in
+        guard let diagram = value as? MermaidDiagramContext.MermaidTextAttachment,
+              diagram.diagramSize.width > 0 else {
+          return
+        }
+        let size = CGSize(width: diagram.diagramSize.width * factor,
+                          height: diagram.diagramSize.height * factor)
+        diagram.diagramSize = size
+        diagram.bounds = CGRect(origin: .zero, size: size)
+        #if os(macOS)
+        diagram.image?.size = size
+        #endif
     }
   }
 
@@ -220,7 +229,10 @@ extension MarkdownUtil {
     if ListMarkers.align(storage, layoutManager: layout) {
       layout.ensureLayout(for: container)
     }
-    let pages = Self.pageRanges(of: layout, in: container, storage: storage, pageHeight: textSize.height)
+    let pages = Self.pageRanges(of: layout,
+                                in: container,
+                                storage: storage,
+                                pageHeight: textSize.height)
     var auxiliary: [CFString: Any] = [kCGPDFContextCreator: "MarkdownKit"]
     if let title {
       auxiliary[kCGPDFContextTitle] = title
@@ -231,13 +243,15 @@ extension MarkdownUtil {
     var mediaBox = CGRect(origin: .zero, size: pageSize)
     let data = NSMutableData()
     guard let consumer = CGDataConsumer(data: data),
-          let context = CGContext(consumer: consumer, mediaBox: &mediaBox, auxiliary as CFDictionary) else {
+          let context = CGContext(consumer: consumer,
+                                  mediaBox: &mediaBox,
+                                  auxiliary as CFDictionary) else {
       throw PDFError.cannotCreateDocument
     }
     let links = Self.linkRects(in: storage, layout: layout, container: container)
-    // The text system of macOS makes links of the text it draws clickable, the one of iOS does not:
-    // draw text without links, and make them clickable here, so that it is the same on both
-    // (the color and the underline of a link are attributes of their own)
+    // The text system of macOS makes links of the text it draws clickable, the one of iOS
+    // does not: draw text without links, and make them clickable here, so that it is the
+    // same on both (the color and the underline of a link are attributes of their own)
     storage.removeAttribute(.link, range: NSRange(location: 0, length: storage.length))
     let textArea = CGRect(x: margins.left,
                           y: pageSize.height - margins.top - textSize.height,
@@ -254,8 +268,8 @@ extension MarkdownUtil {
       context.translateBy(x: 0, y: -page.minY)
       Self.draw(page, of: layout, in: container, into: context)
       context.restoreGState()
-      // The links of the lines on this page, in the coordinates of the page (the origin is in the
-      // lower left corner)
+      // The links of the lines on this page, in the coordinates of the page (the origin
+      // is in the lower left corner)
       for link in links where link.rect.midY >= page.minY && link.rect.midY < page.maxY {
         let rect = CGRect(x: margins.left + link.rect.minX,
                           y: pageSize.height - margins.top - (link.rect.maxY - page.minY),
@@ -280,14 +294,14 @@ extension MarkdownUtil {
     let row: [Int]?
     /// True if the line is in a table cell (a list, a quote, a code block or a table).
     let inCell: Bool
-    /// True if the line is a paragraph of its own with bold text outside of a table cell, such as a
-    /// heading, which should not be the last line of a page.
+    /// True if the line is a paragraph of its own with bold text outside of a table cell,
+    /// such as a heading, which should not be the last line of a page.
     let isHeading: Bool
   }
 
-  /// How far above its first line the text of a cell starts: a page that starts with a table cell
-  /// starts that far above the first line, so that the border and the padding of a cell are
-  /// there.
+  /// How far above its first line the text of a cell starts: a page that starts with a table
+  /// cell starts that far above the first line, so that the border and the padding of a cell
+  /// are there.
   private static let cellEdge: CGFloat = 8
 
   /// Returns the parts of the text, from top to bottom, that fill the pages: each is at most
@@ -304,32 +318,36 @@ extension MarkdownUtil {
     let total = layout.usedRect(for: container).maxY
     let text = storage.string as NSString
     var lines: [PageLine] = []
-    layout.enumerateLineFragments(forGlyphRange: NSRange(location: 0, length: layout.numberOfGlyphs)) { rect, _, _, glyphs, _ in
-      let characters = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
-      let style = storage.attribute(.paragraphStyle, at: characters.location, effectiveRange: nil) as? NSParagraphStyle
-      var row: [Int]?
-      if let cell = style?.textBlocks.first as? NSTextTableBlock {
-        row = [ObjectIdentifier(cell.table).hashValue, cell.startingRow]
-      }
-      var isHeading = false
-      if style?.textBlocks.isEmpty ?? true {
-        let paragraph = text.paragraphRange(for: NSRange(location: characters.location, length: 0))
-        let contents = NSRange(location: paragraph.location,
-                               length: text.range(of: "\n", range: paragraph).location == NSNotFound
-                                         ? paragraph.length
-                                         : text.range(of: "\n", range: paragraph).location - paragraph.location)
-        if NSMaxRange(characters) >= NSMaxRange(contents) && characters.location <= contents.location,
-           let font = storage.attribute(.font, at: characters.location, effectiveRange: nil) as? HRFont {
-          #if os(macOS)
-          isHeading = font.fontDescriptor.symbolicTraits.contains(.bold)
-          #else
-          isHeading = font.fontDescriptor.symbolicTraits.contains(.traitBold)
-          #endif
+    layout.enumerateLineFragments(forGlyphRange: NSRange(location: 0,
+                                                         length: layout.numberOfGlyphs)) {
+      rect, _, _, glyphs, _ in
+        let characters = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        let style = storage.attribute(.paragraphStyle, at: characters.location, effectiveRange: nil) as? NSParagraphStyle
+        var row: [Int]?
+        if let cell = style?.textBlocks.first as? NSTextTableBlock {
+          row = [ObjectIdentifier(cell.table).hashValue, cell.startingRow]
         }
-      }
-      lines.append(PageLine(top: rect.minY, bottom: rect.maxY, row: row,
-                            inCell: style.map { !$0.textBlocks.isEmpty } ?? false,
-                            isHeading: isHeading))
+        var isHeading = false
+        if style?.textBlocks.isEmpty ?? true {
+          let paragraph = text.paragraphRange(for: NSRange(location: characters.location, length: 0))
+          let contents = NSRange(
+            location: paragraph.location,
+            length: text.range(of: "\n", range: paragraph).location == NSNotFound
+                      ? paragraph.length
+                      : text.range(of: "\n", range: paragraph).location - paragraph.location)
+          if NSMaxRange(characters) >= NSMaxRange(contents),
+             characters.location <= contents.location,
+             let font = storage.attribute(.font, at: characters.location, effectiveRange: nil) as? HRFont {
+            #if os(macOS)
+            isHeading = font.fontDescriptor.symbolicTraits.contains(.bold)
+            #else
+            isHeading = font.fontDescriptor.symbolicTraits.contains(.traitBold)
+            #endif
+          }
+        }
+        lines.append(PageLine(top: rect.minY, bottom: rect.maxY, row: row,
+                              inCell: style.map { !$0.textBlocks.isEmpty } ?? false,
+                              isHeading: isHeading))
     }
     // The extent of each table row
     var rows: [[Int]: (top: CGFloat, bottom: CGFloat)] = [:]
@@ -394,32 +412,34 @@ extension MarkdownUtil {
                                 layout: NSLayoutManager,
                                 container: NSTextContainer) -> [(url: URL, rect: CGRect)] {
     var result: [(url: URL, rect: CGRect)] = []
-    storage.enumerateAttribute(.link, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
-      let url: URL?
-      if let value = value as? URL {
-        url = value
-      } else if let value = value as? String {
-        url = URL(string: value)
-      } else {
-        url = nil
-      }
-      guard let url, !url.absoluteString.isEmpty, !url.absoluteString.hasPrefix("#") else {
-        return
-      }
-      let glyphs = layout.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
-      layout.enumerateEnclosingRects(forGlyphRange: glyphs,
-                                     withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0),
-                                     in: container) { rect, _ in
-        if rect.width > 0 && rect.height > 0 {
-          result.append((url, rect))
+    storage.enumerateAttribute(.link, in: NSRange(location: 0, length: storage.length)) {
+      value, range, _ in
+        let url: URL?
+        if let value = value as? URL {
+          url = value
+        } else if let value = value as? String {
+          url = URL(string: value)
+        } else {
+          url = nil
         }
-      }
+        guard let url, !url.absoluteString.isEmpty, !url.absoluteString.hasPrefix("#") else {
+          return
+        }
+        let glyphs = layout.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        layout.enumerateEnclosingRects(forGlyphRange: glyphs,
+                                       withinSelectedGlyphRange: NSRange(location: NSNotFound,
+                                                                         length: 0),
+                                       in: container) { rect, _ in
+          if rect.width > 0 && rect.height > 0 {
+            result.append((url, rect))
+          }
+        }
     }
     return result
   }
 
-  /// Draws the part `page` of the text of `layout`, in the coordinate system of the text view (the
-  /// origin is in the upper left corner).
+  /// Draws the part `page` of the text of `layout`, in the coordinate system of the
+  /// text view (the origin is in the upper left corner).
   private static func draw(_ page: CGRect,
                            of layout: NSLayoutManager,
                            in container: NSTextContainer,
@@ -437,58 +457,6 @@ extension MarkdownUtil {
     layout.drawGlyphs(forGlyphRange: glyphs, at: .zero)
     UIGraphicsPopContext()
     #endif
-  }
-}
-
-
-extension AttributedStringGenerator.RenderingOptions {
-
-  /// Returns these options with a text size multiplier which is `factor` times the multiplier of
-  /// these options (or 1, if there is none).
-  func scalingText(by factor: Double) -> AttributedStringGenerator.RenderingOptions {
-    return AttributedStringGenerator.RenderingOptions(
-             baseUrl: self.baseUrl,
-             timeout: self.timeout,
-             localImages: self.localImages,
-             remoteImages: self.remoteImages,
-             imageExtensions: self.imageExtensions,
-             safeMode: self.safeMode,
-             textSizeMultiplier: (self.textSizeMultiplier ?? 1) * factor)
-  }
-}
-
-
-extension MarkdownUtil.Insets {
-
-  /// Creates insets from a list of widths, separated by commas or white space, in points or in the
-  /// unit that follows a number (`pt`, `in`, `mm` or `cm`), as the margins of a page are written
-  /// in CSS: one width is the width of all edges, two are the widths of the upper and the lower
-  /// edge, and of the left and the right edge, and four are the widths of the upper, the right,
-  /// the lower and the left edge. The result is `nil` if the list has another length or a width
-  /// is not a number which is at least 0.
-  ///
-  /// ```swift
-  /// MarkdownUtil.Insets("72")           // one inch on all edges
-  /// MarkdownUtil.Insets("20mm, 15mm")   // 20 mm above and below, 15 mm at the sides
-  /// MarkdownUtil.Insets("1in 0.5in 1in 0.5in")
-  /// ```
-  public init?(_ description: String) {
-    let tokens = description.split(whereSeparator: { $0 == "," || $0 == " " || $0 == "\t" }).map(String.init)
-    let widths = tokens.compactMap { MarkdownUtil.length($0)?.value }
-    guard widths.count == tokens.count else {
-      return nil
-    }
-    switch widths.count {
-      case 1:
-        self.init(CGFloat(widths[0]))
-      case 2:
-        self.init(horizontal: CGFloat(widths[1]), vertical: CGFloat(widths[0]))
-      case 4:
-        self.init(top: CGFloat(widths[0]), left: CGFloat(widths[3]),
-                  bottom: CGFloat(widths[2]), right: CGFloat(widths[1]))
-      default:
-        return nil
-    }
   }
 }
 
