@@ -21,12 +21,8 @@
 import Foundation
 
 ///
-/// The Markdown dialects that MarkdownKit supports out of the box, each with its standard
-/// parser. ``MarkdownText`` uses a dialect to choose how it parses a string.
-///
-/// ```swift
-/// let doc = MarkdownDialect.full.parser.parse("Some ~~old~~ and ~new~ text")
-/// ```
+/// The Markdown dialects that MarkdownKit supports out of the box, each with its default
+/// parser and syntactic features for generating valid Markdown source code.
 ///
 public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
   
@@ -112,9 +108,8 @@ public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
   /// ``LaTeXMarkdownParser``.
   case fullLaTeX
   
-
-  /// The standard parser of this dialect, e.g. ``MarkdownParser/standard`` for
-  /// ``commonMark``.
+ 
+  /// The default parser of this dialect.
   public var parser: MarkdownParser {
     switch self {
       case .commonMark:
@@ -130,7 +125,8 @@ public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
     }
   }
   
-  /// The syntax of the standard parser of this dialect, for a ``SourceGenerator``.
+  /// Syntactic features supported by this dialect (for usage with a
+  /// ``SourceGenerator``).
   public var syntax: Syntax {
     switch self {
       case .commonMark:
@@ -146,8 +142,8 @@ public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
     }
   }
   
-  /// A source generator for this dialect: it writes Markdown that this dialect's ``parser``
-  /// reads back into the same syntax tree.
+  /// A source generator for this dialect: it writes Markdown source code that this
+  /// dialect's ``parser`` reads back into the same syntax tree.
   public var sourceGenerator: SourceGenerator {
     return SourceGenerator(dialect: self)
   }

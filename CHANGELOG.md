@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.3 (unreleased)
+## 2.3 (2026-10-22)
 
 New features and other changes:
 
