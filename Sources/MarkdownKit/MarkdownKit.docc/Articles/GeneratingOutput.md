@@ -14,6 +14,7 @@ MarkdownKit provides several _generators_, i.e. Markdown processors which output
 | ``AttributedStringGenerator`` | `NSAttributedString` | text views on macOS and iOS (see also <doc:DisplayingMarkdownWithSwiftUI>) |
 | ``StringGenerator`` | formatted plain text | text editors, logs, plain text files |
 | ``TerminalGenerator`` | text marked up with ANSI escape codes | ANSI-compliant terminals |
+| ``SourceGenerator`` | Markdown source as a `String` | saving a changed document, normalizing Markdown files |
 
 All generators take a document that a parser returned: ``Block/document(_:)``. They work with every parser, see <doc:ChoosingAParser>.
 
@@ -83,7 +84,19 @@ print(TerminalGenerator(numColumns: 60).generate(doc: markdown).encodedString)
 
 See <doc:GeneratingTerminalOutput> for tables, styles and customization.
 
+### Generate Markdown source
+
+``SourceGenerator`` is the counterpart of the parser. It writes a syntax tree back as Markdown source which the parser reads back into the same tree:
+
+```swift
+let dialect = MarkdownDialect.full
+let source = dialect.sourceGenerator.generate(doc: dialect.parser.parse(markdown))
+```
+
+See <doc:GeneratingMarkdownSource> for choosing the syntax, checking the result and customizing the generator.
+
 ## See Also
 
+- <doc:GeneratingMarkdownSource>
 - <doc:ProcessingMarkdown>
 - <doc:Recipes>

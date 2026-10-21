@@ -89,6 +89,23 @@ public struct MathBlock: CustomBlock {
   }
   #endif
 
+  /// The source of the formula: `$$` on its own lines, around the lines of the LaTeX. If the LaTeX
+  /// cannot be written like this, because it has an empty line, a line with white space at an
+  /// end, or `$$` (which can happen if it comes from a fenced code block), or if the syntax has
+  /// no formulas, the source is a fenced code block with the info string `math`.
+  public func generateSource(via generator: SourceGenerator,
+                             parent: SourceGenerator.Parent) -> [String]? {
+    let tex = self.tex.replacingOccurrences(of: "\r\n", with: "\n")
+                      .replacingOccurrences(of: "\r", with: "\n")
+    let lines = tex.components(separatedBy: "\n")
+    if generator.syntax.contains(.math) && !tex.isEmpty && !tex.contains("$$") &&
+       !lines.contains(where: { $0.isEmpty || $0.trimmingCharacters(in: .whitespaces) != $0 }) {
+      return ["$$"] + lines + ["$$"]
+    }
+    return generator.generate(block: .fencedCode("math", Lines(lines.map { Substring($0 + "\n") })),
+                              parent: parent)
+  }
+
   /// The formula between lines with `$$`, as it is shown by the text generators. Control
   /// characters of the LaTeX are replaced.
   public var description: String {

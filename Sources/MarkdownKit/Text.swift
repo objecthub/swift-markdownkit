@@ -173,7 +173,56 @@ public struct Text: Collection, Equatable, CustomStringConvertible, CustomDebugS
     }
     return res
   }
-
+  
+  /// The text in its normal form, for comparing syntax trees.
+  ///
+  /// The parser splits text at every character that may start markup, also if the character is
+  /// escaped: `a (b) c` is `"a "`, `"("`, `"b"`, `")"`, `" c"`, whereas `a \(b\) c` is the one
+  /// fragment `"a (b) c"`. Both are the same text, but ``Text`` compares fragments. In the normal
+  /// form, every run of adjacent text and delimiter fragments is one text fragment and empty text
+  /// is gone; the text inside of emphasis, links and images is normalized as well.
+  public var normalized: Text {
+    var res = Text()
+    var pending = ""
+    func flush() {
+      if !pending.isEmpty {
+        res.append(fragment: .text(Substring(pending)))
+        pending = ""
+      }
+    }
+    for fragment in self {
+      switch fragment {
+        case .text(let str):
+          pending += str
+        case .delimiter(_, _, _):
+          pending += fragment.rawDescription
+        case .emph(let text):
+          flush()
+          res.append(fragment: .emph(text.normalized))
+        case .strong(let text):
+          flush()
+          res.append(fragment: .strong(text.normalized))
+        case .underline(let text):
+          flush()
+          res.append(fragment: .underline(text.normalized))
+        case .strikethrough(let text):
+          flush()
+          res.append(fragment: .strikethrough(text.normalized))
+        case .link(let text, let uri, let title):
+          flush()
+          res.append(fragment: .link(text.normalized, uri, title))
+        case .image(let text, let uri, let title):
+          flush()
+          res.append(fragment: .image(text.normalized, uri, title))
+        default:
+          flush()
+          res.append(fragment: fragment)
+      }
+    }
+    flush()
+    return res
+  }
+  
   /// Defines an equality relationship for `Text` objects.
   public static func == (lhs: Text, rhs: Text) -> Bool {
     return lhs.fragments == rhs.fragments

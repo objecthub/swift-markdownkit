@@ -33,48 +33,62 @@ import Foundation
 /// for a description of how Markdown syntax maps to the cases.
 ///
 public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+  
   /// The root of a document: the sequence of its top-level blocks.
   case document(Blocks)
+  
   /// A block quote containing a sequence of blocks.
   case blockquote(Blocks)
+  
   /// A list. The first parameter is the number of the first item for an ordered list, and `nil`
   /// for a bullet list. The second parameter is `true` for a tight list (a list whose items
   /// are not separated by blank lines, and are shown without paragraph spacing) and `false` for
   /// a loose list. The third parameter contains the items of the list, which are
   /// ``Block/listItem(_:_:_:)`` blocks.
   case list(Int?, Bool, Blocks)
+  
   /// An item of a list. The parameters are the type of the item (its bullet or number, and
   /// whether it is a task), the density of its content, and the content of the item, which is a
   /// sequence of blocks.
   case listItem(ListType, ListDensity, Blocks)
+  
   /// A paragraph containing inline text.
   case paragraph(Text)
+  
   /// A heading. The first parameter is the heading level, from 1 (the most important heading)
   /// to 6. The second parameter is the text of the heading.
   case heading(Int, Text)
+  
   /// A code block that is indented by four spaces. The parameter is the sequence of its lines,
   /// without the indentation.
   case indentedCode(Lines)
+  
   /// A fenced code block. The first parameter is the info string, which follows the opening
   /// fence, with backslash escapes and entities resolved; its first word is the language of
   /// the code. It is `nil` if the opening fence has no info string. The second parameter is
   /// the sequence of lines of the code.
   case fencedCode(String?, Lines)
+  
   /// A block of raw HTML, given by its lines.
   case htmlBlock(Lines)
+  
   /// A link reference definition (`[label]: destination "title"`). The parameters are the
   /// label, the destination and the lines of the title, which is empty if the definition has
   /// no title. The inline parser uses the definitions to resolve reference links, and the
   /// generators do not show them.
   case referenceDef(String, Substring, Lines)
+  
   /// A thematic break (`---`, `***` or `___`).
   case thematicBreak
+  
   /// A table. The first parameter is the header row, the second parameter has the alignment of
   /// each column, and the third parameter contains the body rows. Each row has a cell for
   /// each column.
   case table(Row, Alignments, Rows)
+  
   /// A list of definitions, each with a term and one or more descriptions.
   case definitionList(Definitions)
+  
   /// A block whose syntax is not defined by MarkdownKit, see ``CustomBlock``.
   case custom(CustomBlock)
 
@@ -231,6 +245,70 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
     return "row(" + row.map { $0.description }.joined(separator: " | ") + ")"
   }
   
+  /// The block in its normal form, for comparing syntax trees. Two trees that a parser produces
+  /// from texts that mean the same, such as `a (b) c` and `a \(b\) c`, have the same normal form.
+  ///
+  /// - The text of paragraphs, headings, table cells and definitions is normalized, see
+  ///   ``Text/normalized``.
+  /// - The line terminators of code blocks, HTML blocks and formulas (``MathBlock``) are `\n`:
+  ///   the parser keeps `\r\n` and `\r` in the lines of a block, but a ``SourceGenerator`` writes
+  ///   `\n`.
+  ///
+  /// Custom blocks are not changed, so a custom block with text should compare normalized text in
+  /// `equals(to:)`.
+  public var normalized: Block {
+    switch self {
+      case .document(let blocks):
+        return .document(Block.normalized(blocks))
+      case .blockquote(let blocks):
+        return .blockquote(Block.normalized(blocks))
+      case .list(let start, let tight, let blocks):
+        return .list(start, tight, Block.normalized(blocks))
+      case .listItem(let type, let density, let blocks):
+        return .listItem(type, density, Block.normalized(blocks))
+      case .paragraph(let text):
+        return .paragraph(text.normalized)
+      case .heading(let level, let text):
+        return .heading(level, text.normalized)
+      case .indentedCode(let lines):
+        return .indentedCode(Block.normalized(lines))
+      case .fencedCode(let info, let lines):
+        return .fencedCode(info, Block.normalized(lines))
+      case .htmlBlock(let lines):
+        return .htmlBlock(Block.normalized(lines))
+      case .referenceDef(_, _, _), .thematicBreak:
+        return self
+      case .table(let header, let alignments, let rows):
+        return .table(Row(header.map { $0.normalized }),
+                      alignments,
+                      Rows(rows.map { Row($0.map { $0.normalized }) }))
+      case .definitionList(let definitions):
+        return .definitionList(Definitions(definitions.map { definition in
+          Definition(item: definition.item.normalized,
+                     descriptions: Block.normalized(definition.descriptions))
+        }))
+      case .custom(let customBlock):
+        if let math = customBlock as? MathBlock {
+          return .custom(MathBlock(tex: math.tex.replacingOccurrences(of: "\r\n", with: "\n")
+                                                 .replacingOccurrences(of: "\r", with: "\n")))
+        }
+        return self
+    }
+  }
+
+  private static func normalized(_ blocks: Blocks) -> Blocks {
+    return Blocks(blocks.map { $0.normalized })
+  }
+
+  private static func normalized(_ lines: Lines) -> Lines {
+    return Lines(lines.map { line in
+      if let last = line.last, last == "\r\n" || last == "\r" {
+        return Substring(String(line.dropLast()) + "\n")
+      }
+      return line
+    })
+  }
+  
   /// Defines an equality relation for two blocks.
   public static func == (lhs: Block, rhs: Block) -> Bool {
     switch (lhs, rhs) {
@@ -273,14 +351,20 @@ public enum Block: Equatable, CustomStringConvertible, CustomDebugStringConverti
 /// to find out whether the list which contains the item is tight or loose, and records it in
 /// the `listItem` block.
 ///
-public enum ListDensity: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+public enum ListDensity: Equatable,
+                         CustomStringConvertible,
+                         CustomDebugStringConvertible,
+                         Sendable {
+  
   /// The blocks of the item are not separated by blank lines, but the item did not follow
   /// directly after the previous line: there was a blank line in front of it, or it is the
   /// first block of its container. This only makes the list loose if the item is not the first
   /// item of the list.
   case initial
+  
   /// There is at least one blank line between two blocks of the item.
   case loose
+  
   /// There are no blank lines between the blocks of the item.
   case tight
   
@@ -352,15 +436,18 @@ public enum ListDensity: Equatable, CustomStringConvertible, CustomDebugStringCo
 /// to find out the marker of an item, independently of whether it is a task.
 /// 
 public enum ListType: Equatable, CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+  
   /// An item of a bullet list. The parameter is the bullet: `-`, `+` or `*`.
   case bullet(Character)
+  
   /// An item of an ordered list. The parameters are the number of the item and the delimiter
   /// which follows the number: `.` or `)`.
   case ordered(Int, Character)
+  
   /// A task list item with a checkbox, which is checked if `checked` is true. The first
   /// parameter is the marker of the item (a `bullet` or an `ordered` list type).
   indirect case task(ListType, checked: Bool)
-
+  
   /// The list type without the checkbox of a task list item: the `bullet` or `ordered` list
   /// type for a task list item, and the list type itself for all other list types.
   public var marker: ListType {

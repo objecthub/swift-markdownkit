@@ -91,6 +91,31 @@ let attributedStr = try await generator.generateAsync(doc: doc)
 
 See <doc:RenderingUntrustedMarkdown> for allowing images from one web site.
 
+### Rewrite a document
+
+Change the syntax tree and write it back as Markdown with a ``SourceGenerator``. This function makes every heading one level lower (an `h6` stays one), and the generator writes the result:
+
+```swift
+func demoteHeadings(_ block: Block) -> Block {
+  switch block {
+    case .document(let blocks):
+      return .document(Blocks(blocks.map(demoteHeadings)))
+    case .blockquote(let blocks):
+      return .blockquote(Blocks(blocks.map(demoteHeadings)))
+    case .heading(let level, let text):
+      return .heading(min(level + 1, 6), text)
+    default:
+      return block
+  }
+}
+
+let dialect = MarkdownDialect.full
+let doc = dialect.parser.parse(markdown)
+let result = dialect.sourceGenerator.generate(doc: demoteHeadings(doc))
+```
+
+Use the dialect of the parser that read the document. Without changing the tree, the same code normalizes the formatting of a Markdown file. See <doc:GeneratingMarkdownSource>.
+
 ### Parse in the background
 
 Parsing large documents takes time. Do it in a background task and use the result in your views, see <doc:UsingMarkdownKitConcurrently>.

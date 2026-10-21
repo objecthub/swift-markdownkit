@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3 (unreleased)
+
+New features and other changes:
+
+- **`SourceGenerator`** writes a syntax tree back as Markdown source which the parser reads back into the same tree, e.g. to save a changed document or to normalize Markdown files. `roundTrips(_:)` checks the result, `Block.normalized` and `Text.normalized` compare trees, and `MarkdownDialect.Syntax` (the features of a dialect), `MarkdownDialect.syntax` and `MarkdownDialect.sourceGenerator` connect it to the dialects. See the article "Generating Markdown Source".
+- `CustomBlock` and `CustomTextFragment` have the new requirements `generateSource(via:parent:)` and `generateSource(via:in:)` with default implementations, so existing custom elements compile as before; `MathBlock` and `MathFragment` write their source. The example of "Extending the Parser" compares `normalized` text in `equals(to:)`.
+- Fixes: an HTML block that ends on its first line (`<!-- c -->`, `<?…?>`, `<script>…</script>`) lost the paragraph in front of it, and was created twice, if it followed a list item or a block quote without a blank line.
+
 ## 2.2 (2026-10-19)
 
 Source-incompatible changes:

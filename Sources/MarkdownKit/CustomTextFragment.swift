@@ -25,22 +25,29 @@ import CommandLineKit
 /// Protocol `CustomTextFragment` defines the interface for custom Markdown text fragments
 /// that are implemented externally (i.e. not by the MarkdownKit framework).
 ///
-public protocol CustomTextFragment: CustomStringConvertible, CustomDebugStringConvertible, Sendable {
+public protocol CustomTextFragment: CustomStringConvertible,
+                                    CustomDebugStringConvertible,
+                                    Sendable {
+  
   /// Returns true if this fragment and `other` are equal. A custom fragment compares itself with
   /// another one by checking that `other` is of its own type and comparing their contents.
   func equals(to other: CustomTextFragment) -> Bool
+  
   /// Returns the fragment that replaces this one when `transformer` processes a text. A fragment
   /// which contains text calls `transformer.transform(_:)` for it, so that inline markup within
   /// it is recognized.
   func transform(via transformer: InlineTransformer) -> TextFragment
+  
   /// Returns the HTML for this fragment. `htmlGen` generates the HTML for the text within it.
   func generateHtml(via htmlGen: HtmlGenerator) -> String
+  
   #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
   /// Returns the HTML for this fragment when an `AttributedStringGenerator` generates it. `htmlGen`
   /// is the HTML generator of `attrGen`, whose settings, such as fonts and colors, the HTML can
   /// use.
   func generateHtml(via htmlGen: HtmlGenerator, and attrGen: AttributedStringGenerator?) -> String
   #endif
+  
   /// The text of the fragment without any markup.
   var rawDescription: String { get }
   
@@ -53,9 +60,28 @@ public protocol CustomTextFragment: CustomStringConvertible, CustomDebugStringCo
   /// method has a default implementation, which returns `rawDescription` (without control
   /// characters), so it has to be implemented only to style the text on terminals.
   func generateText(via generator: TerminalGenerator) -> AnsiText.Normalized
+
+  /// Returns the Markdown source of this fragment in the given context, or `nil` if the
+  /// fragment cannot be written as Markdown there. A ``SourceGenerator`` calls this method. The
+  /// source may contain `\n` for line breaks unless `context` has the flag `singleLine`.
+  ///
+  /// The source has to parse, with the parser of `generator`, into a fragment that is equal to
+  /// this one (see `equals(to:)`). A fragment with text asks the generator to write it with
+  /// ``SourceGenerator/generate(text:in:)``, passing `context` (or `context.inserting(_:)`
+  /// if the fragment adds brackets); it does not escape anything itself. If the syntax of the
+  /// fragment uses a character that plain text has to escape, the generator is created with this
+  /// character as one of its `specialCharacters`. This method has a default implementation, which
+  /// returns `nil`: the generator then writes `rawDescription` as plain text.
+  func generateSource(via generator: SourceGenerator,
+                      in context: SourceGenerator.InlineContext) -> String?
 }
 
 extension CustomTextFragment {
+  public func generateSource(via generator: SourceGenerator,
+                             in context: SourceGenerator.InlineContext) -> String? {
+    return nil
+  }
+
   public func generateText(via generator: StringGenerator) -> String {
     return self.rawDescription.sanitizingControlCharacters()
   }

@@ -4,7 +4,7 @@
 
 _Swift MarkdownKit_ is a framework for parsing, processing and displaying text in [Markdown](https://daringfireball.net/projects/markdown/) format. The supported syntax is based on the [CommonMark Markdown specification](https://commonmark.org) (version 0.31.2). _Swift MarkdownKit_ also provides four extended versions of the parser: `ExtendedMarkdownParser` (tables and definition lists), `FullMarkdownParser` (additionally underline, strikethrough, and task lists), `MathMarkdownParser` (additionally LaTeX math with dollar signs) and `LaTeXMarkdownParser` (additionally the delimiters of LaTeX for math).
 
-_Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it provides a parser for parsing strings into abstract syntax trees, and comes with generators for creating output in plain text, HTML and [attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring). There is also a generator which can be used to display Markdown documents in ANSI-compliant terminals.
+_Swift MarkdownKit_ defines an abstract syntax representation for Markdown, it provides a parser for parsing strings into abstract syntax trees, and comes with generators for creating output in plain text, HTML and [attributed strings](https://developer.apple.com/documentation/foundation/nsattributedstring). There is also a generator which can be used to display Markdown documents in ANSI-compliant terminals, and a generator which writes abstract syntax trees back as Markdown.
 
 The API reference and a number of articles are also available as [online documentation](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/), generated with Swift-DocC.
 
@@ -37,7 +37,8 @@ Here is an overview of the supported Markdown features. The parser classes suppo
 <td width="50%" valign="top">
 3. &nbsp;<a href="#converting-markdown-into-other-formats">Converting Markdown into other formats</a><br />
 &nbsp;&nbsp; 3.1 &nbsp;<a href="#generating-text-html-and-attributed-strings">Generating text, HTML, and Attributed Strings</a><br />
-&nbsp;&nbsp; 3.2 &nbsp;<a href="#using-the-command-line-tools">Using the command-line tools</a><br />
+&nbsp;&nbsp; 3.2 &nbsp;<a href="#generating-markdown-source">Generating Markdown source</a><br />
+&nbsp;&nbsp; 3.3 &nbsp;<a href="#using-the-command-line-tool">Using the command-line tool</a><br />
 4. &nbsp;<a href="#displaying-markdown-with-swiftui">Displaying Markdown with SwiftUI</a><br />
 5. &nbsp;<a href="#known-issues">Known issues</a><br />
 6. &nbsp;<a href="#requirements">Requirements</a><br />
@@ -195,9 +196,9 @@ enum LineEmphasis: CustomTextFragment {
     }
     switch (self, that) {
       case (.underline(let lhs), .underline(let rhs)):
-        return lhs == rhs
+        return lhs.normalized == rhs.normalized
       case (.strikethrough(let lhs), .strikethrough(let rhs)):
-        return lhs == rhs
+        return lhs.normalized == rhs.normalized
       default:
         return false
     }
@@ -293,9 +294,33 @@ The order of the inline transformers matters. In particular, `EscapeTransformer`
 
 A parser without `EscapeTransformer` does not recognize hard line breaks; trailing spaces and backslashes at the end of lines remain in the text. Custom transformers for new inline markup, such as the ones above, belong in front of `EscapeTransformer`.
 
+A `SourceGenerator` (see [Generating Markdown source](#generating-markdown-source)) writes a syntax tree back as Markdown. To get the source of a custom text fragment, it calls `generateSource(via:in:)`, and for a custom block `generateSource(via:parent:)`. Both have default implementations which return `nil`; the generator then writes the fragment as plain text and the block as a code block, which read back as something else. For the fragment of the example, the source is the text between tildes:
+
+```swift
+extension LineEmphasis {
+  func generateSource(via generator: SourceGenerator,
+                      in context: SourceGenerator.InlineContext) -> String? {
+    switch self {
+      case .underline(let text):
+        return "~" + generator.generate(text: text, in: context) + "~"
+      case .strikethrough(let text):
+        return "~~" + generator.generate(text: text, in: context) + "~~"
+    }
+  }
+}
+```
+
+A fragment which contains text asks the generator to write it, handing on the context in which the fragment is written; it does not escape characters or add prefixes itself. A block with text uses `generator.generate(lines:in:)`, a block with blocks `generator.generate(blocks:parent:)`; a block returns its lines relative to its container, and the generator adds the markers and the indentation of block quotes and list items. The source of an element has to parse, with the parser of the generator, into an element that is equal to the original one (`equals(to:)` should compare `normalized` text). If it cannot be written in the given place, return `nil`: a fragment cannot contain a line break in a table cell or in a heading (`context.contains(.singleLine)`). Create the generator for the parser with the characters that the new syntax adds, because plain text containing them needs an escape, too (`\~`):
+
+```swift
+let generator = SourceGenerator(syntax: .commonMark,
+                                parser: EmphasisTestMarkdownParser.standard,
+                                specialCharacters: ["~"])
+```
+
 ### Using MarkdownKit concurrently
 
-_MarkdownKit_ is compiled in Swift 6 language mode and supports strict concurrency checking. Abstract syntax trees (`Block`, `TextFragment`, `Text`, ...), options and configuration types (such as `RenderingOptions`) are `Sendable` value types. Parsers (`MarkdownParser`, `ExtendedMarkdownParser`, `FullMarkdownParser`), generators (`HtmlGenerator`, `StringGenerator`, `TerminalGenerator`, `AttributedStringGenerator`), table renderers and the `SyntaxHighlighter` are immutable objects and `Sendable` as well (the highlighting configurations `HighlightingConfig` and `AnsiHighlightingConfig` are value types), so a single instance can be used from several threads or tasks at the same time. Parsing in a background task and using the resulting `Block` on the main actor works:
+_MarkdownKit_ is compiled in Swift 6 language mode and supports strict concurrency checking. Abstract syntax trees (`Block`, `TextFragment`, `Text`, ...), options and configuration types (such as `RenderingOptions`) are `Sendable` value types. Parsers (`MarkdownParser`, `ExtendedMarkdownParser`, `FullMarkdownParser`), generators (`HtmlGenerator`, `StringGenerator`, `TerminalGenerator`, `AttributedStringGenerator`, `SourceGenerator`), table renderers and the `SyntaxHighlighter` are immutable objects and `Sendable` as well (the highlighting configurations `HighlightingConfig` and `AnsiHighlightingConfig` are value types), so a single instance can be used from several threads or tasks at the same time. Parsing in a background task and using the resulting `Block` on the main actor works:
 
 ```swift
 let doc = await Task.detached { ExtendedMarkdownParser.standard.parse(text) }.value
@@ -491,6 +516,30 @@ let pdf = try await MarkdownUtil.standard.pdf(doc, title: "Notes")   // the data
 ```
 
 See [Converting Markdown into Documents](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/convertingmarkdownintodocuments) for details.
+
+### Generating Markdown source
+
+`SourceGenerator` is the counterpart of the parser: for a syntax tree, it writes Markdown source which the parser reads back into the same tree. Use it to save a document after you changed its tree, to normalize the formatting of Markdown files, or to create Markdown from a tree that you built:
+
+```swift
+let dialect = MarkdownDialect.full
+let doc = dialect.parser.parse(text)
+let source = dialect.sourceGenerator.generate(doc: doc)
+```
+
+Use the dialect of the parser that read the text. It determines which Markdown the generator may use (the source of a table only reads back as a table if the parser understands tables) and which characters it escapes (`$5` needs a backslash if the parser reads formulas). `SourceGenerator.standard` has the syntax of `LaTeXMarkdownParser`: its source reads back correctly with every standard parser, with more escapes than necessary. The generator writes one form for every construct (headings with `#`, emphasis with `*`, links in the inline form, tables without padding), so the source is not the original text; lists keep their bullets, numbers and density.
+
+Compare trees with `normalized` if you want to know that the source reads back as the same tree: the parser splits text at every character that may start markup, also if it is escaped, so `a (b)` and `a \(b\)` have different fragments, but are the same text. `roundTrips(_:)` does this check, and `firstMismatch(of:)` describes what is different:
+
+```swift
+let generator = SourceGenerator(dialect: .full)
+generator.roundTrips(doc)                                    // true
+dialect.parser.parse(generator.generate(doc: doc)).normalized == doc.normalized     // true
+```
+
+The generator never fails, but a few trees cannot be written back: trees with elements that the syntax lacks (an underline for `commonMark`), custom elements without source (see [Extending the parser](#extending-the-parser)), and shapes that the parser hardly ever produces, such as a link to an empty destination that comes from a reference definition. Generators for the extended parsers are created with `SourceGenerator(syntax:parser:specialCharacters:)`. Like `HtmlGenerator`, `SourceGenerator` is customized by subclassing and overriding `generate(block:parent:)` for a block (it returns the lines of the block) or `generate(textFragment:in:)` for an inline fragment.
+
+See [Generating Markdown Source](https://objecthub.github.io/swift-markdownkit/documentation/markdownkit/generatingmarkdownsource) for details.
 
 ### Using the command-line tool
 

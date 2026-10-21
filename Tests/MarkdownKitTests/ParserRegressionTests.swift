@@ -669,6 +669,44 @@ class ParserRegressionTests: XCTestCase {
     XCTAssertEqual(html("-\tfoo\n\n\tbar"), "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n</ul>")
   }
 
+  // MARK: HTML blocks that end on their first line and interrupt a paragraph of a container
+
+  func testHtmlBlockAfterLazyLineKeepsParagraphOfContainer() {
+    // The line of the HTML block does not continue the container. The paragraph of the container
+    // used to get lost, and the HTML block was created twice.
+    for html in ["<!-- c -->", "<?php ?>", "<![CDATA[x]]>", "<!DOCTYPE html>", "<script>x</script>",
+                 "<pre>x</pre>", "<style>x</style>"] {
+      for parser in [MarkdownParser.standard, ExtendedMarkdownParser.standard,
+                     FullMarkdownParser.standard] {
+        XCTAssertEqual(parser.parse("- item\n\(html)"),
+                       .document([.list(nil, true, [.listItem(.bullet("-"), .initial,
+                                                              [.paragraph(Text("item"))])]),
+                                  .htmlBlock([Substring(html)])]),
+                       html)
+        XCTAssertEqual(parser.parse("> item\n\(html)\n"),
+                       .document([.blockquote([.paragraph(Text("item"))]),
+                                  .htmlBlock([Substring(html + "\n")])]),
+                       html)
+      }
+    }
+    XCTAssertEqual(self.html("1. item\n<!-- c -->"), "<ol start=\"1\">\n<li>item</li>\n</ol>\n<!-- c -->")
+    XCTAssertEqual(self.html("- a\n- b\n<!-- c -->"), "<ul>\n<li>a</li>\n<li>b</li>\n</ul>\n<!-- c -->")
+    XCTAssertEqual(self.html("- a\n  more\n<!-- c -->"), "<ul>\n<li>a\nmore</li>\n</ul>\n<!-- c -->")
+    XCTAssertEqual(self.html("> > item\n<!-- c -->"),
+                   "<blockquote>\n<blockquote>\n<p>item</p>\n</blockquote>\n</blockquote>\n<!-- c -->")
+  }
+
+  func testHtmlBlockOnFirstLineInsideContainerIsStillPartOfContainer() {
+    // An indented line is not a lazy continuation line, so the block belongs to the item
+    XCTAssertEqual(html("- item\n  <!-- c -->"), "<ul>\n<li>item\n<!-- c -->\n</li>\n</ul>")
+    XCTAssertEqual(html("> <!-- c -->\n> item"),
+                   "<blockquote>\n<!-- c -->\n<p>item</p>\n</blockquote>")
+    // Blocks that span several lines or end at a blank line were not affected
+    XCTAssertEqual(html("- item\n<!-- c\n-->"), "<ul>\n<li>item</li>\n</ul>\n<!-- c\n-->")
+    XCTAssertEqual(html("- item\n<div>\nx"), "<ul>\n<li>item</li>\n</ul>\n<div>\nx")
+    XCTAssertEqual(html("a\n<!-- c -->\nb"), "<p>a</p>\n<!-- c -->\n<p>b</p>")
+  }
+
   func testTabsDoNotCountAsFourColumnsAfterOtherCharacters() {
     // A tab after two spaces and a list marker ends at the tab stop of column 4
     XCTAssertEqual(html("  -\tfoo\n\n\tbar"), "<ul>\n<li><p>foo</p>\n<p>bar</p>\n</li>\n</ul>")

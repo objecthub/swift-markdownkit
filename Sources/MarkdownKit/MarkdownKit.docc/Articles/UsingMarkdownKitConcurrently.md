@@ -6,7 +6,7 @@ Parse and generate on background threads and tasks, and know what to restate in 
 
 ## Overview
 
-MarkdownKit is compiled in Swift 6 language mode and supports strict concurrency checking. Abstract syntax trees (``Block``, ``TextFragment``, ``Text``, ...), options and configuration types (such as ``AttributedStringGenerator/RenderingOptions``) are `Sendable` value types. Parsers (``MarkdownParser``, ``ExtendedMarkdownParser``), generators (``HtmlGenerator``, ``StringGenerator``, ``TerminalGenerator``, ``AttributedStringGenerator``), table renderers and the ``SyntaxHighlighter`` are immutable objects and `Sendable` as well (the highlighting configurations ``HighlightingConfig`` and ``AnsiHighlightingConfig`` are value types), so a single instance can be used from several threads or tasks at the same time.
+MarkdownKit is compiled in Swift 6 language mode and supports strict concurrency checking. Abstract syntax trees (``Block``, ``TextFragment``, ``Text``, ...), options and configuration types (such as ``AttributedStringGenerator/RenderingOptions``) are `Sendable` value types. Parsers (``MarkdownParser``, ``ExtendedMarkdownParser``), generators (``HtmlGenerator``, ``StringGenerator``, ``TerminalGenerator``, ``AttributedStringGenerator``, ``SourceGenerator``), table renderers and the ``SyntaxHighlighter`` are immutable objects and `Sendable` as well (the highlighting configurations ``HighlightingConfig`` and ``AnsiHighlightingConfig`` are value types), so a single instance can be used from several threads or tasks at the same time.
 
 Parsing in a background task and using the resulting ``Block`` on the main actor works:
 

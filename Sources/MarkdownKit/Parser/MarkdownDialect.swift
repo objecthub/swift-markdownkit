@@ -29,6 +29,69 @@ import Foundation
 /// ```
 ///
 public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
+  
+  ///
+  /// The features of Markdown that a ``SourceGenerator`` may use when it writes source:
+  /// the syntax of the parser that will read the source again. A tree can only be written
+  /// back faithfully if the syntax has the features that the tree uses. The syntax also
+  /// decides which characters of plain text have to be escaped: `$` only needs an escape
+  /// if the syntax has math.
+  /// 
+  /// The standard parsers have these syntaxes (see ``MarkdownDialect/syntax``):
+  /// - ``commonMark``: no features
+  /// - ``extendedCommonMark``: ``tables`` and ``definitionLists``
+  /// - ``full``: additionally ``underline``, ``strikethrough`` and ``taskLists``
+  /// - ``fullMath``: additionally ``math``
+  /// - ``fullLaTeX``: additionally ``latexMath``
+  ///
+  public struct Syntax: OptionSet, Hashable, Sendable {
+
+    public let rawValue: Int
+
+    public init(rawValue: Int) {
+      self.rawValue = rawValue
+    }
+
+    /// Tables (`| a | b |`).
+    public static let tables = Syntax(rawValue: 1 << 0)
+
+    /// Definition lists (a term followed by lines that start with `:`).
+    public static let definitionLists = Syntax(rawValue: 1 << 1)
+
+    /// Underlined text (`~text~`).
+    public static let underline = Syntax(rawValue: 1 << 2)
+
+    /// Struck-through text (`~~text~~`).
+    public static let strikethrough = Syntax(rawValue: 1 << 3)
+
+    /// Task list items (`- [ ] to do`).
+    public static let taskLists = Syntax(rawValue: 1 << 4)
+
+    /// Formulas between dollar signs (`$x$`, `$$x$$`) and in fenced code blocks
+    /// with the info string `math`.
+    public static let math = Syntax(rawValue: 1 << 5)
+    
+    /// Formulas between the delimiters of LaTeX (`\(x\)`, `\[x\]`).
+    public static let latexMath = Syntax(rawValue: 1 << 6)
+
+    /// The syntax of ``MarkdownParser``: CommonMark.
+    public static let commonMark: Syntax = []
+
+    /// The syntax of ``ExtendedMarkdownParser``.
+    public static let extendedCommonMark: Syntax = [.tables, .definitionLists]
+
+    /// The syntax of ``FullMarkdownParser``.
+    public static let full: Syntax = [.tables, .definitionLists, .underline, .strikethrough,
+                                      .taskLists]
+
+    /// The syntax of ``MathMarkdownParser``.
+    public static let fullMath: Syntax = [.tables, .definitionLists, .underline, .strikethrough,
+                                          .taskLists, .math]
+
+    /// The syntax of ``LaTeXMarkdownParser``: everything that MarkdownKit supports.
+    public static let fullLaTeX: Syntax = [.tables, .definitionLists, .underline, .strikethrough,
+                                           .taskLists, .math, .latexMath]
+  }
 
   /// CommonMark, parsed by ``MarkdownParser``.
   case commonMark
@@ -48,6 +111,7 @@ public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
   /// between the delimiters of LaTeX (`\(`…`\)` and `\[`…`\]`), parsed by
   /// ``LaTeXMarkdownParser``.
   case fullLaTeX
+  
 
   /// The standard parser of this dialect, e.g. ``MarkdownParser/standard`` for
   /// ``commonMark``.
@@ -64,5 +128,27 @@ public enum MarkdownDialect: Sendable, Equatable, CaseIterable {
       case .fullLaTeX:
         return LaTeXMarkdownParser.standard
     }
+  }
+  
+  /// The syntax of the standard parser of this dialect, for a ``SourceGenerator``.
+  public var syntax: Syntax {
+    switch self {
+      case .commonMark:
+        return .commonMark
+      case .extendedCommonMark:
+        return .extendedCommonMark
+      case .full:
+        return .full
+      case .fullMath:
+        return .fullMath
+      case .fullLaTeX:
+        return .fullLaTeX
+    }
+  }
+  
+  /// A source generator for this dialect: it writes Markdown that this dialect's ``parser``
+  /// reads back into the same syntax tree.
+  public var sourceGenerator: SourceGenerator {
+    return SourceGenerator(dialect: self)
   }
 }

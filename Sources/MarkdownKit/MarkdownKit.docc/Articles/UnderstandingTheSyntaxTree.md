@@ -10,7 +10,7 @@ A parser turns a Markdown string into a tree of three types:
 - ``Text`` is a sequence of inline elements. A paragraph, a heading and a table cell contain a ``Text``.
 - ``TextFragment`` is an enumeration of the inline elements: plain text, emphasis, links, images and so on. Some fragments contain a ``Text``.
 
-The root of the tree is a ``Block/document(_:)``. A tree is a value: it can be shared freely, compared with `==` and passed between threads. Printing a tree with `debugDescription` shows its structure; the examples below use it.
+The root of the tree is a ``Block/document(_:)``. A tree is a value: it can be shared freely, compared with `==` and passed between threads. The parser splits text into fragments at every character that may start markup, so two trees of text that means the same can be different. Compare ``Block/normalized`` trees to ignore that, see <doc:GeneratingMarkdownSource>. Printing a tree with `debugDescription` shows its structure; the examples below use it.
 
 ### Know the two parsing phases
 

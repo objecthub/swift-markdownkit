@@ -92,6 +92,30 @@ public struct MathFragment: CustomTextFragment {
   }
   #endif
 
+  /// The source of the formula: `source`, if the syntax has the delimiters of the formula. The
+  /// delimiters of LaTeX are replaced by dollar signs, if the syntax has formulas, but not these
+  /// delimiters, and the LaTeX allows it. The result is `nil` if the syntax has no formulas, if
+  /// the formula cannot be written with dollar signs, and if it has a line break where the text
+  /// has to be a single line.
+  public func generateSource(via generator: SourceGenerator,
+                             in context: SourceGenerator.InlineContext) -> String? {
+    guard generator.syntax.contains(.math) else {
+      return nil
+    }
+    var source = self.source
+    if (source.hasPrefix("\\(") || source.hasPrefix("\\[")) &&
+       !generator.syntax.contains(.latexMath) {
+      guard !self.tex.contains("$") else {
+        return nil
+      }
+      source = self.display ? "$$\(self.tex)$$" : "$\(self.tex)$"
+    }
+    if context.contains(.singleLine) && source.contains("\n") {
+      return nil
+    }
+    return source
+  }
+
   /// The formula as it was written, including its delimiters.
   public var rawDescription: String {
     return self.source

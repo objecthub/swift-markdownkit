@@ -95,6 +95,10 @@ This prints `["https://objecthub.com", "https://swift.org"]`.
 
 The example does not look into tables, definition lists and custom blocks, which only the extended parsers produce (see <doc:ChoosingAParser>), or into custom text fragments. A function that has to be complete handles those cases, too: see <doc:UnderstandingTheSyntaxTree> for the structure of each case.
 
+### Write a changed document
+
+A transformed tree is a value like the original one. ``SourceGenerator`` writes it back as Markdown, see <doc:GeneratingMarkdownSource> and the recipe "Rewrite a document" in <doc:Recipes>.
+
 ### Process a document in a background task
 
 Syntax trees are values that can be passed between threads. Parse in a background task and use the result wherever you need it. See <doc:UsingMarkdownKitConcurrently>.
@@ -102,3 +106,4 @@ Syntax trees are values that can be passed between threads. Parse in a backgroun
 ## See Also
 
 - <doc:GeneratingOutput>
+- <doc:GeneratingMarkdownSource>

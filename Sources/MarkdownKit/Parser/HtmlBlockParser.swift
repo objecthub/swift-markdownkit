@@ -71,8 +71,10 @@ open class HtmlBlockParser: BlockParser {
           continue
         }
         var lines: Lines = [self.line]
+        var readMore = false
         while !self.finished && !parser.endCondition(cline) {
           self.readNextLine()
+          readMore = true
           if !self.finished {
             if (parser.emptyLineTerminator && self.lineEmpty) || self.lineLeavesContainer {
               break
@@ -83,7 +85,11 @@ open class HtmlBlockParser: BlockParser {
           cline = self.lineEmpty
                     ? "" : self.line[self.contentStartIndex..<self.contentEndIndex].lowercased()
         }
-        if !self.finished && !self.lineLeavesContainer {
+        // The line that was read last belongs to the block unless it is the line that made the
+        // loop stop because it leaves the container. If the first line already satisfies the end
+        // condition, no line was read: the first line is part of the block (also if it is a lazy
+        // continuation line of a paragraph, which `readNextLine` closes) and has to be consumed.
+        if !self.finished && (!readMore || !self.lineLeavesContainer) {
           self.readNextLine()
         }
         if let last = lines.last, last.isEmpty {

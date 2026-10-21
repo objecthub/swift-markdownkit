@@ -27,9 +27,9 @@ enum LineEmphasis: CustomTextFragment {
     }
     switch (self, that) {
       case (.underline(let lhs), .underline(let rhs)):
-        return lhs == rhs
+        return lhs.normalized == rhs.normalized
       case (.strikethrough(let lhs), .strikethrough(let rhs)):
-        return lhs == rhs
+        return lhs.normalized == rhs.normalized
       default:
         return false
     }
@@ -83,9 +83,10 @@ enum LineEmphasis: CustomTextFragment {
 
 The protocol has these requirements:
 
-- `equals(to:)` compares two fragments, so that syntax trees can be compared.
+- `equals(to:)` compares two fragments, so that syntax trees can be compared. It compares ``Text/normalized`` text: the parser splits text into fragments in ways that do not matter, see <doc:GeneratingMarkdownSource>.
 - `transform(via:)` lets an ``InlineTransformer`` process the text inside the fragment, so that other markup, such as emphasis or links, still works within it.
 - `generateHtml(via:)` and `generateHtml(via:and:)` create the HTML for the fragment. The second variant is used by ``AttributedStringGenerator``, which converts HTML into an attributed string, and is passed the generator.
+- `generateSource(via:in:)` writes the Markdown source of the fragment for a ``SourceGenerator`` (a ``CustomBlock`` has `generateSource(via:parent:)`). Both have default implementations which return `nil`, so you only implement them if the element is to be written back as Markdown, see below.
 - `rawDescription` is the text of the fragment without any markup.
 - `description` and `debugDescription` render the fragment for printing and debugging.
 
@@ -146,6 +147,34 @@ The order of the inline transformers matters. In particular, ``EscapeTransformer
 - It decides which line endings are hard line breaks (a backslash or at least two spaces at the end of a line) and removes the trailing spaces of the other line endings. This has to happen after ``DelimiterTransformer`` has classified the delimiters (a `*` followed by a backslash is treated differently from a `*` at the end of a line), after ``CodeLinkHtmlTransformer`` has recognized code spans and HTML tags (a backslash or spaces at the end of a line are literal text in these, and the line ending is no line break), and after ``LinkTransformer`` has matched link reference labels (they are compared as written, including backslashes).
 
 A parser without ``EscapeTransformer`` does not recognize hard line breaks; trailing spaces and backslashes at the end of lines remain in the text. Custom transformers for new inline markup, such as the ones above, belong in front of ``EscapeTransformer``.
+
+### Write the source of the new elements
+
+A ``SourceGenerator`` writes a syntax tree back as Markdown source (see <doc:GeneratingMarkdownSource>). To get the source of a custom text fragment, it calls `generateSource(via:in:)`, and for a custom block `generateSource(via:parent:)`. Without an implementation, the generator writes a fragment as plain text and a block as a code block, which read back as something else. For the fragment of the example, the source is the text between tildes:
+
+```swift
+extension LineEmphasis {
+  func generateSource(via generator: SourceGenerator,
+                      in context: SourceGenerator.InlineContext) -> String? {
+    switch self {
+      case .underline(let text):
+        return "~" + generator.generate(text: text, in: context) + "~"
+      case .strikethrough(let text):
+        return "~~" + generator.generate(text: text, in: context) + "~~"
+    }
+  }
+}
+```
+
+The generator passes the context in which the fragment is written. A fragment which contains text asks the generator to write it, handing on the context (a fragment that adds brackets passes `context.inserting(.linkText)`). It does not escape any characters or add prefixes itself. A block with text uses `generator.generate(lines:in:)`, a block with blocks `generator.generate(blocks:parent:)` with `.block(.custom(self), parent)` as parent; a block returns its lines relative to its container, and the generator adds the markers and the indentation of block quotes and list items.
+
+The source of an element has to parse, with the parser of the generator, into an element that is equal to the original one. If it can not be written in the given place, return `nil`: a fragment cannot contain a line break in a table cell or in a heading (`context.contains(.singleLine)`). Create the generator for the parser with the characters that the new syntax adds, because plain text containing them needs an escape, too (`\~`):
+
+```swift
+let generator = SourceGenerator(syntax: .commonMark,
+                                parser: EmphasisTestMarkdownParser.standard,
+                                specialCharacters: ["~"])
+```
 
 ### Make custom types Sendable
 
