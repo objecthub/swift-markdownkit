@@ -248,6 +248,28 @@ final class MarkdownUtilConversionTests: XCTestCase {
     XCTAssertEqual(try width(of: standard) / width(of: small), 2, accuracy: 0.1)
   }
 
+  func testRtfdDrawsOnlyWhatHasAConfiguration() async throws {
+    let util = try self.makeUtil()
+    let doc = self.parse("A formula $x^2$.\n\n```mermaid\ngraph TD\n  A --> B\n```\n")
+    let options = AttributedStringGenerator.RenderingOptions(remoteImages: .none)
+    func files(_ document: FileWrapper) throws -> Set<String> {
+      return Set(try XCTUnwrap(document.fileWrappers).keys)
+    }
+    let both = try await util.rtfd(doc, renderingOptions: options)
+    XCTAssertEqual(try files(both), ["TXT.rtf", "Formula 1.png", "Image 1.png"])
+    let diagramsOnly = try await util.rtfd(doc, math: nil, renderingOptions: options)
+    XCTAssertEqual(try files(diagramsOnly), ["TXT.rtf", "Image 1.png"])
+    let formulasOnly = try await util.rtfd(doc, mermaid: nil, renderingOptions: options)
+    XCTAssertEqual(try files(formulasOnly), ["TXT.rtf", "Formula 1.png"])
+    // The diagram and the formula stay text
+    let neither = try await util.rtfd(doc, mermaid: nil, math: nil, renderingOptions: options)
+    XCTAssertEqual(try files(neither), ["TXT.rtf"])
+    let rtf = String(decoding: try XCTUnwrap(try XCTUnwrap(neither.fileWrappers?["TXT.rtf"]).regularFileContents),
+                     as: UTF8.self)
+    XCTAssertTrue(rtf.contains("$x^2$"), rtf)
+    XCTAssertTrue(rtf.contains("A --> B"), rtf)
+  }
+
   func testRtfdResolvesRelativeImagePathsAgainstTheImageBaseUrl() async throws {
     let directory = FileManager.default.temporaryDirectory
       .appendingPathComponent("MarkdownUtilConversionTests-\(UUID().uuidString)", isDirectory: true)

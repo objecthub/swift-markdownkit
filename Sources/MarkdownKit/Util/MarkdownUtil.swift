@@ -25,17 +25,20 @@ import Foundation
 /// assembling parsers and generators yourself. It has two groups of methods:
 ///
 /// - **Converting Markdown into documents.** ``text(_:width:)``, ``ansi(_:width:)`` and
-///   ``html(_:math:safeMode:)`` turn a parsed document into text, text with ANSI escape codes and
-///   HTML on every platform. ``rtf(_:title:author:imageBaseUrl:renderingOptions:)`` and
-///   ``rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` create RTF and RTFD documents, and
-///   ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` a PDF document, on macOS and iOS;
-///   RTFD and PDF documents contain the diagrams and formulas as images. The ``style`` of the
-///   utility determines how these documents look. See <doc:ConvertingMarkdownIntoDocuments>.
+///   ``html(_:math:safeMode:)`` turn a parsed document into text, text with ANSI escape codes
+///   and HTML on every platform. ``rtf(_:title:author:imageBaseUrl:renderingOptions:)`` and
+///   ``rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)``
+///   create RTF and RTFD documents, and 
+///   ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)``
+///   a PDF document, on macOS and iOS; RTFD and PDF documents contain the diagrams and
+///   formulas as images. The ``style`` of the utility determines how these documents look.
+///   See <doc:ConvertingMarkdownIntoDocuments>.
 /// - **Drawing diagrams and formulas as images.** ``mermaidImage(_:config:)`` and
-///   ``mathImage(_:display:fontSize:color:config:)`` turn the source of a Mermaid diagram or the
-///   LaTeX of a formula into an `NSImage` (macOS) or a `UIImage` (iOS), without any Markdown, and
-///   ``image(_:withInsets:transparentAlpha:)`` gives an image uniform transparent insets. These
-///   methods are available on macOS and iOS. See <doc:DrawingImagesOfDiagramsAndFormulas>.
+///   ``mathImage(_:display:fontSize:color:config:)`` turn the source of a Mermaid diagram
+///   or the LaTeX of a formula into an `NSImage` (macOS) or a `UIImage` (iOS), without any
+///   Markdown, and ``image(_:withInsets:transparentAlpha:)`` gives an image uniform
+///   transparent insets. These methods are available on macOS and iOS. See
+///   <doc:DrawingImagesOfDiagramsAndFormulas>.
 ///
 /// ```swift
 /// let util = MarkdownUtil.standard
@@ -44,9 +47,10 @@ import Foundation
 /// let formula = try await util.mathImage("\\pi r^2", fontSize: 16)   // an NSImage or UIImage
 /// ```
 ///
-/// Diagrams and formulas are drawn by a ``MermaidRenderer`` and a ``MathRenderer``, which cache
-/// their results. A utility uses the shared renderers (``MermaidRenderer/shared`` and
-/// ``MathRenderer/shared``) unless it is created with renderers of your own.
+/// Diagrams and formulas are drawn by a ``MermaidRenderer`` and a ``MathRenderer``, which
+/// cache their results, and code is colored by a ``SyntaxHighlighter``. A utility uses the
+/// shared instances (``MermaidRenderer/shared``, ``MathRenderer/shared`` and
+/// ``SyntaxHighlighter/proxy``) unless it is created with ones of your own.
 ///
 public struct MarkdownUtil: Sendable {
 
@@ -60,16 +64,28 @@ public struct MarkdownUtil: Sendable {
   /// The renderer that draws formulas. If `nil`, ``MathRenderer/shared`` is used.
   public let mathRenderer: MathRenderer?
 
+  /// The highlighter that colors the code of fenced code blocks in ``ansi(_:width:)``,
+  /// ``rtf(_:title:author:imageBaseUrl:renderingOptions:)``,
+  /// ``rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` and
+  /// ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)``.
+  /// If `nil`, ``SyntaxHighlighter/proxy`` is used. The theme and the other options of
+  /// highlighting are part of the ``style``. Code is not colored on watchOS, where the
+  /// highlighter does not exist.
+  public let syntaxHighlighter: SyntaxHighlighter?
+
   /// The appearance of the documents that ``rtf(_:title:author:imageBaseUrl:renderingOptions:)``,
   /// ``rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` and
-  /// ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` create: fonts, colors, spacing and
-  /// CSS. The default is ``AttributedStringGenerator/Style/light``: the colors for a white page,
-  /// whatever the appearance of the system is.
+  /// ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)``
+  /// create: fonts, colors, spacing and CSS. The default is
+  /// ``AttributedStringGenerator/Style/light``: the colors for a white page, whatever the
+  /// appearance of the system is.
   public let style: AttributedStringGenerator.Style
 
-  /// Creates a utility that draws diagrams and formulas with the given renderers, and creates
-  /// documents in the given style. A renderer of your own lets you choose the limits of its cache
-  /// and the time after which its web view is released.
+  /// Creates a utility that draws diagrams and formulas with the given renderers, colors
+  /// code with the given highlighter, and creates documents in the given style. A renderer
+  /// of your own lets you choose the limits of its cache and the time after which its web
+  /// view is released, and a highlighter of your own lets you use another version of
+  /// Highlight.js or themes of your own (see <doc:SyntaxHighlighting>).
   ///
   /// ```swift
   /// var style = AttributedStringGenerator.Style.light
@@ -81,20 +97,23 @@ public struct MarkdownUtil: Sendable {
   /// - Parameters:
   ///   - mermaidRenderer: The renderer for diagrams, or `nil` to use the shared one.
   ///   - mathRenderer: The renderer for formulas, or `nil` to use the shared one.
+  ///   - syntaxHighlighter: The highlighter for code, or `nil` to use the shared one.
   ///   - style: The appearance of RTF, RTFD and PDF documents.
   public init(mermaidRenderer: MermaidRenderer? = nil,
               mathRenderer: MathRenderer? = nil,
+              syntaxHighlighter: SyntaxHighlighter? = nil,
               style: AttributedStringGenerator.Style = .light) {
     self.mermaidRenderer = mermaidRenderer
     self.mathRenderer = mathRenderer
+    self.syntaxHighlighter = syntaxHighlighter
     self.style = style
   }
 
   // MARK: Text and HTML
 
   /// Returns the document as plain text, formatted for lines of `width` columns (at least 10).
-  /// Diagrams are shown as code and formulas as they were written. This method is available on all
-  /// platforms.
+  /// Diagrams are shown as code and formulas as they were written. This method is available
+  /// on all platforms.
   ///
   /// - Parameters:
   ///   - doc: The Markdown document, or a part of it.
@@ -106,13 +125,16 @@ public struct MarkdownUtil: Sendable {
   /// Returns the document as text which is marked up with ANSI escape codes (colors, bold and
   /// italic text, ...), formatted for lines of `width` columns (at least 10), so that an
   /// ANSI-compliant terminal shows it formatted. Diagrams are shown as code and formulas as they
-  /// were written. This method is available on all platforms.
+  /// were written; code is colored by the ``syntaxHighlighter`` of the utility. This method is
+  /// available on all platforms.
   ///
   /// - Parameters:
   ///   - doc: The Markdown document, or a part of it.
   ///   - width: The width of a line in columns.
   public func ansi(_ doc: Block, width: Int = 80) -> String {
-    return TerminalGenerator(numColumns: width).generate(doc: doc).encodedString
+    return TerminalGenerator(numColumns: width, syntaxHighlighter: self.syntaxHighlighter)
+             .generate(doc: doc)
+             .encodedString
   }
 
   /// Returns the document as HTML. Formulas are typeset (by KaTeX) as MathML, which browsers

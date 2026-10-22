@@ -87,8 +87,8 @@ See <doc:CustomizingAttributedStringOutput> for the properties of a style. A pag
 
 ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` and ``MarkdownUtil/pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` pass the configuration of the images on to the generator:
 
-- `mermaid` is the ``MermaidConfig`` for diagrams: theme, fonts, the scale of the image, the width of the page that Mermaid draws for, and more (see <doc:DrawingMermaidDiagrams>). The default draws them for a light background, like the style of the utility.
-- `math` is the ``MathConfig`` for formulas: the macros and limits of KaTeX, the scale of the image, and more (see <doc:MathematicalFormulas>).
+- `mermaid` is the ``MermaidConfig`` for diagrams: theme, fonts, the scale of the image, the width of the page that Mermaid draws for, and more (see <doc:DrawingMermaidDiagrams>). The default draws them for a light background, like the style of the utility. With `nil`, diagrams are not drawn: they stay code, as in a text view without a configuration.
+- `math` is the ``MathConfig`` for formulas: the macros and limits of KaTeX, the scale of the image, and more (see <doc:MathematicalFormulas>). With `nil`, formulas are not drawn: they stay text, as they were written.
 - `imageBaseUrl` is the URL against which the relative paths of images are resolved (see ``AttributedStringGenerator/imageBaseUrl``); without it, they are resolved against the `baseUrl` of the `renderingOptions`. Use a URL with a trailing slash for a directory. ``MarkdownUtil/rtf(_:title:author:imageBaseUrl:renderingOptions:)`` has this parameter as well, but no `mermaid` and `math`: an RTF file cannot contain images.
 
 ```swift
@@ -112,10 +112,14 @@ let document = try string.fileWrapper(from: NSRange(location: 0, length: string.
                                       documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
 ```
 
-### Choose the renderers
+### Choose the renderers and the highlighter
 
-The utility draws diagrams and formulas with ``MermaidRenderer/shared`` and ``MathRenderer/shared``, which cache their results. Create a utility with renderers of your own to choose the limits of the caches and the time after which a web view is released:
+The utility draws diagrams and formulas with ``MermaidRenderer/shared`` and ``MathRenderer/shared``, which cache their results, and colors code with ``SyntaxHighlighter/proxy``. Create a utility with renderers of your own to choose the limits of the caches and the time after which a web view is released, and with a highlighter of your own to use another version of Highlight.js or themes of your own (see <doc:SyntaxHighlighting>):
 
 ```swift
-let util = MarkdownUtil(mermaidRenderer: myMermaidRenderer, mathRenderer: myMathRenderer)
+let util = MarkdownUtil(mermaidRenderer: myMermaidRenderer,
+                        mathRenderer: myMathRenderer,
+                        syntaxHighlighter: myHighlighter)
 ```
+
+The highlighter colors the code of ``MarkdownUtil/ansi(_:width:)``, ``MarkdownUtil/rtf(_:title:author:imageBaseUrl:renderingOptions:)``, ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` and ``MarkdownUtil/pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)``. The theme is part of the style of the utility (``AttributedStringGenerator/Style/syntaxHighlighting``); its themes are the ones the highlighter knows, by name, or CSS.

@@ -138,10 +138,11 @@ extension MarkdownUtil {
   ///              on, and more (see <doc:DrawingMermaidDiagrams>). The default draws them for a
   ///              light background. The `maxWidth` of the configuration is the greatest width
   ///              in points that a diagram has on the pages of the document, after the scaling
-  ///              that all diagrams get.
+  ///              that all diagrams get. If `nil`, diagrams are shown as code.
   ///   - math: How formulas are typeset and shown: macros, scale, and more (see
   ///           <doc:MathematicalFormulas>). Its `maxWidth` limits the width of a formula on the
-  ///           pages; formulas are never wider than the text.
+  ///           pages; formulas are never wider than the text. If `nil`, formulas are shown as
+  ///           they were written.
   ///   - imageBaseUrl: The URL against which the relative paths of images are resolved, see
   ///                   ``AttributedStringGenerator/imageBaseUrl``. Use a URL with a trailing slash
   ///                   for a directory. If `nil`, they are resolved against the `baseUrl` of
@@ -160,8 +161,8 @@ extension MarkdownUtil {
                   author: String? = nil,
                   pageSize: CGSize = MarkdownUtil.usLetter,
                   margins: Insets = Insets(72),
-                  mermaid: MermaidConfig = .default,
-                  math: MathConfig = .default,
+                  mermaid: MermaidConfig? = .default,
+                  math: MathConfig? = .default,
                   imageBaseUrl: URL? = nil,
                   renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted)
                 async throws -> Data {
@@ -199,13 +200,13 @@ extension MarkdownUtil {
   /// on the page, so the generator does not apply it: it comes after the scale of the page.
   func pdfAttributedString(_ doc: Block,
                            textWidth: CGFloat,
-                           mermaid: MermaidConfig = .default,
-                           math: MathConfig = .default,
+                           mermaid: MermaidConfig? = .default,
+                           math: MathConfig? = .default,
                            imageBaseUrl: URL? = nil,
                            renderingOptions: AttributedStringGenerator.RenderingOptions)
                          async throws -> NSAttributedString {
     var diagrams = mermaid
-    diagrams.maxWidth = nil
+    diagrams?.maxWidth = nil
     let generator = self.documentGenerator(
       maxImageWidth: textWidth,
       diagramMaxWidth: nil,
@@ -214,9 +215,11 @@ extension MarkdownUtil {
       imageBaseUrl: imageBaseUrl,
       renderingOptions: renderingOptions.scalingText(by: Self.pdfTextScale))
     let string = try await generator.generateAsync(doc: doc)
-    Self.scalingDiagrams(in: string,
-                         by: min(1, textWidth / mermaid.renderKey.width),
-                         maxWidth: Self.narrowest(mermaid.maxWidth))
+    if let mermaid {
+      Self.scalingDiagrams(in: string,
+                           by: min(1, textWidth / mermaid.renderKey.width),
+                           maxWidth: Self.narrowest(mermaid.maxWidth))
+    }
     return string
   }
 

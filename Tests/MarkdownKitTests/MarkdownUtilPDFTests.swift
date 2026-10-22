@@ -280,16 +280,21 @@ final class MarkdownUtilPDFTests: XCTestCase {
     }
   }
 
-  func testTheGeneratorOfDocumentsGetsTheConfigurations() {
+  /// The generator of documents as the generator of formulas, which it is if formulas are drawn.
+  private func mathGenerator(_ generator: AttributedStringGenerator) throws -> MathAttributedStringGenerator {
+    return try XCTUnwrap(generator as? MathAttributedStringGenerator)
+  }
+
+  func testTheGeneratorOfDocumentsGetsTheConfigurations() throws {
     let base = URL(fileURLWithPath: "/tmp/images/", isDirectory: true)
     let katex = KaTeXOptions(macros: ["\\R": "\\mathbb{R}"])
-    let generator = MarkdownUtil.standard.documentGenerator(
+    let generator = try self.mathGenerator(MarkdownUtil.standard.documentGenerator(
       maxImageWidth: 400,
       diagramMaxWidth: 400,
       mermaid: MermaidConfig(theme: .forest, fontFamily: "Courier", scale: 3, width: 600),
       math: MathConfig(katex: katex, scale: 2),
       imageBaseUrl: base,
-      renderingOptions: self.options)
+      renderingOptions: self.options))
     XCTAssertEqual(generator.imageBaseUrl, base)
     XCTAssertEqual(generator.mermaidConfig?.theme, .forest)
     XCTAssertEqual(generator.mermaidConfig?.fontFamily, "Courier")
@@ -300,32 +305,131 @@ final class MarkdownUtilPDFTests: XCTestCase {
     XCTAssertEqual(generator.mathConfig.scale, 2)
     XCTAssertEqual(generator.mathConfig.maxWidth, 400)
     // Without configurations, the generator has the default ones
-    let plain = MarkdownUtil.standard.documentGenerator(maxImageWidth: 300, diagramMaxWidth: 200,
-                                                        renderingOptions: self.options)
+    let plain = try self.mathGenerator(MarkdownUtil.standard.documentGenerator(
+      maxImageWidth: 300, diagramMaxWidth: 200, renderingOptions: self.options))
     XCTAssertNil(plain.imageBaseUrl)
     XCTAssertEqual(plain.mermaidConfig, MermaidConfig(maxWidth: 200))
     XCTAssertEqual(plain.mathConfig, MathConfig(maxWidth: 300))
   }
 
-  func testTheNarrowestLimitOfTheWidthCounts() {
-    let generator = MarkdownUtil.standard.documentGenerator(
+  func testWithoutConfigurationsDiagramsAndFormulasAreNotDrawn() throws {
+    let util = MarkdownUtil.standard
+    // Without a configuration of formulas, the generator is not the one that draws them
+    let noMath = util.documentGenerator(maxImageWidth: 400, diagramMaxWidth: 400, math: nil,
+                                        renderingOptions: self.options)
+    XCTAssertFalse(noMath is MathAttributedStringGenerator)
+    XCTAssertEqual(noMath.mermaidConfig, MermaidConfig(maxWidth: 400))
+    let noMermaid = try self.mathGenerator(util.documentGenerator(
+      maxImageWidth: 400, diagramMaxWidth: 400, mermaid: nil, renderingOptions: self.options))
+    XCTAssertNil(noMermaid.mermaidConfig)
+    XCTAssertEqual(noMermaid.mathConfig, MathConfig(maxWidth: 400))
+    let neither = util.documentGenerator(maxImageWidth: 400, diagramMaxWidth: 400,
+                                         mermaid: nil, math: nil, imageBaseUrl: URL(fileURLWithPath: "/tmp/"),
+                                         renderingOptions: self.options)
+    XCTAssertFalse(neither is MathAttributedStringGenerator)
+    XCTAssertNil(neither.mermaidConfig)
+    XCTAssertEqual(neither.imageBaseUrl, URL(fileURLWithPath: "/tmp/"))
+  }
+
+  func testTheNarrowestLimitOfTheWidthCounts() throws {
+    let generator = try self.mathGenerator(MarkdownUtil.standard.documentGenerator(
       maxImageWidth: 400,
       diagramMaxWidth: nil,
       mermaid: MermaidConfig(maxWidth: 300),
       math: MathConfig(maxWidth: 500),
-      renderingOptions: self.options)
+      renderingOptions: self.options))
     XCTAssertEqual(generator.mermaidConfig?.maxWidth, 300)
     XCTAssertEqual(generator.mathConfig.maxWidth, 400)
-    let unlimited = MarkdownUtil.standard.documentGenerator(
+    let unlimited = try self.mathGenerator(MarkdownUtil.standard.documentGenerator(
       maxImageWidth: 400,
       diagramMaxWidth: 350,
       mermaid: MermaidConfig(maxWidth: 0),
       math: MathConfig(maxWidth: -1),
-      renderingOptions: self.options)
+      renderingOptions: self.options))
     XCTAssertEqual(unlimited.mermaidConfig?.maxWidth, 350)
     XCTAssertEqual(unlimited.mathConfig.maxWidth, 400)
     XCTAssertNil(MarkdownUtil.narrowest(nil, 0, -1))
     XCTAssertEqual(MarkdownUtil.narrowest(nil, 200, 100, 0), 100)
+  }
+
+  func testDiagramsAreCodeWithoutAConfigurationOfDiagrams() async throws {
+    let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
+    let renderer = try XCTUnwrap(MermaidRenderer(mermaidJSURL: script))
+    let source = "graph LR\n  A --> B\n"
+    renderer.store(MermaidImage(pngData: try self.tinyPNG(width: 1500, height: 300, dpi: 144),
+                                size: CGSize(width: 750, height: 150), scale: 2),
+                   for: source, config: MermaidConfig())
+    let util = MarkdownUtil(mermaidRenderer: renderer)
+    let doc = self.parse("```mermaid\n\(source)```\n")
+    let drawn = try await util.pdfAttributedString(doc, textWidth: 468, renderingOptions: self.options)
+    XCTAssertEqual(self.attachmentSizes(of: drawn).count, 1)
+    let code = try await util.pdfAttributedString(doc, textWidth: 468, mermaid: nil, renderingOptions: self.options)
+    XCTAssertTrue(self.attachmentSizes(of: code).isEmpty)
+    XCTAssertTrue(code.string.contains("A --> B"), code.string)
+  }
+
+  // MARK: Syntax highlighting
+
+  /// A script that defines a highlighter whose language is `swift` and which marks everything as
+  /// a keyword (which the default theme colors blue), whatever the code is.
+  private func makeStubHighlighter() throws -> SyntaxHighlighter {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("MarkdownUtilPDFTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer {
+      try? FileManager.default.removeItem(at: directory)
+    }
+    let script = directory.appendingPathComponent("highlight.js")
+    try """
+      var hljs = {
+        listLanguages: function() { return ["swift"]; },
+        highlight: function(code, options) {
+          return { value: '<span class="hljs-keyword">' + code + '</span>' };
+        },
+        highlightAuto: function(code) {
+          return { value: '<span class="hljs-keyword">' + code + '</span>' };
+        }
+      };
+      """.write(to: script, atomically: true, encoding: .utf8)
+    return try XCTUnwrap(SyntaxHighlighter(highlightJSURL: script))
+  }
+
+  /// The components of the color of the first character of `token` in `string`, in the sRGB color
+  /// space, or `nil` if the character has no color of its own.
+  private func color(of token: String, in string: NSAttributedString) throws -> [CGFloat]? {
+    let range = (string.string as NSString).range(of: token)
+    XCTAssertNotEqual(range.location, NSNotFound, string.string)
+    guard let color = string.attribute(.foregroundColor, at: range.location, effectiveRange: nil) as? HRColor else {
+      return nil
+    }
+    let srgb = try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB))
+    return color.cgColor.converted(to: srgb, intent: .defaultIntent, options: nil)?.components
+  }
+
+  func testTheHighlighterOfTheUtilityIsUsedForCode() async throws {
+    let highlighter = try self.makeStubHighlighter()
+    XCTAssertNil(MarkdownUtil.standard.syntaxHighlighter)
+    let util = MarkdownUtil(syntaxHighlighter: highlighter)
+    XCTAssertTrue(util.syntaxHighlighter === highlighter)
+    // The generators of documents get it
+    let generator = util.documentGenerator(maxImageWidth: 400, diagramMaxWidth: 400,
+                                           renderingOptions: self.options)
+    XCTAssertTrue(generator.syntaxHighlighter === highlighter)
+    let plain = util.documentGenerator(maxImageWidth: 400, diagramMaxWidth: 400, mermaid: nil, math: nil,
+                                       renderingOptions: self.options)
+    XCTAssertTrue(plain.syntaxHighlighter === highlighter)
+    // The code is colored by the highlighter of the utility: the shared one does not color `zzz`
+    let doc = self.parse("```swift\nzzz\n```\n")
+    let shared = try await MarkdownUtil.standard.pdfAttributedString(doc, textWidth: 468, renderingOptions: self.options)
+    let custom = try await util.pdfAttributedString(doc, textWidth: 468, renderingOptions: self.options)
+    let blue = try XCTUnwrap(self.color(of: "zzz", in: custom))
+    XCTAssertEqual(blue.count, 4)
+    XCTAssertLessThan(blue[0], 0.2)
+    XCTAssertGreaterThan(blue[2], 0.8)
+    XCTAssertNotEqual(try self.color(of: "zzz", in: shared), blue)
+    // ... and the terminal text as well
+    let terminalDoc = self.parse("```swift\nzzz\n```\n")
+    XCTAssertNotEqual(util.ansi(terminalDoc), MarkdownUtil.standard.ansi(terminalDoc))
   }
 
   func testRelativeImagePathsAreResolvedAgainstTheImageBaseUrl() async throws {

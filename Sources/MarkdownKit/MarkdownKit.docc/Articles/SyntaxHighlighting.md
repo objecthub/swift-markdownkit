@@ -50,6 +50,8 @@ let highlighter = SyntaxHighlighter(highlightJSURL: URL(fileURLWithPath: "/path/
 let generator = AttributedStringGenerator(syntaxHighlighter: highlighter)
 ```
 
+``MarkdownUtil`` takes the highlighter as well (`MarkdownUtil(syntaxHighlighter: highlighter)`), and uses it for the code in its terminal text, RTF, RTFD and PDF documents.
+
 ### Write themes
 
 A theme is CSS with rules for the classes that Highlight.js assigns to the parts of highlighted code, for example `.hljs-keyword{color:#f00;font-weight:bold}`. The selectors consist of classes: `.a`, `.a.b`, descendant selectors (`.a .b`) and child selectors (`.a > .b`). The cascade follows CSS: a rule with a higher specificity (more classes) wins over one with a lower specificity, otherwise the last rule wins. The properties `color`, `background-color`, `font-weight` and `font-style` are used for attributed strings; terminal output also uses `text-decoration`.

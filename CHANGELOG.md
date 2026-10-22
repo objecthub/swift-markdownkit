@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.2 (2026-10-22)
+
+New features and other changes:
+
+- Fixes: `MarkdownUtil` could not use a `SyntaxHighlighter` of your own; `MarkdownUtil(syntaxHighlighter:)` chooses the highlighter for the code of `ansi`, `rtf`, `rtfd` and `pdf`. The parameters `mermaid` and `math` of `rtfd` and `pdf` are optional: with `nil`, diagrams and formulas are not drawn but stay code and text. Calls compile as before; code that uses these methods or the initializer as a function value has to use the new signature.
+
 ## 2.3.1 (2026-10-22)
 
 New features and other changes:

@@ -954,6 +954,6 @@ private extension Scanner {
 /// Syntax highlighting is not available on watchOS because there is no JavaScriptCore. This
 /// type has no instances. It only exists so that the initializers of the generators have the
 /// same parameters (such as `syntaxHighlighter`) on all platforms.
-public enum SyntaxHighlighter {}
+public enum SyntaxHighlighter: Sendable {}
 
 #endif
