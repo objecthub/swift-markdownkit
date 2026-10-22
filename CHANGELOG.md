@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1 (2026-10-22)
+
+New features and other changes:
+
+- Fixes: the methods of `MarkdownUtil` that create documents did not pass on all options of the generators. `rtfd` and `pdf` take the new parameters `mermaid` (a `MermaidConfig`), `math` (a `MathConfig`) and `imageBaseUrl`, and `rtf` takes `imageBaseUrl`. The parameters have default values, so calls compile as before; code that uses one of these methods as a function value has to use the new signature. See "Converting Markdown into Documents".
+
 ## 2.3 (2026-10-22)
 
 New features and other changes:

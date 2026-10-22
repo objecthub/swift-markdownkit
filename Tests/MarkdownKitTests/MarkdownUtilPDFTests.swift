@@ -26,7 +26,7 @@ import ImageIO
 import UniformTypeIdentifiers
 @testable import MarkdownKit
 
-/// Tests for `MarkdownUtil.pdf(_:title:author:pageSize:margins:renderingOptions:)`.
+/// Tests for `MarkdownUtil.pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`.
 @MainActor
 final class MarkdownUtilPDFTests: XCTestCase {
 
@@ -219,6 +219,134 @@ final class MarkdownUtilPDFTests: XCTestCase {
     // A diagram is never made larger than it is
     let large = sizes(try await util.pdfAttributedString(doc, textWidth: 1000, renderingOptions: self.options))
     XCTAssertEqual(large, [CGSize(width: 750, height: 150), CGSize(width: 500, height: 300)])
+  }
+
+  /// The sizes of the attachments of `string`.
+  private func attachmentSizes(of string: NSAttributedString) -> [CGSize] {
+    var result: [CGSize] = []
+    string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) { value, _, _ in
+      if let attachment = value as? NSTextAttachment {
+        result.append(attachment.bounds.size)
+      }
+    }
+    return result
+  }
+
+  func testThePageWidthOfTheConfigurationOfDiagramsDeterminesTheirScale() async throws {
+    let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
+    let renderer = try XCTUnwrap(MermaidRenderer(mermaidJSURL: script))
+    let source = "graph LR\n  A --> B\n"
+    let image = MermaidImage(pngData: try self.tinyPNG(width: 1000, height: 200, dpi: 144),
+                             size: CGSize(width: 500, height: 100), scale: 2)
+    // Mermaid draws these diagrams for pages of 400 and 1600 points: they are not drawn for 800
+    let narrow = MermaidConfig(width: 400)
+    let wide = MermaidConfig(width: 1600)
+    renderer.store(image, for: source, config: narrow)
+    renderer.store(image, for: source, config: wide)
+    let util = MarkdownUtil(mermaidRenderer: renderer)
+    let doc = self.parse("```mermaid\n\(source)```\n")
+    // A page of 400 points of text is as wide as the page which the diagram was drawn for
+    let fitting = try await util.pdfAttributedString(doc, textWidth: 400, mermaid: narrow,
+                                                     renderingOptions: self.options)
+    XCTAssertEqual(self.attachmentSizes(of: fitting), [CGSize(width: 500, height: 100)])
+    let scaled = try await util.pdfAttributedString(doc, textWidth: 400, mermaid: wide,
+                                                    renderingOptions: self.options)
+    XCTAssertEqual(self.attachmentSizes(of: scaled), [CGSize(width: 125, height: 25)])
+  }
+
+  func testTheMaximalWidthOfDiagramsIsTheirWidthOnThePage() async throws {
+    let script = try XCTUnwrap(Resources.bundle?.url(forResource: "mermaid.min", withExtension: "js"))
+    let renderer = try XCTUnwrap(MermaidRenderer(mermaidJSURL: script))
+    let source = "graph LR\n  A --> B\n"
+    // The limit of the width is not part of the image, so one image serves both configurations
+    renderer.store(MermaidImage(pngData: try self.tinyPNG(width: 1500, height: 300, dpi: 144),
+                                size: CGSize(width: 750, height: 150), scale: 2),
+                   for: source, config: MermaidConfig())
+    let util = MarkdownUtil(mermaidRenderer: renderer)
+    let doc = self.parse("```mermaid\n\(source)```\n")
+    let unlimited = try await util.pdfAttributedString(doc, textWidth: 468, renderingOptions: self.options)
+    XCTAssertEqual(self.attachmentSizes(of: unlimited).first?.width ?? 0, 750 * 0.585, accuracy: 0.01)
+    // The scale of the page makes the diagram 438.75 points wide, so the limit applies to that
+    let limited = try await util.pdfAttributedString(doc, textWidth: 468, mermaid: MermaidConfig(maxWidth: 200),
+                                                     renderingOptions: self.options)
+    XCTAssertEqual(self.attachmentSizes(of: limited).first?.width ?? 0, 200, accuracy: 0.01)
+    XCTAssertEqual(self.attachmentSizes(of: limited).first?.height ?? 0, 40, accuracy: 0.01)
+    // A limit which is wider than the diagram changes nothing, and one that is not positive is none
+    for maxWidth in [CGFloat(600), 0, -5] {
+      let string = try await util.pdfAttributedString(doc, textWidth: 468,
+                                                      mermaid: MermaidConfig(maxWidth: maxWidth),
+                                                      renderingOptions: self.options)
+      XCTAssertEqual(self.attachmentSizes(of: string).first?.width ?? 0, 750 * 0.585, accuracy: 0.01)
+    }
+  }
+
+  func testTheGeneratorOfDocumentsGetsTheConfigurations() {
+    let base = URL(fileURLWithPath: "/tmp/images/", isDirectory: true)
+    let katex = KaTeXOptions(macros: ["\\R": "\\mathbb{R}"])
+    let generator = MarkdownUtil.standard.documentGenerator(
+      maxImageWidth: 400,
+      diagramMaxWidth: 400,
+      mermaid: MermaidConfig(theme: .forest, fontFamily: "Courier", scale: 3, width: 600),
+      math: MathConfig(katex: katex, scale: 2),
+      imageBaseUrl: base,
+      renderingOptions: self.options)
+    XCTAssertEqual(generator.imageBaseUrl, base)
+    XCTAssertEqual(generator.mermaidConfig?.theme, .forest)
+    XCTAssertEqual(generator.mermaidConfig?.fontFamily, "Courier")
+    XCTAssertEqual(generator.mermaidConfig?.scale, 3)
+    XCTAssertEqual(generator.mermaidConfig?.width, 600)
+    XCTAssertEqual(generator.mermaidConfig?.maxWidth, 400)
+    XCTAssertEqual(generator.mathConfig.katex.macros, katex.macros)
+    XCTAssertEqual(generator.mathConfig.scale, 2)
+    XCTAssertEqual(generator.mathConfig.maxWidth, 400)
+    // Without configurations, the generator has the default ones
+    let plain = MarkdownUtil.standard.documentGenerator(maxImageWidth: 300, diagramMaxWidth: 200,
+                                                        renderingOptions: self.options)
+    XCTAssertNil(plain.imageBaseUrl)
+    XCTAssertEqual(plain.mermaidConfig, MermaidConfig(maxWidth: 200))
+    XCTAssertEqual(plain.mathConfig, MathConfig(maxWidth: 300))
+  }
+
+  func testTheNarrowestLimitOfTheWidthCounts() {
+    let generator = MarkdownUtil.standard.documentGenerator(
+      maxImageWidth: 400,
+      diagramMaxWidth: nil,
+      mermaid: MermaidConfig(maxWidth: 300),
+      math: MathConfig(maxWidth: 500),
+      renderingOptions: self.options)
+    XCTAssertEqual(generator.mermaidConfig?.maxWidth, 300)
+    XCTAssertEqual(generator.mathConfig.maxWidth, 400)
+    let unlimited = MarkdownUtil.standard.documentGenerator(
+      maxImageWidth: 400,
+      diagramMaxWidth: 350,
+      mermaid: MermaidConfig(maxWidth: 0),
+      math: MathConfig(maxWidth: -1),
+      renderingOptions: self.options)
+    XCTAssertEqual(unlimited.mermaidConfig?.maxWidth, 350)
+    XCTAssertEqual(unlimited.mathConfig.maxWidth, 400)
+    XCTAssertNil(MarkdownUtil.narrowest(nil, 0, -1))
+    XCTAssertEqual(MarkdownUtil.narrowest(nil, 200, 100, 0), 100)
+  }
+
+  func testRelativeImagePathsAreResolvedAgainstTheImageBaseUrl() async throws {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("MarkdownUtilPDFTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer {
+      try? FileManager.default.removeItem(at: directory)
+    }
+    try self.tinyPNG(width: 40, height: 20, dpi: 72).write(to: directory.appendingPathComponent("in.png"))
+    let doc = self.parse("Before ![zebra](in.png) after")
+    let options = AttributedStringGenerator.RenderingOptions(localImages: .within(directory),
+                                                             remoteImages: .none)
+    let without = try await MarkdownUtil.standard.pdfAttributedString(doc, textWidth: 468,
+                                                                      renderingOptions: options)
+    XCTAssertTrue(self.attachmentSizes(of: without).isEmpty)
+    XCTAssertTrue(without.string.contains("zebra"), without.string)
+    let with = try await MarkdownUtil.standard.pdfAttributedString(doc, textWidth: 468, imageBaseUrl: directory,
+                                                                   renderingOptions: options)
+    XCTAssertEqual(self.attachmentSizes(of: with).count, 1)
+    XCTAssertFalse(with.string.contains("zebra"), with.string)
   }
 
   /// A PNG which is filled with one color.

@@ -26,9 +26,9 @@ import Foundation
 ///
 /// - **Converting Markdown into documents.** ``text(_:width:)``, ``ansi(_:width:)`` and
 ///   ``html(_:math:safeMode:)`` turn a parsed document into text, text with ANSI escape codes and
-///   HTML on every platform. ``rtf(_:title:author:renderingOptions:)`` and
-///   ``rtfd(_:title:author:maxImageWidth:renderingOptions:)`` create RTF and RTFD documents, and
-///   ``pdf(_:title:author:pageSize:margins:renderingOptions:)`` a PDF document, on macOS and iOS;
+///   HTML on every platform. ``rtf(_:title:author:imageBaseUrl:renderingOptions:)`` and
+///   ``rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` create RTF and RTFD documents, and
+///   ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` a PDF document, on macOS and iOS;
 ///   RTFD and PDF documents contain the diagrams and formulas as images. The ``style`` of the
 ///   utility determines how these documents look. See <doc:ConvertingMarkdownIntoDocuments>.
 /// - **Drawing diagrams and formulas as images.** ``mermaidImage(_:config:)`` and
@@ -60,9 +60,9 @@ public struct MarkdownUtil: Sendable {
   /// The renderer that draws formulas. If `nil`, ``MathRenderer/shared`` is used.
   public let mathRenderer: MathRenderer?
 
-  /// The appearance of the documents that ``rtf(_:title:author:renderingOptions:)``,
-  /// ``rtfd(_:title:author:maxImageWidth:renderingOptions:)`` and
-  /// ``pdf(_:title:author:pageSize:margins:renderingOptions:)`` create: fonts, colors, spacing and
+  /// The appearance of the documents that ``rtf(_:title:author:imageBaseUrl:renderingOptions:)``,
+  /// ``rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` and
+  /// ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` create: fonts, colors, spacing and
   /// CSS. The default is ``AttributedStringGenerator/Style/light``: the colors for a white page,
   /// whatever the appearance of the system is.
   public let style: AttributedStringGenerator.Style

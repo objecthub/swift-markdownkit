@@ -505,7 +505,7 @@ See [Drawing Images of Diagrams and Formulas](https://objecthub.github.io/swift-
 
 #### Converting Markdown into documents
 
-`MarkdownUtil` also converts a Markdown document into text, HTML, RTF, RTFD or PDF with one call: `text(_:width:)`, `ansi(_:width:)` and `html(_:math:safeMode:)` are available on all platforms, `rtf(_:title:author:renderingOptions:)`, `rtfd(_:title:author:maxImageWidth:renderingOptions:)` and `pdf(_:title:author:pageSize:margins:renderingOptions:)` on macOS and iOS. An RTFD document contains diagrams and formulas as images, which are sized correctly, and formulas within a line are aligned with the text. Call `preparedForRTFD()` on your own `NSAttributedString` to get the same when you export it as RTFD yourself:
+`MarkdownUtil` also converts a Markdown document into text, HTML, RTF, RTFD or PDF with one call: `text(_:width:)`, `ansi(_:width:)` and `html(_:math:safeMode:)` are available on all platforms, `rtf(_:title:author:imageBaseUrl:renderingOptions:)`, `rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)` and `pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)` on macOS and iOS. An RTFD document contains diagrams and formulas as images, which are sized correctly, and formulas within a line are aligned with the text. `rtfd` and `pdf` take a `MermaidConfig` (`mermaid`), a `MathConfig` (`math`) and an `imageBaseUrl` for relative image paths. Call `preparedForRTFD()` on your own `NSAttributedString` to get the same when you export it as RTFD yourself:
 
 ```swift
 let doc = MarkdownDialect.fullLaTeX.parser.parse(markdown)

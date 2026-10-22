@@ -116,6 +116,34 @@ final class MarkdownUtilConversionTests: XCTestCase {
     XCTAssertFalse(rtf.contains("\\author"), rtf)
   }
 
+  func testRtfResolvesRelativeImagePathsAgainstTheImageBaseUrl() async throws {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("MarkdownUtilConversionTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer {
+      try? FileManager.default.removeItem(at: directory)
+    }
+    try self.png().write(to: directory.appendingPathComponent("in.png"))
+    let doc = self.parse("Before ![zebra](in.png) after")
+    let options = AttributedStringGenerator.RenderingOptions(localImages: .within(directory),
+                                                             remoteImages: .none)
+    // The image is not allowed without a base: its alternative text is shown instead
+    let without = String(decoding: try await MarkdownUtil.standard.rtf(doc, renderingOptions: options),
+                         as: UTF8.self)
+    XCTAssertTrue(without.contains("zebra"), without)
+    let with = String(decoding: try await MarkdownUtil.standard.rtf(doc, imageBaseUrl: directory,
+                                                                    renderingOptions: options),
+                      as: UTF8.self)
+    XCTAssertFalse(with.contains("zebra"), with)
+    XCTAssertTrue(with.contains("Before"), with)
+  }
+
+  /// A PNG of one pixel.
+  private func png() -> Data {
+    return Data(base64Encoded:
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")!
+  }
+
   // MARK: RTFD
 
   #if canImport(WebKit)
@@ -184,6 +212,58 @@ final class MarkdownUtilConversionTests: XCTestCase {
     // The size in points of an image results from its resolution
     XCTAssertLessThanOrEqual(Double(width) * 72 / dpi, 120.5)
     XCTAssertGreaterThan(Double(width) * 72 / dpi, 60)
+  }
+
+  func testRtfdUsesTheConfigurationOfFormulas() async throws {
+    let util = try self.makeUtil()
+    let doc = self.parse("A formula $\\w$.")
+    let options = AttributedStringGenerator.RenderingOptions(remoteImages: .none)
+    func width(of document: FileWrapper) throws -> Double {
+      let png = try XCTUnwrap(try XCTUnwrap(document.fileWrappers?["Formula 1.png"]).regularFileContents)
+      return Double(try self.resolution(of: png).width)
+    }
+    // The macro of the configuration decides what the formula shows
+    let short = MathConfig(katex: KaTeXOptions(macros: ["\\w": "x"]))
+    let long = MathConfig(katex: KaTeXOptions(macros: ["\\w": "x x x x x x x x x x"]))
+    let narrow = try width(of: try await util.rtfd(doc, math: short, renderingOptions: options))
+    let wide = try width(of: try await util.rtfd(doc, math: long, renderingOptions: options))
+    XCTAssertGreaterThan(wide, narrow * 5)
+    // The scale of the configuration is the number of pixels per point
+    let small = try await util.rtfd(doc, math: MathConfig(katex: short.katex, scale: 1), renderingOptions: options)
+    let large = try await util.rtfd(doc, math: MathConfig(katex: short.katex, scale: 3), renderingOptions: options)
+    XCTAssertEqual(try width(of: large) / width(of: small), 3, accuracy: 0.2)
+  }
+
+  func testRtfdUsesTheConfigurationOfDiagrams() async throws {
+    let util = try self.makeUtil()
+    let doc = self.parse("```mermaid\ngraph TD\n  A --> B\n```\n")
+    let options = AttributedStringGenerator.RenderingOptions(remoteImages: .none)
+    func width(of document: FileWrapper) throws -> Double {
+      let png = try XCTUnwrap(try XCTUnwrap(document.fileWrappers?["Image 1.png"]).regularFileContents)
+      return Double(try self.resolution(of: png).width)
+    }
+    let standard = try await util.rtfd(doc, renderingOptions: options)
+    let small = try await util.rtfd(doc, mermaid: MermaidConfig(scale: 1), renderingOptions: options)
+    // The default scale is 2
+    XCTAssertEqual(try width(of: standard) / width(of: small), 2, accuracy: 0.1)
+  }
+
+  func testRtfdResolvesRelativeImagePathsAgainstTheImageBaseUrl() async throws {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("MarkdownUtilConversionTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer {
+      try? FileManager.default.removeItem(at: directory)
+    }
+    try self.png().write(to: directory.appendingPathComponent("in.png"))
+    let util = try self.makeUtil()
+    let doc = self.parse("Before ![zebra](in.png) after")
+    let options = AttributedStringGenerator.RenderingOptions(localImages: .within(directory),
+                                                             remoteImages: .none)
+    let without = try await util.rtfd(doc, renderingOptions: options)
+    XCTAssertEqual(Set(try XCTUnwrap(without.fileWrappers).keys), ["TXT.rtf"])
+    let with = try await util.rtfd(doc, imageBaseUrl: directory, renderingOptions: options)
+    XCTAssertEqual(try XCTUnwrap(with.fileWrappers).count, 2)
   }
 
   func testRtfdWithoutImagesIsADocumentWithText() async throws {

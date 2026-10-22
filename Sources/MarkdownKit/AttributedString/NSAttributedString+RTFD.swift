@@ -37,7 +37,8 @@ extension NSAttributedString {
   /// faithfully. Use it before you export an attributed string with images, such as the diagrams
   /// and formulas of ``MathAttributedStringGenerator``, as an RTFD document
   /// (`fileWrapper(from:documentAttributes:)` with the document type `rtfd`). This is what
-  /// ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:renderingOptions:)`` does.
+  /// ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)``
+  /// does.
   ///
   /// The RTFD format has no room for some of what an attachment says, and a viewer shows an
   /// image in a different way than a text view does. For every attachment that has PNG data
@@ -65,8 +66,8 @@ extension NSAttributedString {
   ///
   /// ```swift
   /// let document = try string.preparedForRTFD()
-  ///                          .fileWrapper(from: NSRange(location: 0, length: string.length),
-  ///                                       documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
+  ///       .fileWrapper(from: NSRange(location: 0, length: string.length),
+  ///                    documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
   /// ```
   ///
   public func preparedForRTFD() -> NSAttributedString {

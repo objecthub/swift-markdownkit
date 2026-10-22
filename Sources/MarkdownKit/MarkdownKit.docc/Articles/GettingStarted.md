@@ -14,7 +14,7 @@ MarkdownKit is distributed as a Swift package. Add it to the dependencies of you
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/objecthub/swift-markdownkit.git", from: "2.3.0")
+  .package(url: "https://github.com/objecthub/swift-markdownkit.git", from: "2.3.1")
 ],
 targets: [
   .target(name: "MyApp", dependencies: [

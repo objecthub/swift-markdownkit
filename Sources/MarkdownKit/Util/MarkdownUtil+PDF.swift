@@ -49,7 +49,7 @@ extension MarkdownUtil {
   }
 
   /// The size in points of a page of the format US Letter, which is the default size of the pages
-  /// of ``pdf(_:title:author:pageSize:margins:renderingOptions:)``.
+  /// of ``pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)``.
   public static let usLetter = CGSize(width: 612, height: 792)
 
   /// The size in points of a page of the format A4.
@@ -117,8 +117,9 @@ extension MarkdownUtil {
   /// tables, quotes and code blocks are laid out as they are in a text view, in the width of
   /// the pages, and are broken into pages. Diagrams (see <doc:DrawingMermaidDiagrams>) and
   /// formulas (see <doc:MathematicalFormulas>) are drawn as images. All diagrams are scaled
-  /// alike, so that a diagram of the width of a page for which Mermaid draws (800 points)
-  /// fills the text of a page; formulas are scaled down if they are wider than the text.
+  /// alike, so that a diagram of the width of a page for which Mermaid draws (the `width` of
+  /// `mermaid`, 800 points by default) fills the text of a page; formulas are scaled down if
+  /// they are wider than the text.
   /// The numbers and bullets of lists sit on the baseline of the first line of their items.
   /// Links are clickable (except those to a place in the same document, `#name`).
   ///
@@ -133,6 +134,18 @@ extension MarkdownUtil {
   ///               for example; ``pageSize(_:)`` reads a size from text, such as `210x297mm`.
   ///   - margins: The space in points between the text and the edges of a page. The default is
   ///              one inch on each edge. `Insets("20mm")` reads margins from text.
+  ///   - mermaid: How diagrams are drawn: theme, scale, the width of the page they are laid out
+  ///              on, and more (see <doc:DrawingMermaidDiagrams>). The default draws them for a
+  ///              light background. The `maxWidth` of the configuration is the greatest width
+  ///              in points that a diagram has on the pages of the document, after the scaling
+  ///              that all diagrams get.
+  ///   - math: How formulas are typeset and shown: macros, scale, and more (see
+  ///           <doc:MathematicalFormulas>). Its `maxWidth` limits the width of a formula on the
+  ///           pages; formulas are never wider than the text.
+  ///   - imageBaseUrl: The URL against which the relative paths of images are resolved, see
+  ///                   ``AttributedStringGenerator/imageBaseUrl``. Use a URL with a trailing slash
+  ///                   for a directory. If `nil`, they are resolved against the `baseUrl` of
+  ///                   `renderingOptions`.
   ///   - renderingOptions: The options for rendering the document, which restrict what it can
   ///                       load (see <doc:RenderingUntrustedMarkdown>). The text of a PDF
   ///                       document is about 70% as large as in the other formats (the text of
@@ -147,6 +160,9 @@ extension MarkdownUtil {
                   author: String? = nil,
                   pageSize: CGSize = MarkdownUtil.usLetter,
                   margins: Insets = Insets(72),
+                  mermaid: MermaidConfig = .default,
+                  math: MathConfig = .default,
+                  imageBaseUrl: URL? = nil,
                   renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted)
                 async throws -> Data {
     let textSize = CGSize(width: pageSize.width - margins.left - margins.right,
@@ -154,7 +170,11 @@ extension MarkdownUtil {
     guard textSize.width >= 36, textSize.height >= 36 else {
       throw PDFError.noRoomForText
     }
-    let string = try await self.pdfAttributedString(doc, textWidth: textSize.width,
+    let string = try await self.pdfAttributedString(doc,
+                                                    textWidth: textSize.width,
+                                                    mermaid: mermaid,
+                                                    math: math,
+                                                    imageBaseUrl: imageBaseUrl,
                                                     renderingOptions: renderingOptions)
     return try Self.pdfData(from: string,
                             title: title,
@@ -168,38 +188,55 @@ extension MarkdownUtil {
   /// as large as in the other formats, the diagrams have one scale, and formulas are not
   /// wider than the text.
   ///
-  /// Mermaid draws a diagram for a page of `MermaidConfig.width` points (800 by default),
+  /// Mermaid draws a diagram for a page of `mermaid.width` points (800 by default),
   /// where it has the size which the diagram needs. All diagrams get the same scale, which
   /// is the one that makes a diagram that fills such a page fill the text of a page: they
   /// are shown at one size relative to each other (a diagram which is wider than another
   /// one has smaller text only if it is also wider on the page), and the text of a diagram
   /// is a little smaller than the text of the document. A diagram is never made larger
   /// than it is, and it is scaled down further if it is wider than the room which the text
-  /// has for it (in a list or a quote).
+  /// has for it (in a list or a quote), or than `mermaid.maxWidth`. The latter is the width
+  /// on the page, so the generator does not apply it: it comes after the scale of the page.
   func pdfAttributedString(_ doc: Block,
                            textWidth: CGFloat,
+                           mermaid: MermaidConfig = .default,
+                           math: MathConfig = .default,
+                           imageBaseUrl: URL? = nil,
                            renderingOptions: AttributedStringGenerator.RenderingOptions)
                          async throws -> NSAttributedString {
+    var diagrams = mermaid
+    diagrams.maxWidth = nil
     let generator = self.documentGenerator(
       maxImageWidth: textWidth,
       diagramMaxWidth: nil,
+      mermaid: diagrams,
+      math: math,
+      imageBaseUrl: imageBaseUrl,
       renderingOptions: renderingOptions.scalingText(by: Self.pdfTextScale))
     let string = try await generator.generateAsync(doc: doc)
-    Self.scalingDiagrams(in: string, by: min(1, textWidth / MermaidConfig.default.width))
+    Self.scalingDiagrams(in: string,
+                         by: min(1, textWidth / mermaid.renderKey.width),
+                         maxWidth: Self.narrowest(mermaid.maxWidth))
     return string
   }
 
-  /// Scales the diagrams (not the other images) in `string` by `factor`. They are the
-  /// attachments of a string that the generator has just created, which nobody else uses.
-  static func scalingDiagrams(in string: NSAttributedString, by factor: CGFloat) {
+  /// Scales the diagrams (not the other images) in `string` by `factor`, and then down to
+  /// `maxWidth` if they are wider. They are the attachments of a string that the generator
+  /// has just created, which nobody else uses.
+  static func scalingDiagrams(in string: NSAttributedString,
+                              by factor: CGFloat,
+                              maxWidth: CGFloat? = nil) {
     string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) {
       value, _, _ in
         guard let diagram = value as? MermaidDiagramContext.MermaidTextAttachment,
               diagram.diagramSize.width > 0 else {
           return
         }
-        let size = CGSize(width: diagram.diagramSize.width * factor,
+        var size = CGSize(width: diagram.diagramSize.width * factor,
                           height: diagram.diagramSize.height * factor)
+        if let maxWidth, size.width > maxWidth {
+          size = CGSize(width: maxWidth, height: size.height * maxWidth / size.width)
+        }
         diagram.diagramSize = size
         diagram.bounds = CGRect(origin: .zero, size: size)
         #if os(macOS)

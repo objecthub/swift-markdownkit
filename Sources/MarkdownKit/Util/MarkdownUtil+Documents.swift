@@ -26,9 +26,9 @@ import Foundation
 extension MarkdownUtil {
 
   /// Returns the document as an RTF document. RTF files cannot contain images, so diagrams are
-  /// shown as code and formulas as they were written; use
-  /// ``rtfd(_:title:author:maxImageWidth:renderingOptions:)`` for a document with images.
-  /// The result is the content of an `.rtf` file.
+  /// shown as code and formulas as they were written (there is no `MermaidConfig` or `MathConfig`
+  /// for this method); use ``rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)``
+  /// for a document with images. The result is the content of an `.rtf` file.
   ///
   /// This method is available on macOS and iOS. It renders the document as the asynchronous
   /// methods of ``AttributedStringGenerator`` do, so it also loads the images of the Markdown
@@ -40,6 +40,10 @@ extension MarkdownUtil {
   ///            does not write the properties of a document).
   ///   - author: The author of the document, which becomes one of its properties (on macOS; iOS
   ///             does not write the properties of a document).
+  ///   - imageBaseUrl: The URL against which the relative paths of images are resolved, see
+  ///                   ``AttributedStringGenerator/imageBaseUrl``. Use a URL with a trailing slash
+  ///                   for a directory. If `nil`, they are resolved against the `baseUrl` of
+  ///                   `renderingOptions`.
   ///   - renderingOptions: The options for rendering the document, which restrict what it can load
   ///                       (see <doc:RenderingUntrustedMarkdown>).
   /// - Throws: A ``AttributedStringGenerator/RenderingError`` if the document cannot be rendered,
@@ -47,9 +51,11 @@ extension MarkdownUtil {
   public func rtf(_ doc: Block,
                   title: String? = nil,
                   author: String? = nil,
+                  imageBaseUrl: URL? = nil,
                   renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted)
                 async throws -> Data {
     let generator = AttributedStringGenerator(style: self.style,
+                                              imageBaseUrl: imageBaseUrl,
                                               renderingOptions: renderingOptions)
     let string = try await generator.generateAsync(doc: doc)
     return try string.data(
@@ -80,7 +86,17 @@ extension MarkdownUtil {
   ///   - maxImageWidth: The width in points up to which diagrams and formulas are shown at their
   ///                    natural size; wider ones are scaled down. The default, 400, fits into a
   ///                    page of the size US Letter or A4 with margins of one inch, also within
-  ///                    lists and block quotes.
+  ///                    lists and block quotes. If `mermaid` or `math` has a `maxWidth` of its
+  ///                    own, the smaller width counts.
+  ///   - mermaid: How diagrams are drawn: theme, scale, the width of the page they are laid out
+  ///              on, and more (see <doc:DrawingMermaidDiagrams>). The default draws them for a
+  ///              light background.
+  ///   - math: How formulas are typeset and shown: macros, scale, and more (see
+  ///           <doc:MathematicalFormulas>).
+  ///   - imageBaseUrl: The URL against which the relative paths of images are resolved, see
+  ///                   ``AttributedStringGenerator/imageBaseUrl``. Use a URL with a trailing slash
+  ///                   for a directory. If `nil`, they are resolved against the `baseUrl` of
+  ///                   `renderingOptions`.
   ///   - renderingOptions: The options for rendering the document, which restrict what it
   ///                       can load (see <doc:RenderingUntrustedMarkdown>).
   /// - Throws: A ``AttributedStringGenerator/RenderingError`` if the document cannot be rendered,
@@ -89,10 +105,16 @@ extension MarkdownUtil {
                    title: String? = nil,
                    author: String? = nil,
                    maxImageWidth: CGFloat = 400,
+                   mermaid: MermaidConfig = .default,
+                   math: MathConfig = .default,
+                   imageBaseUrl: URL? = nil,
                    renderingOptions: AttributedStringGenerator.RenderingOptions = .trusted)
                  async throws -> sending FileWrapper {
     let generator = self.documentGenerator(maxImageWidth: maxImageWidth,
                                            diagramMaxWidth: maxImageWidth,
+                                           mermaid: mermaid,
+                                           math: math,
+                                           imageBaseUrl: imageBaseUrl,
                                            renderingOptions: renderingOptions)
     let string = try await generator.generateAsync(doc: doc).preparedForRTFD()
     return try string.fileWrapper(
@@ -101,17 +123,33 @@ extension MarkdownUtil {
   }
 
   /// Returns the generator for documents with images (RTFD, for example), which has the style
-  /// of the utility: diagrams and formulas are not wider than `maxImageWidth`.
+  /// of the utility: diagrams and formulas are not wider than `maxImageWidth`. The widths that
+  /// `maxImageWidth`, `diagramMaxWidth` and the configurations ask for are all limits: the
+  /// smallest counts.
   func documentGenerator(maxImageWidth: CGFloat,
                          diagramMaxWidth: CGFloat?,
+                         mermaid: MermaidConfig = .default,
+                         math: MathConfig = .default,
+                         imageBaseUrl: URL? = nil,
                          renderingOptions: AttributedStringGenerator.RenderingOptions)
                        -> MathAttributedStringGenerator {
+    var mermaid = mermaid
+    mermaid.maxWidth = Self.narrowest(mermaid.maxWidth, diagramMaxWidth)
+    var math = math
+    math.maxWidth = Self.narrowest(math.maxWidth, maxImageWidth)
     return MathAttributedStringGenerator(style: self.style,
-                                         mermaid: MermaidConfig(maxWidth: diagramMaxWidth),
+                                         mermaid: mermaid,
                                          mermaidRenderer: self.mermaidRenderer,
-                                         math: MathConfig(maxWidth: maxImageWidth),
+                                         math: math,
                                          mathRenderer: self.mathRenderer,
+                                         imageBaseUrl: imageBaseUrl,
                                          renderingOptions: renderingOptions)
+  }
+
+  /// Returns the smallest of the limits for a width, or `nil` if there is none. A limit which
+  /// is not greater than 0 is no limit (the configurations treat it so).
+  static func narrowest(_ limits: CGFloat?...) -> CGFloat? {
+    return limits.compactMap { $0 }.filter { $0 > 0 }.min()
   }
 
   /// The attributes of an RTF or RTFD document.

@@ -11,9 +11,9 @@ Turn a Markdown document into text, HTML, RTF, RTFD or PDF with one call.
 | ``MarkdownUtil/text(_:width:)`` | plain text, formatted for lines of a given width | all |
 | ``MarkdownUtil/ansi(_:width:)`` | text with ANSI escape codes for a terminal | all |
 | ``MarkdownUtil/html(_:math:safeMode:)`` | HTML, with formulas typeset as MathML | all (formulas stay code on watchOS) |
-| ``MarkdownUtil/rtf(_:title:author:renderingOptions:)`` | the data of an RTF file | macOS and iOS |
-| ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:renderingOptions:)`` | an RTFD document, with diagrams and formulas as images | macOS and iOS |
-| ``MarkdownUtil/pdf(_:title:author:pageSize:margins:renderingOptions:)`` | the data of a PDF file, with diagrams and formulas as images | macOS and iOS |
+| ``MarkdownUtil/rtf(_:title:author:imageBaseUrl:renderingOptions:)`` | the data of an RTF file | macOS and iOS |
+| ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` | an RTFD document, with diagrams and formulas as images | macOS and iOS |
+| ``MarkdownUtil/pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` | the data of a PDF file, with diagrams and formulas as images | macOS and iOS |
 
 ```swift
 let doc = MarkdownDialect.fullLaTeX.parser.parse(markdown)
@@ -35,11 +35,11 @@ The `MarkdownKitProcess` command-line tool (see <doc:UsingTheCommandLineTools>) 
 
 ### Convert into RTF
 
-``MarkdownUtil/rtf(_:title:author:renderingOptions:)`` renders the document with an ``AttributedStringGenerator`` and exports the result. An RTF file cannot contain images, so diagrams are code and formulas are shown as they were written. The method loads the images of the Markdown text, as the asynchronous methods of the generator do: the `renderingOptions` decide which ones (see <doc:RenderingUntrustedMarkdown>).
+``MarkdownUtil/rtf(_:title:author:imageBaseUrl:renderingOptions:)`` renders the document with an ``AttributedStringGenerator`` and exports the result. An RTF file cannot contain images, so diagrams are code and formulas are shown as they were written. The method loads the images of the Markdown text, as the asynchronous methods of the generator do: the `renderingOptions` decide which ones (see <doc:RenderingUntrustedMarkdown>).
 
 ### Convert into RTFD
 
-An RTFD document is a file package: a directory with the text (`TXT.rtf`) and the images. ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:renderingOptions:)`` draws diagrams and formulas as images (with the renderers of the utility, see <doc:DrawingMermaidDiagrams> and <doc:MathematicalFormulas>) and returns the package as a `FileWrapper`; write it into a directory with the path extension `rtfd`. The files of the images are called `Formula 1.png`, `Formula 2.png` and `Image 1.png`, in the order of the document.
+An RTFD document is a file package: a directory with the text (`TXT.rtf`) and the images. ``MarkdownUtil/rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` draws diagrams and formulas as images (with the renderers of the utility, see <doc:DrawingMermaidDiagrams> and <doc:MathematicalFormulas>) and returns the package as a `FileWrapper`; write it into a directory with the path extension `rtfd`. The files of the images are called `Formula 1.png`, `Formula 2.png` and `Image 1.png`, in the order of the document.
 
 Viewers do not show an RTFD document as a text view does, and the method makes up for the differences with ``Foundation/NSAttributedString/preparedForRTFD()``:
 
@@ -56,7 +56,7 @@ let document = try await util.rtfd(MarkdownDialect.fullLaTeX.parser.parse("The a
 
 ### Convert into PDF
 
-``MarkdownUtil/pdf(_:title:author:pageSize:margins:renderingOptions:)`` lays the document out as a text view does, in the width of a page, and draws it into pages: headings, paragraphs, lists, quotes, code blocks (with syntax highlighting) and tables, and diagrams and formulas as images, which are scaled down if they are wider than the text. The result is the content of a `.pdf` file; `title` and `author` become properties of the document.
+``MarkdownUtil/pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` lays the document out as a text view does, in the width of a page, and draws it into pages: headings, paragraphs, lists, quotes, code blocks (with syntax highlighting) and tables, and diagrams and formulas as images, which are scaled down if they are wider than the text. The result is the content of a `.pdf` file; `title` and `author` become properties of the document.
 
 ```swift
 let pdf = try await util.pdf(doc, title: "Notes", pageSize: MarkdownUtil.a4,
@@ -82,6 +82,24 @@ let pdf = try await MarkdownUtil(style: style).pdf(doc, title: "Notes")
 ```
 
 See <doc:CustomizingAttributedStringOutput> for the properties of a style. A page of a PDF document and the background of an RTF or RTFD document are white, so use a style with dark text; the preset ``AttributedStringGenerator/Style/dark``, whose text is white, is for text views. The utility does not take the style of `text`, `ansi` and `html`, as they do not have one. The scale of PDF documents (see above) applies on top of the style, and formulas and diagrams are drawn for the sizes of the style.
+
+### Configure diagrams, formulas and images
+
+``MarkdownUtil/rtfd(_:title:author:maxImageWidth:mermaid:math:imageBaseUrl:renderingOptions:)`` and ``MarkdownUtil/pdf(_:title:author:pageSize:margins:mermaid:math:imageBaseUrl:renderingOptions:)`` pass the configuration of the images on to the generator:
+
+- `mermaid` is the ``MermaidConfig`` for diagrams: theme, fonts, the scale of the image, the width of the page that Mermaid draws for, and more (see <doc:DrawingMermaidDiagrams>). The default draws them for a light background, like the style of the utility.
+- `math` is the ``MathConfig`` for formulas: the macros and limits of KaTeX, the scale of the image, and more (see <doc:MathematicalFormulas>).
+- `imageBaseUrl` is the URL against which the relative paths of images are resolved (see ``AttributedStringGenerator/imageBaseUrl``); without it, they are resolved against the `baseUrl` of the `renderingOptions`. Use a URL with a trailing slash for a directory. ``MarkdownUtil/rtf(_:title:author:imageBaseUrl:renderingOptions:)`` has this parameter as well, but no `mermaid` and `math`: an RTF file cannot contain images.
+
+```swift
+let pdf = try await util.pdf(
+  doc,
+  mermaid: MermaidConfig(theme: .neutral, fontFamily: "Helvetica"),
+  math: MathConfig(katex: KaTeXOptions(macros: ["\\R": "\\mathbb{R}"])),
+  imageBaseUrl: URL(fileURLWithPath: "/Users/me/Notes/", isDirectory: true))
+```
+
+The configurations may limit the width of diagrams and formulas with their `maxWidth`. RTFD has its own limit, `maxImageWidth`, and the narrower one counts. In a PDF document, formulas are never wider than the text of the page, and the `maxWidth` of a diagram is its width on the page, after the scale that all diagrams get. The `width` of the configuration is the width of the page that Mermaid draws for, which determines that scale: a diagram that fills a page of this width fills the text of a PDF page. The utility does not derive the theme of diagrams from its style: choose one that suits the pages.
 
 ### Prepare your own attributed string
 
