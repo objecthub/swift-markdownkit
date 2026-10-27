@@ -47,18 +47,18 @@ import UIKit
 /// - `align(_:layoutManager:)` measures the layout of a text view, which `MarkdownText` does after
 ///   each layout, so that it is right for the actual width and after the view changed its size.
 ///
-enum ListMarkers {
+public enum ListMarkers {
 
   /// The width of the text of a list item in ems that `aligned(_:)` assumes. The generator does
   /// not know the width of the text view: 30 ems are 480 points for a font of size 16.
-  static let assumedTextWidth: CGFloat = 30
+  public static let assumedTextWidth: CGFloat = 30
 
   /// A marker, and the first paragraph of the content of its item.
-  struct Pair {
+  public struct Pair {
     /// The characters of the marker, without the end of its paragraph.
-    let marker: NSRange
+    public let marker: NSRange
     /// The first paragraph of the content of the item, with the end of the paragraph.
-    let content: NSRange
+    public let content: NSRange
   }
 
   /// The number (or bullet, or checkbox) of a list item.
@@ -85,7 +85,7 @@ enum ListMarkers {
   /// Returns the markers of the lists in `string` together with the first paragraph of their
   /// items, in the order of the string. Items whose content starts with something that is not a
   /// paragraph (a code block, a quote, another list) are not included.
-  static func pairs(in string: NSAttributedString) -> [Pair] {
+  public static func pairs(in string: NSAttributedString) -> [Pair] {
     struct Row: Hashable {
       let table: ObjectIdentifier
       let row: Int
@@ -137,9 +137,9 @@ enum ListMarkers {
   /// Returns the distance of the baseline of the line which contains the character at `index` from
   /// the top of the text container. The glyph that determines it is the first glyph of the line
   /// which is neither an image nor moved by `baselineOffset`. `nil` if there is none.
-  static func baseline(in layout: NSLayoutManager,
-                       of storage: NSAttributedString,
-                       at index: Int) -> CGFloat? {
+  public static func baseline(in layout: NSLayoutManager,
+                              of storage: NSAttributedString,
+                              at index: Int) -> CGFloat? {
     guard layout.numberOfGlyphs > 0, index < storage.length else {
       return nil
     }
@@ -236,7 +236,7 @@ enum ListMarkers {
   /// Returns `string` with the markers of lists on the baseline of the first line of their items,
   /// for text in `assumedTextWidth` ems. The items whose first paragraph has text and images are
   /// measured; the other markers stay as they are. The result is `string` if nothing changes.
-  static func aligned(_ string: NSAttributedString) -> NSAttributedString {
+  public static func aligned(_ string: NSAttributedString) -> NSAttributedString {
     var hasImage = false
     string.enumerateAttribute(.attachment, in: NSRange(location: 0, length: string.length)) { value, _, stop in
       if value != nil {
@@ -275,9 +275,9 @@ enum ListMarkers {
   /// lay out the text again if the result is true. `pairs` can be given if the text did not change
   /// since `pairs(in:)` returned them (attributes do not matter).
   @discardableResult
-  static func align(_ storage: NSTextStorage,
-                    layoutManager: NSLayoutManager,
-                    pairs knownPairs: [Pair]? = nil) -> Bool {
+  public static func align(_ storage: NSTextStorage,
+                           layoutManager: NSLayoutManager,
+                           pairs knownPairs: [Pair]? = nil) -> Bool {
     let pairs = knownPairs ?? pairs(in: storage)
     guard !pairs.isEmpty else {
       return false
