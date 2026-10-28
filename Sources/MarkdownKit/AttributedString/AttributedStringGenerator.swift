@@ -1477,11 +1477,23 @@ open class AttributedStringGenerator: @unchecked Sendable {
     return self.insertingDiagrams(into: string, from: generator) ?? string
   }
 
-  /// Completes the string which the importer created: `finishAttributedString(_:from:)`, and, on
-  /// macOS and iOS, the alignment of the markers of list items (see `ListMarkers`).
+  /// Completes the string which the importer created: on iOS, the scaling of its images if
+  /// `scaleImages` is true (see `ImageTextAttachment`), then
+  /// `finishAttributedString(_:from:)`, and, on macOS and iOS, the alignment of the markers of
+  /// list items (see `ListMarkers`).
+  ///
+  /// The images are scaled first: at this point the string only has the images of the document,
+  /// since formulas and diagrams are replaced by `finishAttributedString(_:from:)`. The
+  /// alignment of the list markers also measures the scaled images.
   internal func completingImport(_ string: NSAttributedString,
-                                 from generator: InternalHtmlGenerator) -> NSAttributedString {
-    let result = self.finishAttributedString(string, from: generator)
+                                 from generator: InternalHtmlGenerator,
+                                 scaleImages: Bool = false) -> NSAttributedString {
+    #if os(iOS)
+    let imported = scaleImages ? ImageTextAttachment.scalingImages(in: string) : string
+    #else
+    let imported = string
+    #endif
+    let result = self.finishAttributedString(imported, from: generator)
     #if os(macOS) || os(iOS)
     return self.alignListMarkers ? ListMarkers.aligned(result) : result
     #else
@@ -2220,6 +2232,14 @@ extension AttributedStringGenerator {
   /// attributed string shows all of them, whatever the size of the cache of the
   /// `MermaidRenderer`.
   ///
+  /// The images of a document keep their natural size: the style of `img` (see `maxImageWidth`),
+  /// which `generate(doc:)` takes into account, has no effect on the result of `loadFromHTML`,
+  /// so an image that is wider than the text is cut off by a text view. With `scaleImages`, the
+  /// images are scaled down to the width that the text view offers for their line whenever the
+  /// text is laid out, also after the text view has changed its size, and also in the lines of
+  /// list items. Images are never scaled up. Formulas and diagrams are not affected; they scale
+  /// themselves. The images are only scaled on iOS; the parameter is ignored on other platforms.
+  ///
   /// - Important: Unlike the synchronous rendering, `loadFromHTML` also loads remote resources
   ///   (such as images and style sheets) which the HTML refers to, and it may wait for them
   ///   until `RenderingOptions.timeout` has passed. For untrusted Markdown, set
@@ -2228,9 +2248,12 @@ extension AttributedStringGenerator {
   /// - Parameters:
   ///   - doc: The Markdown document.
   ///   - options: Render options; if `nil`, `renderingOptions` is used.
+  ///   - scaleImages: If `true`, the images of the document are scaled down to the width
+  ///                  of their line when the text is laid out; see the discussion above.
   /// - Throws: An `RenderingError`.
   public func generateAsync(doc: Block,
-                            options: RenderingOptions? = nil) async throws
+                            options: RenderingOptions? = nil,
+                            scaleImages: Bool = false) async throws
                          -> sending NSAttributedString {
     // First prepare the content (this renders Mermaid diagrams, for example) and get an HTML
     // generator which creates placeholders for the results
@@ -2242,13 +2265,15 @@ extension AttributedStringGenerator {
              try await self.renderHTML(document.html,
                                        options: options ?? self.renderingOptions,
                                        probed: document.probed),
-             from: generator)
+             from: generator,
+             scaleImages: scaleImages)
   }
 
   /// Generates an attributed string from the given Markdown block without blocking the calling
   /// thread. See `generateAsync(doc:options:)`.
   public func generateAsync(block: Block,
-                            options: RenderingOptions? = nil) async throws
+                            options: RenderingOptions? = nil,
+                            scaleImages: Bool = false) async throws
                          -> sending NSAttributedString {
     let generator = await self.asyncHtmlGenerator(for: block, options: options)
     let document = self.generateHtmlForImport(generator.generate(block: block, parent: .none))
@@ -2256,13 +2281,15 @@ extension AttributedStringGenerator {
              try await self.renderHTML(document.html,
                                        options: options ?? self.renderingOptions,
                                        probed: document.probed),
-             from: generator)
+             from: generator,
+             scaleImages: scaleImages)
   }
 
   /// Generates an attributed string from the given Markdown blocks without blocking the calling
   /// thread. See `generateAsync(doc:options:)`.
   public func generateAsync(blocks: Blocks,
-                            options: RenderingOptions? = nil) async throws
+                            options: RenderingOptions? = nil,
+                            scaleImages: Bool = false) async throws
                          -> sending NSAttributedString {
     let generator = await self.asyncHtmlGenerator(for: blocks, options: options)
     let document = self.generateHtmlForImport(generator.generate(blocks: blocks, parent: .none))
@@ -2270,7 +2297,8 @@ extension AttributedStringGenerator {
              try await self.renderHTML(document.html,
                                        options: options ?? self.renderingOptions,
                                        probed: document.probed),
-             from: generator)
+             from: generator,
+             scaleImages: scaleImages)
   }
 
   // MARK: Asynchronous API with completion handlers
@@ -2288,12 +2316,16 @@ extension AttributedStringGenerator {
   /// - Parameters:
   ///   - doc: The Markdown document.
   ///   - options: Render options; if `nil`, `renderingOptions` is used.
+  ///   - scaleImages: If `true`, the images of the document are scaled down to the width
+  ///                  of their line when the text is laid out; see the discussion above.
   ///   - completionHandler: Called with the attributed string or with an `RenderingError`.
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
+                            scaleImages: Bool = false,
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
+                     scaleImages: scaleImages,
                      prepare: { await $0.asyncHtmlGenerator(for: doc, options: $1) },
                      html: { $0.generate(doc: doc) },
                      completion: completionHandler)
@@ -2304,9 +2336,11 @@ extension AttributedStringGenerator {
   /// `generateAsync(doc:options:completionHandler:)`.
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
+                            scaleImages: Bool = false,
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
+                     scaleImages: scaleImages,
                      prepare: { await $0.asyncHtmlGenerator(for: block, options: $1) },
                      html: { $0.generate(block: block, parent: .none) },
                      completion: completionHandler)
@@ -2317,9 +2351,11 @@ extension AttributedStringGenerator {
   /// `generateAsync(doc:options:completionHandler:)`.
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
+                            scaleImages: Bool = false,
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     self.renderAsync(options: options,
+                     scaleImages: scaleImages,
                      prepare: { await $0.asyncHtmlGenerator(for: blocks, options: $1) },
                      html: { $0.generate(blocks: blocks, parent: .none) },
                      completion: completionHandler)
@@ -2334,6 +2370,7 @@ extension AttributedStringGenerator {
   /// `finishAttributedString(_:from:)`.
   private func renderAsync(
       options: RenderingOptions?,
+      scaleImages: Bool,
       prepare: @escaping @Sendable (AttributedStringGenerator, RenderingOptions?) async
                  -> InternalHtmlGenerator,
       html: @escaping @Sendable (HtmlGenerator) -> String,
@@ -2342,12 +2379,13 @@ extension AttributedStringGenerator {
     if self.needsPreparation {
       Task {
         let generator = await prepare(self, options)
-        self.render(html: html, with: generator, options: options, deliver: deliver)
+        self.render(html: html, with: generator, options: options, scaleImages: scaleImages,
+                    deliver: deliver)
       }
     } else {
       // Nothing to prepare: generate the HTML on the calling thread
       self.render(html: html, with: self.htmlGenerator(options: options), options: options,
-                  deliver: deliver)
+                  scaleImages: scaleImages, deliver: deliver)
     }
   }
 
@@ -2356,6 +2394,7 @@ extension AttributedStringGenerator {
   private func render(html: (HtmlGenerator) -> String,
                       with generator: InternalHtmlGenerator,
                       options: RenderingOptions?,
+                      scaleImages: Bool,
                       deliver: CompletionHandler) {
     let document = self.generateHtmlForImport(html(generator))
     self.renderHTML(document.html,
@@ -2366,7 +2405,8 @@ extension AttributedStringGenerator {
           // The attributed string is created by the system's HTML loader and not used by
           // anybody else
           nonisolated(unsafe) let string = string
-          deliver(.success(self.completingImport(string, from: generator)))
+          deliver(.success(self.completingImport(string, from: generator,
+                                                 scaleImages: scaleImages)))
         case .failure(let error):
           deliver(.failure(error))
       }
@@ -2554,7 +2594,8 @@ extension AttributedStringGenerator {
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(doc:)` instead.
   public func generateAsync(doc: Block,
-                            options: RenderingOptions? = nil) async throws
+                            options: RenderingOptions? = nil,
+                            scaleImages: Bool = false) async throws
                          -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
@@ -2562,7 +2603,8 @@ extension AttributedStringGenerator {
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(block:)` instead.
   public func generateAsync(block: Block,
-                            options: RenderingOptions? = nil) async throws
+                            options: RenderingOptions? = nil,
+                            scaleImages: Bool = false) async throws
                          -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
@@ -2570,7 +2612,8 @@ extension AttributedStringGenerator {
   /// Not available on this platform since it requires WebKit; always throws
   /// `RenderingError.unsupportedPlatform`. Use `generate(blocks:)` instead.
   public func generateAsync(blocks: Blocks,
-                            options: RenderingOptions? = nil) async throws
+                            options: RenderingOptions? = nil,
+                            scaleImages: Bool = false) async throws
                          -> sending NSAttributedString {
     throw RenderingError.unsupportedPlatform
   }
@@ -2579,6 +2622,7 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(doc:)` instead.
   public func generateAsync(doc: Block,
                             options: RenderingOptions? = nil,
+                            scaleImages: Bool = false,
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     // The completion handler is not used by anybody else
@@ -2592,6 +2636,7 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(block:)` instead.
   public func generateAsync(block: Block,
                             options: RenderingOptions? = nil,
+                            scaleImages: Bool = false,
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     // The completion handler is not used by anybody else
@@ -2605,6 +2650,7 @@ extension AttributedStringGenerator {
   /// `RenderingError.unsupportedPlatform` asynchronously. Use `generate(blocks:)` instead.
   public func generateAsync(blocks: Blocks,
                             options: RenderingOptions? = nil,
+                            scaleImages: Bool = false,
                             completionHandler: @escaping (sending Result<NSAttributedString,
                                                                          RenderingError>) -> Void) {
     // The completion handler is not used by anybody else
